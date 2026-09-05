@@ -52,9 +52,15 @@ export const plans = sqliteTable(
     repositoryProvider: text("repository_provider").notNull(),
     repositoryOwner: text("repository_owner").notNull(),
     repositoryName: text("repository_name").notNull(),
+    repositoryId: text("repository_id"),
+    repositoryVisibility: text("repository_visibility", {
+      enum: ["public", "private"],
+    }),
     repositoryVerified: integer("repository_verified", { mode: "boolean" })
       .notNull()
       .default(false),
+    repositoryVerifiedAt: text("repository_verified_at"),
+    publishedAt: text("published_at"),
     contractVersion: text("contract_version").notNull().default("v1"),
     epicGoal: text("epic_goal").notNull(),
     currentVersion: integer("current_version").notNull(),
@@ -68,6 +74,30 @@ export const plans = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.ownerId, table.id] }),
     index("plans_owner_updated_idx").on(table.ownerId, table.updatedAt),
+  ],
+);
+
+export const githubWorkLinks = sqliteTable(
+  "github_work_links",
+  {
+    ownerId: text("owner_id").notNull(),
+    planId: text("plan_id").notNull(),
+    itemId: text("item_id"),
+    repositoryId: text("repository_id").notNull(),
+    workNodeId: text("work_node_id").notNull(),
+    workDatabaseId: text("work_database_id").notNull(),
+    type: text("type", { enum: ["issue", "pull_request"] }).notNull(),
+    number: integer("number").notNull(),
+    url: text("url").notNull(),
+    state: text("state").notNull(),
+    lastObservedAt: text("last_observed_at").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.ownerId, table.planId, table.type, table.workNodeId],
+    }),
+    planReference(table),
+    index("github_work_links_plan_idx").on(table.ownerId, table.planId),
   ],
 );
 
@@ -246,6 +276,7 @@ export const schema = {
   assetObjects,
   assets,
   decisions,
+  githubWorkLinks,
   operations,
   ownerCredentials,
   owners,

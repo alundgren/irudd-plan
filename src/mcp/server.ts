@@ -30,6 +30,10 @@ import {
   MCP_PROTOCOL_VERSION,
   UploadAssetRequest,
   WritePlanRequest,
+  AssociateGitHubWorkRequest,
+  GetGitHubReferenceRequest,
+  PublishPlanRequest,
+  VerifyRepositoryRequest,
 } from "../contract/plan.js";
 import type { PlanService } from "../domain/plan-service.js";
 import { handleBrowserRequest } from "../web/http-router.js";
@@ -200,6 +204,30 @@ async function callTool(
         break;
       case "get_work_item":
         value = await service.getItem(ownerId, decode(GetItemRequest, args));
+        break;
+      case "verify_github_repository":
+        value = await service.verifyRepository(
+          ownerId,
+          decode(VerifyRepositoryRequest, args),
+        );
+        break;
+      case "associate_github_work":
+        value = await service.associateGitHubWork(
+          ownerId,
+          decode(AssociateGitHubWorkRequest, args),
+        );
+        break;
+      case "publish_plan":
+        value = await service.publish(
+          ownerId,
+          decode(PublishPlanRequest, args),
+        );
+        break;
+      case "get_github_reference":
+        value = await service.getGitHubReference(
+          ownerId,
+          decode(GetGitHubReferenceRequest, args),
+        );
         break;
       case "get_related_context":
         value = await service.getContext(

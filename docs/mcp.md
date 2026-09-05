@@ -10,15 +10,19 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 
 ## Tools
 
-| Tool                  | Result                                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------- |
-| `write_plan`          | Creates or replaces a complete plan revision atomically.                                          |
-| `get_work_item`       | Returns one item, required shared records and assets, a compact epic index, and a packet version. |
-| `get_related_context` | Retrieves one deliberately selected shared context and its required records.                      |
-| `check_packet`        | Returns `unchanged`, `changed`, `deleted`, or `unavailable`.                                      |
-| `list_plans`          | Lists plans for the authenticated owner only.                                                     |
-| `upload_asset`        | Stores immutable self-contained visual bytes and optional editable source.                        |
-| `get_asset`           | Returns exact rendered or source bytes as base64 for digest verification.                         |
+| Tool                       | Result                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `write_plan`               | Creates or replaces a complete plan revision atomically.                                          |
+| `get_work_item`            | Returns one item, required shared records and assets, a compact epic index, and a packet version. |
+| `get_related_context`      | Retrieves one deliberately selected shared context and its required records.                      |
+| `check_packet`             | Returns `unchanged`, `changed`, `deleted`, or `unavailable`.                                      |
+| `list_plans`               | Lists plans for the authenticated owner only.                                                     |
+| `upload_asset`             | Stores immutable self-contained visual bytes and optional editable source.                        |
+| `get_asset`                | Returns exact rendered or source bytes as base64 for digest verification.                         |
+| `verify_github_repository` | Verifies and records the plan's canonical repository through its configured installation.         |
+| `associate_github_work`    | Links an issue or pull request to the plan and optional work item after a fresh GitHub read.      |
+| `publish_plan`             | Publishes a verified public-repository plan through stable anonymous URLs.                        |
+| `get_github_reference`     | Returns the short goal, human URL, MCP URI, and text for an issue or PR body.                     |
 
 `write_plan` takes `operationId`, `expectedVersion`, and the complete `plan`. Use `expectedVersion: null` only when creating a plan. A retry with the same operation ID and identical request returns the first result. Reusing the ID with different input returns `OPERATION_MISMATCH`.
 
@@ -37,6 +41,12 @@ irudd-plan://plans/{planId}/assets/{assetId}?digest={digest}
 
 All templates are listed through `resources/templates/list` and resolved through `resources/read`. The plan URI returns only the epic goal, repository identity, and compact item index. The URIs identify current content and never contain a revision segment.
 
+`get_github_reference` does not write to GitHub. The caller owns that write. Its
+generated text contains only the selected item's short goal, the stable human
+link, and the stable MCP URI. Agents should retrieve the MCP resource and keep
+personal or session details out of published plans unless the plan explicitly
+asks for them.
+
 ## Selected packet rules
 
 The selected packet contains the full requested item, every recursively required shared context, required decisions, and required asset descriptors. It also contains the epic goal and an index with each item's ID, title, short goal, and related item IDs. It does not include sibling requirements, checks, deferrals, or completion expectations.
@@ -45,25 +55,30 @@ The selected packet contains the full requested item, every recursively required
 
 ## Errors
 
-| Code                    | Meaning                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `AUTH_INVALID`          | The assertion is absent, forged, has the wrong issuer or audience, or otherwise fails verification.          |
-| `AUTH_EXPIRED`          | The assertion expired.                                                                                       |
-| `AUTH_UNKNOWN_IDENTITY` | The verified identity has no configured owner mapping.                                                       |
-| `CONTRACT_UNSUPPORTED`  | The request names a contract other than `v1`.                                                                |
-| `REQUEST_INVALID`       | The request does not match the Effect Schema contract or has an empty operation ID.                          |
-| `DUPLICATE_ID`          | A stable ID occurs more than once in a plan.                                                                 |
-| `REFERENCE_MISSING`     | A required context, decision, asset, related item, or other required field is absent.                        |
-| `REFERENCE_CYCLE`       | Required shared contexts contain a cycle.                                                                    |
-| `ASSET_UNAVAILABLE`     | A required asset descriptor says the asset is unavailable.                                                   |
-| `ASSET_INVALID`         | Asset bytes, media type, immutable metadata, or self-contained markup rules are invalid.                     |
-| `ASSET_TOO_LARGE`       | Rendered or source bytes exceed the configured per-upload limit.                                             |
-| `STORAGE_LIMIT`         | An upload would exceed the authenticated owner's configured storage limit.                                   |
-| `PLAN_CONFLICT`         | `expectedVersion` does not match current state or the repository identity changed.                           |
-| `OPERATION_MISMATCH`    | An operation ID was reused with different input.                                                             |
-| `PLAN_NOT_FOUND`        | The authenticated owner cannot retrieve the plan. The response does not reveal whether another owner has it. |
-| `ITEM_NOT_FOUND`        | The requested item is absent.                                                                                |
-| `CONTEXT_NOT_FOUND`     | The deliberately requested shared context is absent.                                                         |
+| Code                      | Meaning                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `AUTH_INVALID`            | The assertion is absent, forged, has the wrong issuer or audience, or otherwise fails verification.          |
+| `AUTH_EXPIRED`            | The assertion expired.                                                                                       |
+| `AUTH_UNKNOWN_IDENTITY`   | The verified identity has no configured owner mapping.                                                       |
+| `CONTRACT_UNSUPPORTED`    | The request names a contract other than `v1`.                                                                |
+| `REQUEST_INVALID`         | The request does not match the Effect Schema contract or has an empty operation ID.                          |
+| `DUPLICATE_ID`            | A stable ID occurs more than once in a plan.                                                                 |
+| `REFERENCE_MISSING`       | A required context, decision, asset, related item, or other required field is absent.                        |
+| `REFERENCE_CYCLE`         | Required shared contexts contain a cycle.                                                                    |
+| `ASSET_UNAVAILABLE`       | A required asset descriptor says the asset is unavailable.                                                   |
+| `ASSET_INVALID`           | Asset bytes, media type, immutable metadata, or self-contained markup rules are invalid.                     |
+| `ASSET_TOO_LARGE`         | Rendered or source bytes exceed the configured per-upload limit.                                             |
+| `STORAGE_LIMIT`           | An upload would exceed the authenticated owner's configured storage limit.                                   |
+| `PLAN_CONFLICT`           | `expectedVersion` does not match current state or the repository identity changed.                           |
+| `OPERATION_MISMATCH`      | An operation ID was reused with different input.                                                             |
+| `PLAN_NOT_FOUND`          | The authenticated owner cannot retrieve the plan. The response does not reveal whether another owner has it. |
+| `ITEM_NOT_FOUND`          | The requested item is absent.                                                                                |
+| `CONTEXT_NOT_FOUND`       | The deliberately requested shared context is absent.                                                         |
+| `GITHUB_NOT_CONFIGURED`   | The operator has not configured GitHub App access.                                                           |
+| `GITHUB_ACCESS_DENIED`    | The owner mapping or configured installation does not permit the repository.                                 |
+| `GITHUB_UNAVAILABLE`      | GitHub could not complete a verification read.                                                               |
+| `GITHUB_WORK_NOT_FOUND`   | The requested issue or pull request was not found through the permitted installation.                        |
+| `PUBLICATION_NOT_ALLOWED` | The plan is unverified or belongs to a private repository.                                                   |
 
 MCP version failures use JSON-RPC error code `-32022` and list the requested and supported versions in error data.
 

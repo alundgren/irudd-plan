@@ -79,6 +79,11 @@ summary {
   gap: 5px;
 }
 
+.header-status {
+  display: flex;
+  gap: 6px;
+}
+
 .connection.live {
   border-color: #a7dad4;
   color: #126e6b;
@@ -533,7 +538,7 @@ summary {
     min-height: 58px;
   }
 
-  .review-header .connection {
+  .review-header .header-status {
     position: absolute;
     right: 8px;
     bottom: -28px;

@@ -7,7 +7,10 @@ import { collectRequiredContent } from "./required-content.js";
 export type ConnectionState = "connecting" | "live" | "reconnecting";
 type LoadResult = "applied" | "failed" | "superseded";
 
-export function useLivePlan(planId: string | undefined) {
+export function useLivePlan(
+  planId: string | undefined,
+  publicOwnerId?: string,
+) {
   const [document, setDocument] = useState<PlanDocument | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -29,7 +32,7 @@ export function useLivePlan(planId: string | undefined) {
       const controller = new AbortController();
       activeRequest.current = controller;
       try {
-        const next = await fetchPlan(id, controller.signal);
+        const next = await fetchPlan(id, controller.signal, publicOwnerId);
         if (sequence !== requestSequence.current) return "superseded";
         if (
           next.version < minimumVersion ||
@@ -59,7 +62,7 @@ export function useLivePlan(planId: string | undefined) {
         return "failed";
       }
     },
-    [],
+    [publicOwnerId],
   );
 
   useEffect(() => {
@@ -87,9 +90,11 @@ export function useLivePlan(planId: string | undefined) {
 
   useEffect(() => {
     if (planId === undefined) return;
-    const source = new EventSource(
-      `/api/plans/${encodeURIComponent(planId)}/events`,
-    );
+    const eventsPath =
+      publicOwnerId === undefined
+        ? `/api/plans/${encodeURIComponent(planId)}/events`
+        : `/public/plans/${encodeURIComponent(publicOwnerId)}/${encodeURIComponent(planId)}/events`;
+    const source = new EventSource(eventsPath);
     setConnection("connecting");
     const synchronize = async (event: Event): Promise<void> => {
       const result = await load(planId, eventVersion(event));
@@ -100,7 +105,7 @@ export function useLivePlan(planId: string | undefined) {
     source.addEventListener("plan-update", (event) => void synchronize(event));
     source.onerror = () => setConnection("reconnecting");
     return () => source.close();
-  }, [connectionEpoch, load, planId]);
+  }, [connectionEpoch, load, planId, publicOwnerId]);
 
   const retry = useCallback(async (): Promise<void> => {
     if (planId === undefined) return;

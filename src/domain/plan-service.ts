@@ -6,8 +6,16 @@ import type {
   GetRelatedContextRequest,
   UploadAssetRequest,
   WritePlanRequest,
+  AssociateGitHubWorkRequest,
+  GetGitHubReferenceRequest,
+  PublishPlanRequest,
+  VerifyRepositoryRequest,
 } from "../contract/plan.js";
 import type { PlanStore, StoredPlan } from "../database/store.js";
+import type {
+  GitHubConnection,
+  VerifiedGitHubRepository,
+} from "../github/github-app.js";
 import { prepareAsset, type AssetLimits } from "./assets.js";
 import { PlanUpdateHub } from "./plan-update-hub.js";
 import {
@@ -25,6 +33,8 @@ export class PlanService {
       maxSourceBytes: 2_000_000,
       maxOwnerStorageBytes: 100_000_000,
     },
+    private readonly github?: GitHubConnection,
+    private readonly publicBaseUrl = "http://localhost:3000",
   ) {}
 
   async write(ownerId: string, request: WritePlanRequest) {
@@ -46,6 +56,32 @@ export class PlanService {
 
   current(ownerId: string, planId: string) {
     return this.store.get(ownerId, planId);
+  }
+
+  publicCurrent(ownerId: string, planId: string) {
+    return this.store.getPublic(ownerId, planId);
+  }
+
+  async publicAsset(
+    ownerId: string,
+    planId: string,
+    assetId: string,
+    assetDigest: string,
+  ) {
+    const current = await this.store.getPublic(ownerId, planId);
+    const descriptor = current?.plan.assets.find(
+      (asset) => asset.id === assetId && asset.digest === assetDigest,
+    );
+    if (descriptor === undefined) {
+      throw new PlanError("ASSET_UNAVAILABLE", "Public asset is unavailable");
+    }
+    return this.getAsset(ownerId, {
+      contractVersion: "v1",
+      planId,
+      assetId,
+      digest: assetDigest,
+      content: "rendered",
+    });
   }
 
   async uploadAsset(ownerId: string, request: UploadAssetRequest) {
@@ -203,6 +239,158 @@ export class PlanService {
       packetVersion: current.packetVersion,
       resourceUri: current.resourceUri,
     };
+  }
+
+  async verifyRepository(ownerId: string, request: VerifyRepositoryRequest) {
+    const repository = await this.verifyCurrentRepository(
+      ownerId,
+      request.planId,
+      false,
+    );
+    return {
+      planId: request.planId,
+      repository,
+      publicationAllowed: repository.visibility === "public",
+    };
+  }
+
+  async associateGitHubWork(
+    ownerId: string,
+    request: AssociateGitHubWorkRequest,
+  ) {
+    const repository = await this.verifyCurrentRepository(
+      ownerId,
+      request.planId,
+      true,
+    );
+    const github = this.requireGitHub();
+    const observation = await github.observeWork(
+      ownerId,
+      repository,
+      request.type,
+      request.number,
+    );
+    await this.store.linkGitHubWork(ownerId, request.planId, {
+      ...(request.itemId === undefined ? {} : { itemId: request.itemId }),
+      repositoryId: repository.id,
+      workNodeId: observation.nodeId,
+      workDatabaseId: observation.databaseId,
+      type: observation.type,
+      number: observation.number,
+      url: observation.url,
+      state: observation.state,
+      lastObservedAt: observation.observedAt,
+    });
+    return {
+      planId: request.planId,
+      ...(request.itemId === undefined ? {} : { itemId: request.itemId }),
+      ...observation,
+    };
+  }
+
+  async publish(ownerId: string, request: PublishPlanRequest) {
+    const repository = await this.verifyCurrentRepository(
+      ownerId,
+      request.planId,
+      true,
+    );
+    if (repository.visibility !== "public") {
+      throw new PlanError(
+        "PUBLICATION_NOT_ALLOWED",
+        "Private-repository plans cannot be published",
+      );
+    }
+    const publishedAt = await this.store.publish(ownerId, request.planId);
+    return {
+      planId: request.planId,
+      status: "public" as const,
+      publishedAt,
+      humanUrl: this.publicPlanUrl(ownerId, request.planId),
+    };
+  }
+
+  async getGitHubReference(
+    ownerId: string,
+    request: GetGitHubReferenceRequest,
+  ) {
+    const stored = await this.store.get(ownerId, request.planId);
+    if (stored === undefined)
+      throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    const item =
+      request.itemId === undefined
+        ? undefined
+        : stored.plan.items.find(
+            (candidate) => candidate.id === request.itemId,
+          );
+    if (request.itemId !== undefined && item === undefined) {
+      throw new PlanError("ITEM_NOT_FOUND", "Work item is unavailable");
+    }
+    const planUrl = stored.access.published
+      ? this.publicPlanUrl(ownerId, request.planId)
+      : `${this.publicBaseUrl}/plans/${encodeURIComponent(request.planId)}`;
+    const humanUrl =
+      item === undefined
+        ? planUrl
+        : `${planUrl}/items/${encodeURIComponent(item.id)}`;
+    const resourceUri =
+      item === undefined
+        ? planResourceUri(request.planId)
+        : itemResourceUri(request.planId, item.id);
+    const shortGoal = item?.shortGoal ?? stored.plan.epicGoal;
+    return {
+      planId: request.planId,
+      ...(item === undefined ? {} : { itemId: item.id }),
+      shortGoal,
+      humanUrl,
+      resourceUri,
+      githubText: `${shortGoal}\n\nPlan: ${humanUrl}\nMCP: ${resourceUri}`,
+      publicationStatus: stored.access.published ? "public" : "private",
+      agentInstruction:
+        "Use the MCP reference for implementation context. Keep personal and session details out unless the plan explicitly requests them.",
+    };
+  }
+
+  private async verifyCurrentRepository(
+    ownerId: string,
+    planId: string,
+    mustAlreadyBeVerified: boolean,
+  ): Promise<VerifiedGitHubRepository> {
+    const current = await this.store.repository(ownerId, planId);
+    if (current === undefined)
+      throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    if (mustAlreadyBeVerified && !current.verified) {
+      throw new PlanError(
+        "PUBLICATION_NOT_ALLOWED",
+        "Verify the plan repository before linking or publishing",
+      );
+    }
+    const repository = await this.requireGitHub().verifyRepository(
+      ownerId,
+      current.owner,
+      current.name,
+    );
+    if (current.verified && current.id !== repository.id) {
+      throw new PlanError(
+        "PLAN_CONFLICT",
+        "A verified plan cannot be rebound to another repository",
+      );
+    }
+    await this.store.verifyRepository(ownerId, planId, repository);
+    return repository;
+  }
+
+  private requireGitHub(): GitHubConnection {
+    if (this.github === undefined) {
+      throw new PlanError(
+        "GITHUB_NOT_CONFIGURED",
+        "GitHub App access is not configured",
+      );
+    }
+    return this.github;
+  }
+
+  private publicPlanUrl(ownerId: string, planId: string): string {
+    return `${this.publicBaseUrl}/public/plans/${encodeURIComponent(ownerId)}/${encodeURIComponent(planId)}`;
   }
 }
 

@@ -60,7 +60,7 @@ change them, `vp exec` for project binaries, and `vp node` for direct Node.js
 entry points. These commands keep Node.js and pnpm on the versions declared by
 this repository.
 
-See [the review interface](ux.md), [MCP contract](docs/mcp.md), [architecture](docs/architecture.md), and [operations](docs/operations.md) for the public behavior and deployment details.
+See [the review interface](ux.md), [MCP contract](docs/mcp.md), [architecture](docs/architecture.md), and [operations](docs/operations.md) for browser review, GitHub linking, publication, and deployment details.
 
 ## Version record
 

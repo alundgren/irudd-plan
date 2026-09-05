@@ -1,6 +1,7 @@
 # Architecture
 
-The service has a private MCP interface and a private browser review interface.
+The service has an authenticated MCP interface, a private browser review
+interface, and narrow anonymous reads for published plans.
 
 ```text
 Cloudflare Access service JWT -> MCP tools ----+
@@ -10,6 +11,10 @@ Cloudflare Access browser JWT -> browser API --+-> plan service -> SQLite
                                                |         +-> commit-only update notices
                                                |
                                                +-> immutable asset reads
+
+Anonymous request -> /public/* -> publication check -> current plan/assets/events
+
+GitHub App installation token -> repository and issue/PR reads -> verification records
 ```
 
 - `src/contract` defines contract `v1` with Effect Schema and public error codes.
@@ -23,4 +28,9 @@ The client is built separately into `dist/client`, while the server remains the 
 
 SQLite uses WAL and a five-second busy timeout through `@effect/sql-sqlite-node`. Each plan write runs in one immediate transaction. Two requests that start at the same expected version serialize at SQLite's write lock. The first commit advances the version, and the second returns `PLAN_CONFLICT` before changing current records or adding a revision.
 
-Repository metadata starts unverified. This release has no publish operation. GitHub verification and public reads belong to later work.
+Repository metadata starts unverified. An operator maps each internal owner to
+specific GitHub App installations and repositories. The service uses short-lived
+installation tokens to verify the canonical repository ID and visibility before
+it accepts work links. A separate MCP action publishes verified public-repository
+plans. Published reads resolve the current revision through `/public/*`; private
+and unpublished records still require Cloudflare Access.

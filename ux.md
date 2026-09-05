@@ -11,6 +11,8 @@ The URL identifies current content, not a historical revision:
 ```text
 /plans/{planId}
 /plans/{planId}/items/{itemId}
+/public/plans/{ownerId}/{planId}
+/public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
 A direct item URL centers that card. The overview button returns to the epic card, and related-item buttons move between explicitly related work items. Selecting another card changes the stable URL without reloading the application.
@@ -26,6 +28,12 @@ An accepted MCP write publishes a revision notification only after its SQLite tr
 Existing cards retain their stable React Flow node IDs. A refresh does not run automatic zoom when the selected ID is unchanged, and the card scroll container remains mounted so its reading position and unchanged text selection can survive the update. Changed sections use a short yellow "Updated" treatment that clears after five seconds.
 
 The status badge shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
+
+A second status badge says `Private` or `Published`. The signed-in plan list also
+shows whether the repository still needs verification or cannot be published
+because it is private. Published routes omit the private plan list and return to
+the published overview. Publication remains an explicit authenticated MCP action,
+not a browser control.
 
 ## Text and visual content
 

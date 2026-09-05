@@ -31,6 +31,10 @@ export async function handleBrowserRequest(
   }
   if (request.method !== "GET") return false;
 
+  if (await handlePublicRequest(request, response, service, options, url)) {
+    return true;
+  }
+
   if (url.pathname === "/" || isPlanPage(url.pathname)) {
     await options.authenticator.authenticate(request.headers);
     sendHtml(response, renderAppPage());
@@ -69,18 +73,7 @@ export async function handleBrowserRequest(
       digest: url.searchParams.get("digest") ?? "",
       content: "rendered",
     });
-    if (isActiveMarkup(asset.mediaType)) {
-      sendJson(response, 200, {
-        mediaType: asset.mediaType,
-        bytesBase64: asset.bytesBase64,
-      });
-    } else {
-      sendAsset(
-        response,
-        asset.mediaType,
-        Buffer.from(asset.bytesBase64, "base64"),
-      );
-    }
+    sendBrowserAsset(response, asset.mediaType, asset.bytesBase64, false);
     return true;
   }
 
@@ -98,6 +91,140 @@ export async function handleBrowserRequest(
     return true;
   }
   return false;
+}
+
+async function handlePublicRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  service: PlanService,
+  options: BrowserRouterOptions,
+  url: URL,
+): Promise<boolean> {
+  const route = publicRoute(url.pathname);
+  if (route === undefined) return false;
+  if (route.kind === "page") {
+    const current = await service.publicCurrent(route.ownerId, route.planId);
+    if (current === undefined) throw publicUnavailable();
+    sendHtml(response, renderAppPage(), "public, no-cache");
+  } else if (route.kind === "events") {
+    await subscribePublic(
+      request,
+      response,
+      service,
+      options.registerStreamClose,
+      route.ownerId,
+      route.planId,
+    );
+  } else if (route.kind === "asset") {
+    const asset = await service.publicAsset(
+      route.ownerId,
+      route.planId,
+      route.assetId ?? "",
+      url.searchParams.get("digest") ?? "",
+    );
+    sendBrowserAsset(response, asset.mediaType, asset.bytesBase64, true);
+  } else {
+    const stored = await service.publicCurrent(route.ownerId, route.planId);
+    if (stored === undefined) throw publicUnavailable();
+    sendJson(response, 200, stored, "public, no-cache");
+  }
+  return true;
+}
+
+type PublicRoute = {
+  readonly kind: "page" | "events" | "asset" | "document";
+  readonly ownerId: string;
+  readonly planId: string;
+  readonly assetId?: string;
+};
+
+function publicRoute(pathname: string): PublicRoute | undefined {
+  const match = pathname.match(
+    /^\/public\/plans\/([^/]+)\/([^/]+)(?:\/(events|document|assets\/([^/]+)|items\/[^/]+))?$/,
+  );
+  if (match?.[1] === undefined || match[2] === undefined) return undefined;
+  const suffix = match[3];
+  const kind =
+    suffix === "events"
+      ? "events"
+      : suffix === "document"
+        ? "document"
+        : match[4] === undefined
+          ? "page"
+          : "asset";
+  return {
+    kind,
+    ownerId: decodeURIComponent(match[1]),
+    planId: decodeURIComponent(match[2]),
+    ...(match[4] === undefined
+      ? {}
+      : { assetId: decodeURIComponent(match[4]) }),
+  } as PublicRoute;
+}
+
+async function subscribePublic(
+  request: IncomingMessage,
+  response: ServerResponse,
+  service: PlanService,
+  registerStreamClose: (close: () => void) => () => void,
+  ownerId: string,
+  planId: string,
+): Promise<void> {
+  const current = await service.publicCurrent(ownerId, planId);
+  if (current === undefined) throw publicUnavailable();
+  const stream = openStream(response, current.version, registerStreamClose);
+  const unsubscribe = service.updates.subscribe(ownerId, planId, (update) => {
+    void service
+      .publicCurrent(ownerId, planId)
+      .then((latest) => {
+        if (latest === undefined) return stream.close();
+        stream.send(update.version);
+      })
+      .catch(stream.close);
+  });
+  stream.setUnsubscribe(unsubscribe);
+  request.on("close", stream.close);
+}
+
+function openStream(
+  response: ServerResponse,
+  version: number,
+  registerStreamClose: (close: () => void) => () => void,
+) {
+  response.writeHead(200, {
+    "content-type": "text/event-stream",
+    "cache-control": "public, no-cache",
+    connection: "keep-alive",
+    "x-accel-buffering": "no",
+  });
+  response.write(`event: ready\ndata: ${JSON.stringify({ version })}\n\n`);
+  let closed = false;
+  let unsubscribe = (): void => undefined;
+  const unregister = registerStreamClose(close);
+  const heartbeat = setInterval(
+    () => response.write(": keepalive\n\n"),
+    15_000,
+  );
+  heartbeat.unref();
+  function close(): void {
+    if (closed) return;
+    closed = true;
+    unsubscribe();
+    unregister();
+    clearInterval(heartbeat);
+    if (!response.writableEnded) response.end();
+  }
+  return {
+    close,
+    send(nextVersion: number): void {
+      response.write(
+        `id: ${nextVersion}\nevent: plan-update\ndata: ${JSON.stringify({ version: nextVersion })}\n\n`,
+      );
+    },
+    setUnsubscribe(value: () => void): void {
+      unsubscribe = value;
+    },
+  };
 }
 
 async function subscribe(
@@ -202,14 +329,38 @@ function sendAsset(
   response: ServerResponse,
   mediaType: string,
   content: Buffer,
+  cacheControl = "private, no-store",
 ): void {
   response.writeHead(200, {
     "content-type": mediaType,
     "content-length": content.byteLength,
-    "cache-control": "private, no-store",
+    "cache-control": cacheControl,
     "x-content-type-options": "nosniff",
   });
   response.end(content);
+}
+
+function sendBrowserAsset(
+  response: ServerResponse,
+  mediaType: string,
+  bytesBase64: string,
+  isPublic: boolean,
+): void {
+  if (isActiveMarkup(mediaType)) {
+    sendJson(
+      response,
+      200,
+      { mediaType, bytesBase64 },
+      isPublic ? "public, max-age=300" : "private, no-store",
+    );
+    return;
+  }
+  sendAsset(
+    response,
+    mediaType,
+    Buffer.from(bytesBase64, "base64"),
+    isPublic ? "public, max-age=31536000, immutable" : "private, no-store",
+  );
 }
 
 function isActiveMarkup(mediaType: string): boolean {
@@ -220,22 +371,31 @@ export function sendJson(
   response: ServerResponse,
   status: number,
   body: unknown,
+  cacheControl = "private, no-store",
 ): void {
   const content = JSON.stringify(body);
   response.writeHead(status, {
     "content-type": "application/json",
     "content-length": Buffer.byteLength(content),
-    "cache-control": "private, no-store",
+    "cache-control": cacheControl,
     "x-content-type-options": "nosniff",
   });
   response.end(content);
 }
 
-function sendHtml(response: ServerResponse, body: string): void {
+function sendHtml(
+  response: ServerResponse,
+  body: string,
+  cacheControl = "private, no-store",
+): void {
   response.writeHead(200, {
     "content-type": "text/html; charset=utf-8",
     "content-length": Buffer.byteLength(body),
-    "cache-control": "private, no-store",
+    "cache-control": cacheControl,
   });
   response.end(body);
+}
+
+function publicUnavailable(): PlanError {
+  return new PlanError("PLAN_NOT_FOUND", "Public plan is unavailable");
 }

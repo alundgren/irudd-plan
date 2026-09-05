@@ -16,7 +16,12 @@ export type PlanErrorCode =
   | "OPERATION_MISMATCH"
   | "PLAN_NOT_FOUND"
   | "ITEM_NOT_FOUND"
-  | "CONTEXT_NOT_FOUND";
+  | "CONTEXT_NOT_FOUND"
+  | "GITHUB_NOT_CONFIGURED"
+  | "GITHUB_ACCESS_DENIED"
+  | "GITHUB_UNAVAILABLE"
+  | "GITHUB_WORK_NOT_FOUND"
+  | "PUBLICATION_NOT_ALLOWED";
 
 export class PlanError extends Error {
   constructor(

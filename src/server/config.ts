@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
 import type { CredentialMapping } from "../database/store.js";
+import type { GitHubInstallationMapping } from "../github/github-app.js";
 
 export interface ServerConfig {
   readonly host: string;
@@ -16,6 +17,13 @@ export interface ServerConfig {
   readonly accessAudience: string;
   readonly accessJwksUrl: string;
   readonly credentialMappings: ReadonlyArray<CredentialMapping>;
+  readonly publicBaseUrl: string;
+  readonly github?: {
+    readonly appId: string;
+    readonly privateKey: string;
+    readonly apiUrl: string;
+    readonly installations: ReadonlyArray<GitHubInstallationMapping>;
+  };
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
@@ -42,6 +50,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
   const accessJwksUrl =
     environment.CF_ACCESS_JWKS_URL ?? `${accessIssuer}/cdn-cgi/access/certs`;
   requireHttpsUrl(accessJwksUrl, "CF_ACCESS_JWKS_URL");
+  const publicBaseUrl = environment.PUBLIC_BASE_URL ?? "http://localhost:3000";
+  requireHttpUrl(publicBaseUrl, "PUBLIC_BASE_URL");
+  const github = parseGitHub(environment);
   return {
     host: environment.HOST ?? "0.0.0.0",
     port: parseInteger(environment.PORT ?? "3000", "PORT"),
@@ -70,12 +81,100 @@ export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
     accessAudience: required(environment, "CF_ACCESS_AUDIENCE"),
     accessJwksUrl,
     credentialMappings,
+    publicBaseUrl: publicBaseUrl.replace(/\/$/, ""),
+    ...(github === undefined ? {} : { github }),
+  };
+}
+
+function parseGitHub(environment: NodeJS.ProcessEnv): ServerConfig["github"] {
+  const values = [
+    environment.GITHUB_APP_ID,
+    environment.GITHUB_APP_PRIVATE_KEY,
+    environment.OWNER_GITHUB_INSTALLATIONS_JSON,
+  ];
+  if (values.every((value) => value === undefined)) return undefined;
+  if (values.some((value) => value === undefined)) {
+    throw new Error(
+      "GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and OWNER_GITHUB_INSTALLATIONS_JSON must be set together",
+    );
+  }
+  const raw = JSON.parse(values[2]!) as unknown;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error(
+      "OWNER_GITHUB_INSTALLATIONS_JSON must contain at least one mapping",
+    );
+  }
+  return {
+    appId: requiredString(values[0], "GITHUB_APP_ID"),
+    privateKey: requiredString(values[1], "GITHUB_APP_PRIVATE_KEY").replace(
+      /\\n/g,
+      "\n",
+    ),
+    apiUrl: (environment.GITHUB_API_URL ?? "https://api.github.com").replace(
+      /\/$/,
+      "",
+    ),
+    installations: raw.map(parseInstallation),
+  };
+}
+
+function parseInstallation(
+  value: unknown,
+  index: number,
+): GitHubInstallationMapping {
+  if (value === null || typeof value !== "object") {
+    throw new Error(`GitHub installation mapping ${index} must be an object`);
+  }
+  const mapping = value as Record<string, unknown>;
+  const installationId = Number(mapping.installationId);
+  if (!Number.isSafeInteger(installationId) || installationId <= 0) {
+    throw new Error(
+      `GitHub installation mapping ${index} needs a positive installationId`,
+    );
+  }
+  if (
+    !Array.isArray(mapping.repositories) ||
+    mapping.repositories.length === 0
+  ) {
+    throw new Error(`GitHub installation mapping ${index} needs repositories`);
+  }
+  return {
+    ownerId: requiredString(
+      mapping.ownerId,
+      `GitHub installation mapping ${index} ownerId`,
+    ),
+    installationId,
+    repositories: mapping.repositories.map((repository, repositoryIndex) => {
+      if (repository === null || typeof repository !== "object") {
+        throw new Error(
+          `GitHub repository mapping ${index}.${repositoryIndex} must be an object`,
+        );
+      }
+      const record = repository as Record<string, unknown>;
+      return {
+        owner: requiredString(
+          record.owner,
+          `GitHub repository mapping ${index}.${repositoryIndex} owner`,
+        ),
+        name: requiredString(
+          record.name,
+          `GitHub repository mapping ${index}.${repositoryIndex} name`,
+        ),
+      };
+    }),
   };
 }
 
 function requireHttpsUrl(value: string, name: string): void {
   const url = new URL(value);
   if (url.protocol !== "https:") throw new Error(`${name} must use HTTPS`);
+}
+
+function requireHttpUrl(value: string, name: string): void {
+  const url = new URL(value);
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(`${name} must use HTTP or HTTPS`);
+  }
 }
 
 function parseMapping(value: unknown, index: number): CredentialMapping {

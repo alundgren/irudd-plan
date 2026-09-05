@@ -20,6 +20,47 @@ export const tools = [
     },
   },
   {
+    name: "verify_github_repository",
+    description:
+      "Verify the plan repository through the operator-approved GitHub App installation and persist its canonical identity and visibility.",
+    inputSchema: planSchema(),
+  },
+  {
+    name: "associate_github_work",
+    description:
+      "Associate a GitHub issue or pull request with a verified plan and optional work item. Repeating the same association updates its observation without duplicating it.",
+    inputSchema: {
+      type: "object",
+      required: ["contractVersion", "planId", "type", "number"],
+      properties: {
+        contractVersion: { type: "string" },
+        planId: { type: "string" },
+        itemId: { type: "string" },
+        type: { type: "string", enum: ["issue", "pull_request"] },
+        number: { type: "integer", minimum: 1 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "publish_plan",
+    description:
+      "Explicitly publish a verified public-repository plan. Private repositories cannot be published.",
+    inputSchema: planSchema(),
+  },
+  {
+    name: "get_github_reference",
+    description:
+      "Return a short goal, stable human URL, MCP resource URI, and ready-to-paste GitHub text for a plan or work item.",
+    inputSchema: {
+      ...planSchema(),
+      properties: {
+        ...planSchema().properties,
+        itemId: { type: "string" },
+      },
+    },
+  },
+  {
     name: "get_work_item",
     description:
       "Get one complete work-item packet with required shared records, assets, and a compact epic index. Sibling specifications are omitted.",
@@ -145,6 +186,21 @@ function planItemSchema() {
       },
       planId: { type: "string" },
       itemId: { type: "string" },
+    },
+    additionalProperties: false,
+  } as const;
+}
+
+function planSchema() {
+  return {
+    type: "object",
+    required: ["contractVersion", "planId"],
+    properties: {
+      contractVersion: {
+        type: "string",
+        description: `Plan contract version; currently ${CONTRACT_VERSION}`,
+      },
+      planId: { type: "string" },
     },
     additionalProperties: false,
   } as const;

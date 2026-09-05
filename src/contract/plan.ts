@@ -138,6 +138,30 @@ export const ListPlansRequest = Schema.Struct({
   contractVersion: Schema.Literal(CONTRACT_VERSION),
 });
 
+export const VerifyRepositoryRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+});
+
+export const AssociateGitHubWorkRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+  itemId: Schema.optionalKey(Identifier),
+  type: Schema.Literals(["issue", "pull_request"]),
+  number: PositiveInteger,
+});
+
+export const PublishPlanRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+});
+
+export const GetGitHubReferenceRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+  itemId: Schema.optionalKey(Identifier),
+});
+
 export type Plan = typeof Plan.Type;
 export type WorkItem = typeof WorkItem.Type;
 export type SharedContext = typeof SharedContext.Type;
@@ -149,6 +173,10 @@ export type WritePlanRequest = typeof WritePlanRequest.Type;
 export type GetItemRequest = typeof GetItemRequest.Type;
 export type GetRelatedContextRequest = typeof GetRelatedContextRequest.Type;
 export type CheckPacketRequest = typeof CheckPacketRequest.Type;
+export type VerifyRepositoryRequest = typeof VerifyRepositoryRequest.Type;
+export type AssociateGitHubWorkRequest = typeof AssociateGitHubWorkRequest.Type;
+export type PublishPlanRequest = typeof PublishPlanRequest.Type;
+export type GetGitHubReferenceRequest = typeof GetGitHubReferenceRequest.Type;
 
 export function decode<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,

@@ -25,6 +25,11 @@ import {
   sharedContexts,
   workItems,
 } from "./schema.js";
+import {
+  GitHubStore,
+  type GitHubWorkLinkInput,
+  type RepositoryRecord,
+} from "./github-store.js";
 
 export interface CredentialMapping {
   readonly issuer: string;
@@ -45,6 +50,15 @@ export interface WriteResult {
 export interface StoredPlan {
   readonly plan: Plan;
   readonly version: number;
+  readonly access: PlanAccess;
+}
+
+export interface PlanAccess {
+  readonly repositoryVerified: boolean;
+  readonly repositoryId?: string;
+  readonly repositoryVisibility?: "public" | "private";
+  readonly published: boolean;
+  readonly publishedAt?: string;
 }
 
 export interface ListedPlan {
@@ -57,6 +71,11 @@ export interface ListedPlan {
   };
   readonly version: number;
   readonly updatedAt: string;
+  readonly access: {
+    readonly repositoryVerified: boolean;
+    readonly repositoryVisibility?: "public" | "private";
+    readonly published: boolean;
+  };
 }
 
 type Database = Effect.Success<
@@ -65,12 +84,14 @@ type Database = Effect.Success<
 
 export class PlanStore {
   private readonly assetStore: AssetStore;
+  private readonly githubStore: GitHubStore;
 
   constructor(
     private readonly filename: string,
     private readonly migrationsFolder: string,
   ) {
     this.assetStore = new AssetStore(filename);
+    this.githubStore = new GitHubStore(filename);
   }
 
   private run<A, E>(
@@ -234,6 +255,7 @@ export class PlanStore {
           }
           if (
             existing !== undefined &&
+            existing.repositoryVerified &&
             (existing.repositoryProvider !== request.plan.repository.provider ||
               existing.repositoryOwner !== request.plan.repository.owner ||
               existing.repositoryName !== request.plan.repository.name)
@@ -264,6 +286,12 @@ export class PlanStore {
               .update(plans)
               .set({
                 epicGoal: request.plan.epicGoal,
+                ...(existing.repositoryVerified
+                  ? {}
+                  : {
+                      repositoryOwner: request.plan.repository.owner,
+                      repositoryName: request.plan.repository.name,
+                    }),
                 currentVersion: version,
                 updatedAt: sql`CURRENT_TIMESTAMP`,
               })
@@ -425,6 +453,12 @@ export class PlanStore {
           .select({
             version: plans.currentVersion,
             contentJson: planRevisions.contentJson,
+            repositoryVerified: plans.repositoryVerified,
+            repositoryOwner: plans.repositoryOwner,
+            repositoryName: plans.repositoryName,
+            repositoryId: plans.repositoryId,
+            repositoryVisibility: plans.repositoryVisibility,
+            publishedAt: plans.publishedAt,
           })
           .from(plans)
           .innerJoin(
@@ -440,8 +474,28 @@ export class PlanStore {
         const current = rows[0];
         if (current === undefined) return undefined;
         return {
-          plan: JSON.parse(current.contentJson) as Plan,
+          plan: {
+            ...(JSON.parse(current.contentJson) as Plan),
+            repository: {
+              provider: "github",
+              owner: current.repositoryOwner,
+              name: current.repositoryName,
+            },
+          },
           version: current.version,
+          access: {
+            repositoryVerified: current.repositoryVerified,
+            ...(current.repositoryId === null
+              ? {}
+              : { repositoryId: current.repositoryId }),
+            ...(current.repositoryVisibility === null
+              ? {}
+              : { repositoryVisibility: current.repositoryVisibility }),
+            published: current.publishedAt !== null,
+            ...(current.publishedAt === null
+              ? {}
+              : { publishedAt: current.publishedAt }),
+          },
         };
       }),
     );
@@ -465,8 +519,62 @@ export class PlanStore {
           },
           version: row.currentVersion,
           updatedAt: row.updatedAt,
+          access: {
+            repositoryVerified: row.repositoryVerified,
+            ...(row.repositoryVisibility === null
+              ? {}
+              : { repositoryVisibility: row.repositoryVisibility }),
+            published: row.publishedAt !== null,
+          },
         }));
       }),
     );
+  }
+
+  async repository(
+    ownerId: string,
+    planId: string,
+  ): Promise<RepositoryRecord | undefined> {
+    return this.githubStore.repository(ownerId, planId);
+  }
+
+  async verifyRepository(
+    ownerId: string,
+    planId: string,
+    repository: {
+      readonly id: string;
+      readonly owner: string;
+      readonly name: string;
+      readonly visibility: "public" | "private";
+    },
+  ): Promise<void> {
+    await this.githubStore.verifyRepository(ownerId, planId, repository);
+  }
+
+  async publish(ownerId: string, planId: string): Promise<string> {
+    return this.githubStore.publish(ownerId, planId);
+  }
+
+  async linkGitHubWork(
+    ownerId: string,
+    planId: string,
+    link: GitHubWorkLinkInput,
+  ): Promise<void> {
+    await this.githubStore.link(ownerId, planId, link);
+  }
+
+  async getPublic(
+    ownerId: string,
+    planId: string,
+  ): Promise<StoredPlan | undefined> {
+    const stored = await this.get(ownerId, planId);
+    return stored?.access.published === true &&
+      stored.access.repositoryVisibility === "public"
+      ? stored
+      : undefined;
+  }
+
+  async listGitHubWork(ownerId: string, planId: string) {
+    return this.githubStore.list(ownerId, planId);
   }
 }

@@ -351,7 +351,7 @@ function sendBrowserAsset(
       response,
       200,
       { mediaType, bytesBase64 },
-      isPublic ? "public, max-age=300" : "private, no-store",
+      isPublic ? "public, no-cache" : "private, no-store",
     );
     return;
   }
@@ -359,7 +359,7 @@ function sendBrowserAsset(
     response,
     mediaType,
     Buffer.from(bytesBase64, "base64"),
-    isPublic ? "public, max-age=31536000, immutable" : "private, no-store",
+    isPublic ? "public, no-cache" : "private, no-store",
   );
 }
 

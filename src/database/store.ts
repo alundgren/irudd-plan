@@ -491,7 +491,9 @@ export class PlanStore {
             ...(current.repositoryVisibility === null
               ? {}
               : { repositoryVisibility: current.repositoryVisibility }),
-            published: current.publishedAt !== null,
+            published:
+              current.publishedAt !== null &&
+              current.repositoryVisibility === "public",
             ...(current.publishedAt === null
               ? {}
               : { publishedAt: current.publishedAt }),
@@ -524,7 +526,8 @@ export class PlanStore {
             ...(row.repositoryVisibility === null
               ? {}
               : { repositoryVisibility: row.repositoryVisibility }),
-            published: row.publishedAt !== null,
+            published:
+              row.publishedAt !== null && row.repositoryVisibility === "public",
           },
         }));
       }),

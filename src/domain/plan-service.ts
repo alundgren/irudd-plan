@@ -247,6 +247,7 @@ export class PlanService {
       request.planId,
       false,
     );
+    await this.publishAccessUpdate(ownerId, request.planId);
     return {
       planId: request.planId,
       repository,
@@ -301,6 +302,7 @@ export class PlanService {
       );
     }
     const publishedAt = await this.store.publish(ownerId, request.planId);
+    await this.publishAccessUpdate(ownerId, request.planId);
     return {
       planId: request.planId,
       status: "public" as const,
@@ -391,6 +393,13 @@ export class PlanService {
 
   private publicPlanUrl(ownerId: string, planId: string): string {
     return `${this.publicBaseUrl}/public/plans/${encodeURIComponent(ownerId)}/${encodeURIComponent(planId)}`;
+  }
+
+  private async publishAccessUpdate(ownerId: string, planId: string) {
+    const current = await this.store.get(ownerId, planId);
+    if (current !== undefined) {
+      this.updates.publish({ ownerId, planId, version: current.version });
+    }
   }
 }
 

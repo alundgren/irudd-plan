@@ -127,12 +127,13 @@ export class GitHubAppReader implements GitHubReader {
       "GITHUB_ACCESS_DENIED",
     );
     const repositoryOwner = object(value.owner).login;
+    const repositoryId = integer(value.id);
+    const isPrivate = boolean(value.private);
     return {
-      id: String(value.id),
+      id: String(repositoryId),
       owner: string(repositoryOwner),
       name: string(value.name),
-      visibility:
-        value.private === true ? ("private" as const) : ("public" as const),
+      visibility: isPrivate ? ("private" as const) : ("public" as const),
       url: string(value.html_url),
     };
   }
@@ -271,8 +272,13 @@ function string(value: unknown): string {
 }
 
 function integer(value: unknown): number {
-  if (typeof value !== "number" || !Number.isSafeInteger(value))
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0)
     throw malformed();
+  return value;
+}
+
+function boolean(value: unknown): boolean {
+  if (typeof value !== "boolean") throw malformed();
   return value;
 }
 

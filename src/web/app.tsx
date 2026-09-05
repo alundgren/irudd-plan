@@ -71,7 +71,7 @@ export function App() {
         version={document.version}
         connection={connection}
         isPublic={route.publicOwnerId !== undefined}
-        published={document.access.published}
+        publicationStatus={accessLabel(document.access)}
         onShowPlans={() =>
           window.location.assign(
             route.publicOwnerId === undefined ? "/" : planPath(route),
@@ -145,9 +145,13 @@ function PlanList({
 }
 
 function publicationLabel(plan: PlanListEntry): string {
-  if (plan.access.published) return "Published";
-  if (!plan.access.repositoryVerified) return "Private · repository unverified";
-  if (plan.access.repositoryVisibility === "private") {
+  return accessLabel(plan.access);
+}
+
+function accessLabel(access: PlanListEntry["access"]): string {
+  if (access.published) return "Published";
+  if (!access.repositoryVerified) return "Private · repository unverified";
+  if (access.repositoryVisibility === "private") {
     return "Private repository";
   }
   return "Private";
@@ -158,14 +162,14 @@ function ReviewHeader({
   version,
   connection,
   isPublic,
-  published,
+  publicationStatus,
   onShowPlans,
 }: {
   readonly plan: Plan;
   readonly version: number;
   readonly connection: ConnectionState;
   readonly isPublic: boolean;
-  readonly published: boolean;
+  readonly publicationStatus: string;
   readonly onShowPlans: () => void;
 }) {
   return (
@@ -189,7 +193,7 @@ function ReviewHeader({
           )}
           {connection === "live" ? `Live · r${version}` : connection}
         </Badge>
-        <Badge>{published ? "Published" : "Private"}</Badge>
+        <Badge>{publicationStatus}</Badge>
       </div>
     </header>
   );

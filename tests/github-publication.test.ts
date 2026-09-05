@@ -18,6 +18,7 @@ import { createTestStore, startTestServer } from "./test-service.js";
 class FakeGitHubReader implements GitHubReader {
   revoked = false;
   workState = "open";
+  visibility: "public" | "private" = "public";
 
   async repository(
     _installationId: number,
@@ -34,7 +35,7 @@ class FakeGitHubReader implements GitHubReader {
       id: `${owner.toLowerCase()}/${name.toLowerCase()}`,
       owner,
       name,
-      visibility: name === "private" ? "private" : "public",
+      visibility: name === "private" ? "private" : this.visibility,
       url: `https://github.com/${owner}/${name}`,
     };
   }
@@ -110,18 +111,21 @@ describe("GitHub verification and publication", () => {
         );
         return;
       }
-      if (request.url === "/repos/example/project") {
-        repositoryRequests += 1;
+      if (request.url?.startsWith("/repos/example/")) {
         expect(request.headers.authorization).toBe("Bearer installation-token");
-        response.end(
-          JSON.stringify({
-            id: 42,
-            name: "project",
-            owner: { login: "example" },
-            private: false,
-            html_url: "https://github.com/example/project",
-          }),
-        );
+        const name = request.url.slice("/repos/example/".length);
+        if (name === "project") repositoryRequests += 1;
+        const body: Record<string, unknown> = {
+          id: 42,
+          name,
+          owner: { login: "example" },
+          private: false,
+          html_url: `https://github.com/example/${name}`,
+        };
+        if (name === "missing-private") delete body.private;
+        if (name === "null-private") body.private = null;
+        if (name === "missing-id") delete body.id;
+        response.end(JSON.stringify(body));
         return;
       }
       response.writeHead(404).end("{}");
@@ -141,6 +145,11 @@ describe("GitHub verification and publication", () => {
       );
       await reader.repository(101, "example", "project");
       await reader.repository(101, "example", "project");
+      for (const name of ["missing-private", "null-private", "missing-id"]) {
+        await expect(
+          reader.repository(101, "example", name),
+        ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
+      }
       expect(tokenRequests).toBe(1);
       expect(repositoryRequests).toBe(2);
     } finally {
@@ -363,7 +372,7 @@ describe("GitHub verification and publication", () => {
       `${publicRoot}/assets/asset-contract?digest=${encodeURIComponent(plan.assets[0]!.digest)}`,
     );
     expect(asset.status).toBe(200);
-    expect(asset.headers.get("cache-control")).toContain("public");
+    expect(asset.headers.get("cache-control")).toBe("public, no-cache");
     expect((await fetch(`${publicRoot}/items/item-1`)).status).toBe(200);
     const eventController = new AbortController();
     const events = await fetch(`${publicRoot}/events`, {
@@ -376,6 +385,19 @@ describe("GitHub verification and publication", () => {
     const revised = {
       ...clonePlan(plan),
       epicGoal: "The public current revision",
+      assets: [],
+      contexts: plan.contexts.map((context) => ({
+        ...context,
+        assetIds: [],
+      })),
+      decisions: plan.decisions.map((decision) => ({
+        ...decision,
+        assetIds: [],
+      })),
+      items: plan.items.map((item) => ({
+        ...item,
+        requiredAssetIds: [],
+      })),
     };
     await running.service.write("owner-a", {
       operationId: "anonymous-update",
@@ -389,6 +411,35 @@ describe("GitHub verification and publication", () => {
       plan: { epicGoal: revised.epicGoal },
       access: { published: true },
     });
+    expect(
+      (
+        await fetch(
+          `${publicRoot}/assets/asset-contract?digest=${encodeURIComponent(plan.assets[0]!.digest)}`,
+        )
+      ).status,
+    ).toBe(404);
+
+    reader.visibility = "private";
+    await running.service.verifyRepository("owner-a", {
+      contractVersion: "v1",
+      planId: plan.planId,
+    });
+    await expect(
+      running.service.current("owner-a", plan.planId),
+    ).resolves.toMatchObject({
+      access: { published: false, repositoryVisibility: "private" },
+    });
+    await expect(
+      running.service.getGitHubReference("owner-a", {
+        contractVersion: "v1",
+        planId: plan.planId,
+        itemId: "item-1",
+      }),
+    ).resolves.toMatchObject({
+      publicationStatus: "private",
+      humanUrl: "https://plans.example/plans/anonymous-plan/items/item-1",
+    });
+    expect((await fetch(`${publicRoot}/document`)).status).toBe(404);
   });
 
   it("exposes MCP actions and returns stable GitHub text for a selected item", async () => {

@@ -76,6 +76,9 @@ under `/public/plans/{ownerId}/{planId}/*`. An unpublished or private-repository
 plan returns the same generic unavailable response. Private JSON, asset, and
 event routes still require a valid Access identity at the origin. Shared caches
 may cache public responses only; private responses use `private, no-store`.
+Plan documents and plan-bound assets use `public, no-cache`, so every reuse
+revalidates current publication and asset membership. Only content-hashed generic
+client runtime files use long immutable caching.
 
 See `examples/cloudflare-access-policies.json` for a credential-free path and
 policy example. Confirm that Bypass and Service Auth are available in the

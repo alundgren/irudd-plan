@@ -23,7 +23,8 @@
       "/public/plans/{ownerId}/{planId}/items/{itemId}",
       "/public/plans/{ownerId}/{planId}/document",
       "/public/plans/{ownerId}/{planId}/assets/{assetId}?digest={digest}",
-      "/public/plans/{ownerId}/{planId}/events"
+      "/public/plans/{ownerId}/{planId}/events",
+      "/public/assets/*"
     ],
     "accessIdentityRequired": ["/", "/plans/*", "/api/*", "/mcp"]
   }

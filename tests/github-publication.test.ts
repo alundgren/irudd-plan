@@ -99,6 +99,10 @@ describe("GitHub verification and publication", () => {
     let repositoryRequests = 0;
     const github = createServer((request, response) => {
       response.setHeader("content-type", "application/json");
+      if (request.url === "/app/installations/500/access_tokens") {
+        response.writeHead(500).end("{}");
+        return;
+      }
       if (request.url === "/app/installations/101/access_tokens") {
         tokenRequests += 1;
         expect(request.method).toBe("POST");
@@ -112,6 +116,28 @@ describe("GitHub verification and publication", () => {
         return;
       }
       if (request.url?.startsWith("/repos/example/")) {
+        const workMatch = request.url.match(
+          /^\/repos\/example\/project\/(issues|pulls)\/(\d+)$/,
+        );
+        if (workMatch?.[1] !== undefined && workMatch[2] !== undefined) {
+          const workNumber = Number(workMatch[2]);
+          const invalidIds: Record<number, unknown> = {
+            1: undefined,
+            2: null,
+            3: "not-a-number",
+            4: 0,
+            5: Number.MAX_SAFE_INTEGER + 1,
+          };
+          const body: Record<string, unknown> = {
+            id: invalidIds[workNumber],
+            node_id: `node-${workNumber}`,
+            number: workNumber,
+            html_url: `https://github.com/example/project/${workMatch[1]}/${workNumber}`,
+            state: "open",
+          };
+          response.end(JSON.stringify(body));
+          return;
+        }
         expect(request.headers.authorization).toBe("Bearer installation-token");
         const name = request.url.slice("/repos/example/".length);
         if (name === "project") repositoryRequests += 1;
@@ -150,8 +176,19 @@ describe("GitHub verification and publication", () => {
           reader.repository(101, "example", name),
         ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
       }
+      const repository = await reader.repository(101, "example", "project");
+      for (const type of ["issue", "pull_request"] as const) {
+        for (const workNumber of [1, 2, 3, 4, 5]) {
+          await expect(
+            reader.work(101, repository, type, workNumber),
+          ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
+        }
+      }
+      await expect(
+        reader.repository(500, "example", "project"),
+      ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
       expect(tokenRequests).toBe(1);
-      expect(repositoryRequests).toBe(2);
+      expect(repositoryRequests).toBe(3);
     } finally {
       await new Promise<void>((resolve, reject) =>
         github.close((error) => (error ? reject(error) : resolve())),
@@ -419,11 +456,21 @@ describe("GitHub verification and publication", () => {
       ).status,
     ).toBe(404);
 
+    const accessUpdates: number[] = [];
+    const unsubscribe = running.service.updates.subscribe(
+      "owner-a",
+      plan.planId,
+      (update) => accessUpdates.push(update.version),
+    );
     reader.visibility = "private";
-    await running.service.verifyRepository("owner-a", {
-      contractVersion: "v1",
-      planId: plan.planId,
-    });
+    await expect(
+      running.service.publish("owner-a", {
+        contractVersion: "v1",
+        planId: plan.planId,
+      }),
+    ).rejects.toMatchObject({ code: "PUBLICATION_NOT_ALLOWED" });
+    unsubscribe();
+    expect(accessUpdates).toContain(2);
     await expect(
       running.service.current("owner-a", plan.planId),
     ).resolves.toMatchObject({

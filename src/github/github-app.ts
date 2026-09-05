@@ -158,7 +158,7 @@ export class GitHubAppReader implements GitHubReader {
     }
     return {
       nodeId: string(value.node_id),
-      databaseId: String(value.id),
+      databaseId: String(integer(value.id)),
       type,
       number: integer(value.number),
       url: string(value.html_url),
@@ -228,6 +228,12 @@ export class GitHubAppReader implements GitHubReader {
         }),
       },
     );
+    if (response.status >= 500) {
+      throw new PlanError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub token service is unavailable",
+      );
+    }
     if (!response.ok) {
       throw new PlanError(
         "GITHUB_ACCESS_DENIED",
@@ -240,6 +246,9 @@ export class GitHubAppReader implements GitHubReader {
     };
     const token = string(body.token);
     const expiresAt = Date.parse(string(body.expires_at));
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      throw malformed();
+    }
     this.tokenCache.set(installationId, { token, expiresAt });
     return token;
   }

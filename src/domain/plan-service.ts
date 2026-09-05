@@ -247,7 +247,6 @@ export class PlanService {
       request.planId,
       false,
     );
-    await this.publishAccessUpdate(ownerId, request.planId);
     return {
       planId: request.planId,
       repository,
@@ -378,6 +377,7 @@ export class PlanService {
       );
     }
     await this.store.verifyRepository(ownerId, planId, repository);
+    await this.publishAccessUpdate(ownerId, planId);
     return repository;
   }
 

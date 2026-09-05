@@ -1,0 +1,908 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "856813fd-82ec-45d1-81a9-beb18fcd247b",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "ddl": [
+    {
+      "name": "acceptance_criteria",
+      "entityType": "tables"
+    },
+    {
+      "name": "assets",
+      "entityType": "tables"
+    },
+    {
+      "name": "decisions",
+      "entityType": "tables"
+    },
+    {
+      "name": "operations",
+      "entityType": "tables"
+    },
+    {
+      "name": "owner_credentials",
+      "entityType": "tables"
+    },
+    {
+      "name": "owners",
+      "entityType": "tables"
+    },
+    {
+      "name": "plan_revisions",
+      "entityType": "tables"
+    },
+    {
+      "name": "plans",
+      "entityType": "tables"
+    },
+    {
+      "name": "shared_contexts",
+      "entityType": "tables"
+    },
+    {
+      "name": "work_items",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "acceptance_criteria"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "acceptance_criteria"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "item_id",
+      "entityType": "columns",
+      "table": "acceptance_criteria"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "acceptance_criteria"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "text",
+      "entityType": "columns",
+      "table": "acceptance_criteria"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "uri",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "media_type",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "digest",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "caption",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "available",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_json",
+      "entityType": "columns",
+      "table": "assets"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reason",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_json",
+      "entityType": "columns",
+      "table": "decisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "operations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "operations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "request_digest",
+      "entityType": "columns",
+      "table": "operations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "response_json",
+      "entityType": "columns",
+      "table": "operations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "operations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "issuer",
+      "entityType": "columns",
+      "table": "owner_credentials"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "claim",
+      "entityType": "columns",
+      "table": "owner_credentials"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "value",
+      "entityType": "columns",
+      "table": "owner_credentials"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "kind",
+      "entityType": "columns",
+      "table": "owner_credentials"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "owner_credentials"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "owners"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "owners"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "version",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "operation_id",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_digest",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_json",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "plan_revisions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "repository_provider",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "repository_owner",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "repository_name",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "repository_verified",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "epic_goal",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "current_version",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "plans"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reason",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_json",
+      "entityType": "columns",
+      "table": "shared_contexts"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_id",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "short_goal",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_json",
+      "entityType": "columns",
+      "table": "work_items"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "item_id"],
+      "tableTo": "work_items",
+      "columnsTo": ["owner_id", "plan_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_acceptance_criteria_owner_id_plan_id_item_id_work_items_owner_id_plan_id_id_fk",
+      "entityType": "fks",
+      "table": "acceptance_criteria"
+    },
+    {
+      "columns": ["owner_id", "plan_id"],
+      "tableTo": "plans",
+      "columnsTo": ["owner_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_assets_owner_id_plan_id_plans_owner_id_id_fk",
+      "entityType": "fks",
+      "table": "assets"
+    },
+    {
+      "columns": ["owner_id", "plan_id"],
+      "tableTo": "plans",
+      "columnsTo": ["owner_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_decisions_owner_id_plan_id_plans_owner_id_id_fk",
+      "entityType": "fks",
+      "table": "decisions"
+    },
+    {
+      "columns": ["owner_id"],
+      "tableTo": "owners",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_operations_owner_id_owners_id_fk",
+      "entityType": "fks",
+      "table": "operations"
+    },
+    {
+      "columns": ["owner_id"],
+      "tableTo": "owners",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_owner_credentials_owner_id_owners_id_fk",
+      "entityType": "fks",
+      "table": "owner_credentials"
+    },
+    {
+      "columns": ["owner_id", "plan_id"],
+      "tableTo": "plans",
+      "columnsTo": ["owner_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_plan_revisions_owner_id_plan_id_plans_owner_id_id_fk",
+      "entityType": "fks",
+      "table": "plan_revisions"
+    },
+    {
+      "columns": ["owner_id"],
+      "tableTo": "owners",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_plans_owner_id_owners_id_fk",
+      "entityType": "fks",
+      "table": "plans"
+    },
+    {
+      "columns": ["owner_id", "plan_id"],
+      "tableTo": "plans",
+      "columnsTo": ["owner_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_shared_contexts_owner_id_plan_id_plans_owner_id_id_fk",
+      "entityType": "fks",
+      "table": "shared_contexts"
+    },
+    {
+      "columns": ["owner_id", "plan_id"],
+      "tableTo": "plans",
+      "columnsTo": ["owner_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_work_items_owner_id_plan_id_plans_owner_id_id_fk",
+      "entityType": "fks",
+      "table": "work_items"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "item_id", "id"],
+      "nameExplicit": false,
+      "name": "acceptance_criteria_pk",
+      "entityType": "pks",
+      "table": "acceptance_criteria"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "id"],
+      "nameExplicit": false,
+      "name": "assets_pk",
+      "entityType": "pks",
+      "table": "assets"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "id"],
+      "nameExplicit": false,
+      "name": "decisions_pk",
+      "entityType": "pks",
+      "table": "decisions"
+    },
+    {
+      "columns": ["owner_id", "id"],
+      "nameExplicit": false,
+      "name": "operations_pk",
+      "entityType": "pks",
+      "table": "operations"
+    },
+    {
+      "columns": ["issuer", "claim", "value"],
+      "nameExplicit": false,
+      "name": "owner_credentials_pk",
+      "entityType": "pks",
+      "table": "owner_credentials"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "version"],
+      "nameExplicit": false,
+      "name": "plan_revisions_pk",
+      "entityType": "pks",
+      "table": "plan_revisions"
+    },
+    {
+      "columns": ["owner_id", "id"],
+      "nameExplicit": false,
+      "name": "plans_pk",
+      "entityType": "pks",
+      "table": "plans"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "id"],
+      "nameExplicit": false,
+      "name": "shared_contexts_pk",
+      "entityType": "pks",
+      "table": "shared_contexts"
+    },
+    {
+      "columns": ["owner_id", "plan_id", "id"],
+      "nameExplicit": false,
+      "name": "work_items_pk",
+      "entityType": "pks",
+      "table": "work_items"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "owners_pk",
+      "table": "owners",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "owner_credentials_owner_idx",
+      "entityType": "indexes",
+      "table": "owner_credentials"
+    },
+    {
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false
+        },
+        {
+          "value": "operation_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "plan_revisions_operation_idx",
+      "entityType": "indexes",
+      "table": "plan_revisions"
+    },
+    {
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false
+        },
+        {
+          "value": "updated_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "plans_owner_updated_idx",
+      "entityType": "indexes",
+      "table": "plans"
+    }
+  ],
+  "renames": []
+}

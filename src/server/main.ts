@@ -22,9 +22,17 @@ const verifier = new CloudflareAccessVerifier(
   config.accessAudience,
   config.accessJwksUrl,
 );
-const authenticator = new Authenticator(verifier, store, "service");
-const server = createMcpHttpServer(new PlanService(store), authenticator, {
+const serviceAuthenticator = new Authenticator(verifier, store, "service");
+const browserAuthenticator = new Authenticator(verifier, store, "browser");
+const service = new PlanService(store, undefined, {
+  maxAssetBytes: config.maxAssetBytes,
+  maxSourceBytes: config.maxAssetSourceBytes,
+  maxOwnerStorageBytes: config.maxOwnerAssetStorageBytes,
+});
+const server = createMcpHttpServer(service, serviceAuthenticator, {
   bodyLimitBytes: config.requestBodyLimitBytes,
+  browserAuthenticator,
+  clientAssetsDirectory: config.clientAssetsDirectory,
   isReady: () => ready,
 });
 

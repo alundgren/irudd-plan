@@ -23,19 +23,23 @@ import {
   CheckPacketRequest,
   CONTRACT_VERSION,
   decode,
+  GetAssetRequest,
   GetItemRequest,
   GetRelatedContextRequest,
   ListPlansRequest,
   MCP_PROTOCOL_VERSION,
+  UploadAssetRequest,
   WritePlanRequest,
 } from "../contract/plan.js";
 import type { PlanService } from "../domain/plan-service.js";
-import { renderOperatorPage } from "../web/operator-page.js";
+import { handleBrowserRequest } from "../web/http-router.js";
 import { resourceTemplates, tools } from "./catalog.js";
 
 interface ServerOptions {
   readonly bodyLimitBytes?: number;
   readonly isReady?: () => boolean;
+  readonly browserAuthenticator?: Authenticator;
+  readonly clientAssetsDirectory?: string;
 }
 
 export function createMcpHttpServer(
@@ -43,6 +47,7 @@ export function createMcpHttpServer(
   authenticator: Authenticator,
   options: ServerOptions = {},
 ): Server {
+  const activeStreamCloses = new Set<() => void>();
   const bodyLimitBytes = options.bodyLimitBytes ?? 2_000_000;
   const handler = createMcpHandler(
     (context) => createOwnerServer(service, requireOwner(context.authInfo)),
@@ -54,10 +59,6 @@ export function createMcpHttpServer(
     response: ServerResponse,
   ): Promise<void> => {
     try {
-      if (request.url === "/" && request.method === "GET") {
-        sendHtml(response, renderOperatorPage());
-        return;
-      }
       if (request.url === "/healthz") {
         sendJson(response, 200, { status: "ok" });
         return;
@@ -67,6 +68,20 @@ export function createMcpHttpServer(
         sendJson(response, ready ? 200 : 503, {
           status: ready ? "ready" : "starting",
         });
+        return;
+      }
+      if (
+        options.browserAuthenticator !== undefined &&
+        (await handleBrowserRequest(request, response, service, {
+          authenticator: options.browserAuthenticator,
+          clientAssetsDirectory:
+            options.clientAssetsDirectory ?? "dist/client/assets",
+          registerStreamClose: (close) => {
+            activeStreamCloses.add(close);
+            return () => activeStreamCloses.delete(close);
+          },
+        }))
+      ) {
         return;
       }
       if (request.url !== "/mcp" || request.method !== "POST") {
@@ -102,6 +117,11 @@ export function createMcpHttpServer(
   const server = createServer((request, response) => {
     void handleRequest(request, response);
   });
+  const nodeClose = server.close.bind(server);
+  server.close = ((callback?: (error?: Error) => void) => {
+    for (const closeStream of activeStreamCloses) closeStream();
+    return nodeClose(callback);
+  }) as Server["close"];
   server.on("close", () => void handler.close());
   return server;
 }
@@ -197,6 +217,15 @@ async function callTool(
         decode(ListPlansRequest, args);
         value = await service.list(ownerId);
         break;
+      case "upload_asset":
+        value = await service.uploadAsset(
+          ownerId,
+          decode(UploadAssetRequest, args),
+        );
+        break;
+      case "get_asset":
+        value = await service.getAsset(ownerId, decode(GetAssetRequest, args));
+        break;
       default:
         throw new PlanError("REQUEST_INVALID", `Unknown tool: ${name}`);
     }
@@ -225,8 +254,21 @@ async function readResource(
     /^irudd-plan:\/\/plans\/([^/]+)\/contexts\/([^/]+)$/,
   );
   const planMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)$/);
+  const assetUrl = new URL(uri);
+  const assetMatch =
+    assetUrl.hostname === "plans"
+      ? assetUrl.pathname.match(/^\/([^/]+)\/assets\/([^/]+)$/)
+      : null;
   let value: unknown;
-  if (itemMatch?.[1] !== undefined && itemMatch[2] !== undefined) {
+  if (assetMatch?.[1] !== undefined && assetMatch[2] !== undefined) {
+    value = await service.getAsset(ownerId, {
+      contractVersion: CONTRACT_VERSION,
+      planId: decodeURIComponent(assetMatch[1]),
+      assetId: decodeURIComponent(assetMatch[2]),
+      digest: assetUrl.searchParams.get("digest") ?? "",
+      content: "rendered",
+    });
+  } else if (itemMatch?.[1] !== undefined && itemMatch[2] !== undefined) {
     value = await service.getItem(ownerId, {
       contractVersion: CONTRACT_VERSION,
       planId: decodeURIComponent(itemMatch[1]),
@@ -332,15 +374,6 @@ function sendJson(
   response.end(content);
 }
 
-function sendHtml(response: ServerResponse, body: string): void {
-  response.writeHead(200, {
-    "content-type": "text/html; charset=utf-8",
-    "content-length": Buffer.byteLength(body),
-    "cache-control": "no-store",
-  });
-  response.end(body);
-}
-
 function sendHttpError(response: ServerResponse, error: unknown): void {
   const normalized = normalizeError(error);
   const status =
@@ -348,9 +381,12 @@ function sendHttpError(response: ServerResponse, error: unknown): void {
       ? 503
       : normalized.code.startsWith("AUTH_")
         ? 401
-        : normalized.code === "INTERNAL"
-          ? 500
-          : 400;
+        : normalized.code === "PLAN_NOT_FOUND" ||
+            normalized.code === "ASSET_UNAVAILABLE"
+          ? 404
+          : normalized.code === "INTERNAL"
+            ? 500
+            : 400;
   sendJson(response, status, {
     jsonrpc: "2.0",
     id: null,

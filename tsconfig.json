@@ -16,5 +16,13 @@
     "declaration": true,
     "skipLibCheck": true
   },
-  "include": ["src", "tests", "scripts", "vite.config.ts", "drizzle.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts",
+    "vite.config.ts",
+    "vite.client.config.ts",
+    "playwright.config.ts",
+    "drizzle.config.ts"
+  ]
 }

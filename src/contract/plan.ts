@@ -27,8 +27,38 @@ export const AssetDescriptor = Schema.Struct({
   mediaType: NonEmptyText,
   digest: NonEmptyText,
   caption: NonEmptyText,
-  role: NonEmptyText,
+  role: Schema.Literals(["binding-reference", "illustration"]),
   available: Schema.Boolean,
+  source: Schema.optionalKey(
+    Schema.Struct({
+      mediaType: NonEmptyText,
+      digest: NonEmptyText,
+    }),
+  ),
+});
+
+export const UploadAssetRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+  assetId: Identifier,
+  mediaType: NonEmptyText,
+  caption: NonEmptyText,
+  role: Schema.Literals(["binding-reference", "illustration"]),
+  bytesBase64: NonEmptyText,
+  source: Schema.optionalKey(
+    Schema.Struct({
+      mediaType: NonEmptyText,
+      bytesBase64: NonEmptyText,
+    }),
+  ),
+});
+
+export const GetAssetRequest = Schema.Struct({
+  contractVersion: Schema.Literal(CONTRACT_VERSION),
+  planId: Identifier,
+  assetId: Identifier,
+  digest: Identifier,
+  content: Schema.optionalKey(Schema.Literals(["rendered", "source"])),
 });
 
 export const SharedContext = Schema.Struct({
@@ -113,6 +143,8 @@ export type WorkItem = typeof WorkItem.Type;
 export type SharedContext = typeof SharedContext.Type;
 export type Decision = typeof Decision.Type;
 export type AssetDescriptor = typeof AssetDescriptor.Type;
+export type UploadAssetRequest = typeof UploadAssetRequest.Type;
+export type GetAssetRequest = typeof GetAssetRequest.Type;
 export type WritePlanRequest = typeof WritePlanRequest.Type;
 export type GetItemRequest = typeof GetItemRequest.Type;
 export type GetRelatedContextRequest = typeof GetRelatedContextRequest.Type;

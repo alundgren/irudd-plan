@@ -8,6 +8,10 @@ export interface ServerConfig {
   readonly databasePath: string;
   readonly migrationsFolder: string;
   readonly requestBodyLimitBytes: number;
+  readonly maxAssetBytes: number;
+  readonly maxAssetSourceBytes: number;
+  readonly maxOwnerAssetStorageBytes: number;
+  readonly clientAssetsDirectory: string;
   readonly accessIssuer: string;
   readonly accessAudience: string;
   readonly accessJwksUrl: string;
@@ -44,8 +48,23 @@ export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
     databasePath: environment.DATABASE_PATH ?? "/data/irudd-plan.db",
     migrationsFolder: resolve(environment.MIGRATIONS_DIR ?? "drizzle"),
     requestBodyLimitBytes: parseInteger(
-      environment.REQUEST_BODY_LIMIT_BYTES ?? "2000000",
+      environment.REQUEST_BODY_LIMIT_BYTES ?? "12000000",
       "REQUEST_BODY_LIMIT_BYTES",
+    ),
+    maxAssetBytes: parseInteger(
+      environment.MAX_ASSET_BYTES ?? "5000000",
+      "MAX_ASSET_BYTES",
+    ),
+    maxAssetSourceBytes: parseInteger(
+      environment.MAX_ASSET_SOURCE_BYTES ?? "2000000",
+      "MAX_ASSET_SOURCE_BYTES",
+    ),
+    maxOwnerAssetStorageBytes: parseInteger(
+      environment.MAX_OWNER_ASSET_STORAGE_BYTES ?? "100000000",
+      "MAX_OWNER_ASSET_STORAGE_BYTES",
+    ),
+    clientAssetsDirectory: resolve(
+      environment.CLIENT_ASSETS_DIR ?? "dist/client/assets",
     ),
     accessIssuer,
     accessAudience: required(environment, "CF_ACCESS_AUDIENCE"),

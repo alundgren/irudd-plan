@@ -5,6 +5,7 @@ import {
 } from "drizzle-orm/effect-schema";
 import {
   foreignKey,
+  blob,
   index,
   integer,
   primaryKey,
@@ -188,6 +189,38 @@ export const assets = sqliteTable(
   ],
 );
 
+export const assetObjects = sqliteTable(
+  "asset_objects",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => owners.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull(),
+    id: text("id").notNull(),
+    digest: text("digest").notNull(),
+    mediaType: text("media_type").notNull(),
+    caption: text("caption").notNull(),
+    role: text("role", {
+      enum: ["binding-reference", "illustration"],
+    }).notNull(),
+    content: blob("content", { mode: "buffer" }).notNull(),
+    byteLength: integer("byte_length").notNull(),
+    sourceMediaType: text("source_media_type"),
+    sourceDigest: text("source_digest"),
+    sourceContent: blob("source_content", { mode: "buffer" }),
+    sourceByteLength: integer("source_byte_length"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.ownerId, table.planId, table.id, table.digest],
+    }),
+    index("asset_objects_owner_storage_idx").on(table.ownerId),
+  ],
+);
+
 export const acceptanceCriteria = sqliteTable(
   "acceptance_criteria",
   {
@@ -210,6 +243,7 @@ export const acceptanceCriteria = sqliteTable(
 
 export const schema = {
   acceptanceCriteria,
+  assetObjects,
   assets,
   decisions,
   operations,

@@ -1,10 +1,24 @@
 import { ArrowRight, CheckCircle2, Compass } from "lucide-react";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
-import type { Plan, WorkItem } from "../contract/plan.js";
+import type {
+  AssetDescriptor,
+  Decision,
+  Plan,
+  SharedContext,
+  WorkItem,
+} from "../contract/plan.js";
 import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
 import { collectRequiredContent } from "./required-content.js";
+import type { FeedbackItem, FeedbackTarget } from "./feedback.js";
+import {
+  addSectionFeedback,
+  assetFeedbackCount,
+  FeedbackButton,
+  feedbackCount,
+  FeedbackSectionTitle,
+} from "./feedback-target.js";
 import { Badge } from "./ui/badge.js";
 import { Button } from "./ui/button.js";
 
@@ -13,7 +27,9 @@ interface PlanSheetProps {
   readonly item?: WorkItem;
   readonly selected: boolean;
   readonly changedSections: ReadonlySet<string>;
+  readonly feedbackItems: ReadonlyArray<FeedbackItem>;
   readonly onSelect: (itemId?: string) => void;
+  readonly onAddFeedback: (target: FeedbackTarget) => void;
 }
 
 export function PlanSheet(props: PlanSheetProps) {
@@ -28,7 +44,9 @@ function OverviewSheet({
   plan,
   selected,
   changedSections,
+  feedbackItems,
   onSelect,
+  onAddFeedback,
 }: PlanSheetProps) {
   return (
     <article
@@ -44,15 +62,43 @@ function OverviewSheet({
       <section
         className={changedSections.has("epic-goal") ? "changed" : ""}
         data-section="epic-goal"
+        data-feedback-container
       >
-        <h3>Goal</h3>
+        <FeedbackSectionTitle
+          label="Goal"
+          count={feedbackCount(feedbackItems, undefined, "epic-goal")}
+          onAdd={(event) =>
+            addSectionFeedback(
+              event,
+              plan,
+              undefined,
+              "epic-goal",
+              "Epic goal",
+              onAddFeedback,
+            )
+          }
+        />
         <RichText text={plan.epicGoal} />
       </section>
       <div
         className={`overview-index ${changedSections.has("overview-items") ? "changed" : ""}`}
         data-section="overview-items"
+        data-feedback-container
       >
-        <h3>{plan.items.length} work items</h3>
+        <FeedbackSectionTitle
+          label={`${plan.items.length} work items`}
+          count={feedbackCount(feedbackItems, undefined, "overview-items")}
+          onAdd={(event) =>
+            addSectionFeedback(
+              event,
+              plan,
+              undefined,
+              "overview-items",
+              "Work item index",
+              onAddFeedback,
+            )
+          }
+        />
         {plan.items.map((item) => (
           <button
             type="button"
@@ -74,9 +120,12 @@ function ItemSheet({
   item,
   selected,
   changedSections,
+  feedbackItems,
   onSelect,
+  onAddFeedback,
 }: PlanSheetProps & { readonly item: WorkItem }) {
   const { contexts, decisions, assets } = collectRequiredContent(plan, item);
+  const feedbackProps = { plan, item, feedbackItems, onAddFeedback };
   return (
     <article
       className={`plan-sheet item-sheet ${selected ? "selected" : ""}`}
@@ -87,44 +136,53 @@ function ItemSheet({
         title={item.title}
         selected={selected}
         changed={changedSections.has(`${item.id}:header`)}
+        feedbackCount={feedbackCount(feedbackItems, item.id, "header")}
+        onAddFeedback={(event) =>
+          addSectionFeedback(
+            event,
+            plan,
+            item.id,
+            "header",
+            "Work item heading",
+            onAddFeedback,
+          )
+        }
       />
       <div className="sheet-scroll nodrag nopan nowheel">
-        <SheetSection
-          id={`${item.id}:goal`}
-          title="Goal"
-          changed={changedSections.has(`${item.id}:goal`)}
+        <FeedbackSheetSection
+          {...feedbackProps}
+          sectionId="goal"
+          label="Goal"
+          changedSections={changedSections}
         >
           <RichText text={item.goal} />
-        </SheetSection>
+        </FeedbackSheetSection>
 
         {decisions.length > 0 && (
-          <SheetSection
-            id={`${item.id}:decisions`}
-            title="Open decisions"
-            changed={changedSections.has(`${item.id}:decisions`)}
+          <FeedbackSheetSection
+            {...feedbackProps}
+            sectionId="decisions"
+            label="Open decisions"
+            changedSections={changedSections}
           >
-            {decisions.map((decision) => (
-              <div className="decision" key={decision.id}>
-                <h4>{decision.title}</h4>
-                <RichText text={decision.body} />
-                <p className="reason">Why: {decision.reason}</p>
-              </div>
-            ))}
-          </SheetSection>
+            <DecisionList decisions={decisions} />
+          </FeedbackSheetSection>
         )}
 
-        <SheetSection
-          id={`${item.id}:requirements`}
-          title="Requirements"
-          changed={changedSections.has(`${item.id}:requirements`)}
+        <FeedbackSheetSection
+          {...feedbackProps}
+          sectionId="requirements"
+          label="Requirements"
+          changedSections={changedSections}
         >
           <Checklist values={item.requirements} />
-        </SheetSection>
+        </FeedbackSheetSection>
 
-        <SheetSection
-          id={`${item.id}:checks`}
-          title="Checks"
-          changed={changedSections.has(`${item.id}:checks`)}
+        <FeedbackSheetSection
+          {...feedbackProps}
+          sectionId="checks"
+          label="Checks"
+          changedSections={changedSections}
         >
           <Checklist
             values={[
@@ -132,63 +190,203 @@ function ItemSheet({
               ...item.acceptanceCriteria.map((criterion) => criterion.text),
             ]}
           />
-        </SheetSection>
+        </FeedbackSheetSection>
 
-        {assets.length > 0 && (
-          <SheetSection
-            id={`${item.id}:visuals`}
-            title="Visual references"
-            changed={changedSections.has(`${item.id}:visuals`)}
-          >
-            {assets.map((asset) => (
-              <AssetView key={asset.id} planId={plan.planId} asset={asset} />
-            ))}
-          </SheetSection>
-        )}
-
-        <details
-          className={`technical-details ${changedSections.has(`${item.id}:technical`) ? "changed" : ""}`}
-          data-section={`${item.id}:technical`}
-        >
-          <summary className="nodrag nopan">Technical detail</summary>
-          <h4>Required context</h4>
-          {contexts.map((context) => (
-            <div className="required-context" key={context.id}>
-              <h5>{context.title}</h5>
-              <RichText text={context.body} />
-              <p className="reason">Why: {context.reason}</p>
-            </div>
-          ))}
-          <h4>Relevant prior art</h4>
-          <Checklist values={item.relevantPriorArt} />
-          <h4>Deferred</h4>
-          <Checklist values={item.deferrals} />
-          <h4>Completion</h4>
-          <RichText text={item.completionExpectation} />
-        </details>
-
-        <nav className="related-items" aria-label="Related plan items">
-          <Button variant="outline" size="sm" onClick={() => onSelect()}>
-            <Compass aria-hidden="true" size={14} /> Overview
-          </Button>
-          {item.relatedItemIds.map((relatedId) => {
-            const related = plan.items.find(
-              (candidate) => candidate.id === relatedId,
-            );
-            return related === undefined ? null : (
-              <Button
-                variant="ghost"
-                size="sm"
-                key={related.id}
-                onClick={() => onSelect(related.id)}
-              >
-                {related.title} <ArrowRight aria-hidden="true" size={14} />
-              </Button>
-            );
-          })}
-        </nav>
+        <VisualReferences
+          {...feedbackProps}
+          assets={assets}
+          changedSections={changedSections}
+        />
+        <TechnicalDetail
+          {...feedbackProps}
+          contexts={contexts}
+          changedSections={changedSections}
+        />
+        <RelatedItems plan={plan} item={item} onSelect={onSelect} />
       </div>
     </article>
+  );
+}
+
+interface ItemFeedbackProps {
+  readonly plan: Plan;
+  readonly item: WorkItem;
+  readonly feedbackItems: ReadonlyArray<FeedbackItem>;
+  readonly onAddFeedback: (target: FeedbackTarget) => void;
+}
+
+function FeedbackSheetSection({
+  plan,
+  item,
+  feedbackItems,
+  onAddFeedback,
+  sectionId,
+  label,
+  changedSections,
+  children,
+}: ItemFeedbackProps & {
+  readonly sectionId: string;
+  readonly label: string;
+  readonly changedSections: ReadonlySet<string>;
+  readonly children: ReactNode;
+}) {
+  const id = `${item.id}:${sectionId}`;
+  return (
+    <SheetSection
+      id={id}
+      title={label}
+      changed={changedSections.has(id)}
+      feedbackCount={feedbackCount(feedbackItems, item.id, sectionId)}
+      onAddFeedback={(event) =>
+        addSectionFeedback(
+          event,
+          plan,
+          item.id,
+          sectionId,
+          label,
+          onAddFeedback,
+        )
+      }
+    >
+      {children}
+    </SheetSection>
+  );
+}
+
+function DecisionList({
+  decisions,
+}: {
+  readonly decisions: ReadonlyArray<Decision>;
+}) {
+  return decisions.map((decision) => (
+    <div className="decision" key={decision.id}>
+      <h4>{decision.title}</h4>
+      <RichText text={decision.body} />
+      <p className="reason">Why: {decision.reason}</p>
+    </div>
+  ));
+}
+
+function VisualReferences({
+  plan,
+  item,
+  feedbackItems,
+  onAddFeedback,
+  assets,
+  changedSections,
+}: ItemFeedbackProps & {
+  readonly assets: ReadonlyArray<AssetDescriptor>;
+  readonly changedSections: ReadonlySet<string>;
+}) {
+  if (assets.length === 0) return null;
+  return (
+    <SheetSection
+      id={`${item.id}:visuals`}
+      title="Visual references"
+      changed={changedSections.has(`${item.id}:visuals`)}
+    >
+      {assets.map((asset) => (
+        <AssetView
+          key={asset.id}
+          planId={plan.planId}
+          asset={asset}
+          feedbackCount={assetFeedbackCount(feedbackItems, item.id, asset.id)}
+          onAddFeedback={() =>
+            onAddFeedback({
+              kind: "asset",
+              itemId: item.id,
+              sectionId: "visuals",
+              assetId: asset.id,
+              assetDigest: asset.digest,
+              caption: asset.caption,
+            })
+          }
+        />
+      ))}
+    </SheetSection>
+  );
+}
+
+function TechnicalDetail({
+  plan,
+  item,
+  feedbackItems,
+  onAddFeedback,
+  contexts,
+  changedSections,
+}: ItemFeedbackProps & {
+  readonly contexts: ReadonlyArray<SharedContext>;
+  readonly changedSections: ReadonlySet<string>;
+}) {
+  return (
+    <details
+      className={`technical-details ${changedSections.has(`${item.id}:technical`) ? "changed" : ""}`}
+      data-section={`${item.id}:technical`}
+      data-feedback-container
+    >
+      <summary className="nodrag nopan">Technical detail</summary>
+      <FeedbackButton
+        label="Technical detail"
+        count={feedbackCount(feedbackItems, item.id, "technical")}
+        onAdd={(event) =>
+          addSectionFeedback(
+            event,
+            plan,
+            item.id,
+            "technical",
+            "Technical detail",
+            onAddFeedback,
+          )
+        }
+      />
+      <h4>Required context</h4>
+      {contexts.map((context) => (
+        <div className="required-context" key={context.id}>
+          <h5>{context.title}</h5>
+          <RichText text={context.body} />
+          <p className="reason">Why: {context.reason}</p>
+        </div>
+      ))}
+      <h4>Relevant prior art</h4>
+      <Checklist values={item.relevantPriorArt} />
+      <h4>Deferred</h4>
+      <Checklist values={item.deferrals} />
+      <h4>Completion</h4>
+      <RichText text={item.completionExpectation} />
+    </details>
+  );
+}
+
+function RelatedItems({
+  plan,
+  item,
+  onSelect,
+}: {
+  readonly plan: Plan;
+  readonly item: WorkItem;
+  readonly onSelect: (itemId?: string) => void;
+}) {
+  return (
+    <nav className="related-items" aria-label="Related plan items">
+      <Button variant="outline" size="sm" onClick={() => onSelect()}>
+        <Compass aria-hidden="true" size={14} /> Overview
+      </Button>
+      {item.relatedItemIds.map((relatedId) => {
+        const related = plan.items.find(
+          (candidate) => candidate.id === relatedId,
+        );
+        return related === undefined ? null : (
+          <Button
+            variant="ghost"
+            size="sm"
+            key={related.id}
+            onClick={() => onSelect(related.id)}
+          >
+            {related.title} <ArrowRight aria-hidden="true" size={14} />
+          </Button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -197,22 +395,36 @@ function SheetHeader({
   title,
   selected,
   changed,
+  feedbackCount,
+  onAddFeedback,
 }: {
   readonly eyebrow: string;
   readonly title: string;
   readonly selected: boolean;
   readonly changed: boolean;
+  readonly feedbackCount?: number;
+  readonly onAddFeedback?: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <header
       className={`sheet-header ${changed ? "changed" : ""}`}
       data-section="header"
+      data-feedback-container
     >
       <div>
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
       </div>
-      {selected ? <Badge className="selected-badge">Reading</Badge> : null}
+      <div className="sheet-header-actions">
+        {onAddFeedback === undefined ? null : (
+          <FeedbackButton
+            label="Work item heading"
+            count={feedbackCount ?? 0}
+            onAdd={onAddFeedback}
+          />
+        )}
+        {selected ? <Badge className="selected-badge">Reading</Badge> : null}
+      </div>
     </header>
   );
 }
@@ -221,16 +433,32 @@ function SheetSection({
   id,
   title,
   changed,
+  feedbackCount,
+  onAddFeedback,
   children,
 }: {
   readonly id: string;
   readonly title: string;
   readonly changed: boolean;
+  readonly feedbackCount?: number;
+  readonly onAddFeedback?: (event: MouseEvent<HTMLButtonElement>) => void;
   readonly children: ReactNode;
 }) {
   return (
-    <section className={changed ? "changed" : ""} data-section={id}>
-      <h3>{title}</h3>
+    <section
+      className={changed ? "changed" : ""}
+      data-section={id}
+      data-feedback-container
+    >
+      {onAddFeedback === undefined ? (
+        <h3>{title}</h3>
+      ) : (
+        <FeedbackSectionTitle
+          label={title}
+          count={feedbackCount ?? 0}
+          onAdd={onAddFeedback}
+        />
+      )}
       {children}
     </section>
   );

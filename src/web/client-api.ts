@@ -3,6 +3,7 @@ import type { Plan } from "../contract/plan.js";
 export interface PlanDocument {
   readonly plan: Plan;
   readonly version: number;
+  readonly feedbackScope: string;
 }
 
 export interface PlanListEntry {

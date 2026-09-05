@@ -128,15 +128,29 @@ describe("authenticated MCP", () => {
       }),
     ).resolves.toMatchObject({ structuredContent: { error: { code: "PLAN_NOT_FOUND" } } });
 
-    const unsupported = await clientA.callTool("get_work_item", {
-      contractVersion: "v2",
-      planId: "private-plan",
-      itemId: "item-1",
-    });
-    expect(unsupported).toMatchObject({
-      isError: true,
-      structuredContent: { error: { code: "CONTRACT_UNSUPPORTED" } },
-    });
+    const incompatibleCalls = [
+      ["get_work_item", { contractVersion: "v2", planId: "private-plan", itemId: "item-1" }],
+      [
+        "get_related_context",
+        { contractVersion: "v2", planId: "private-plan", contextId: "context-auth" },
+      ],
+      [
+        "check_packet",
+        {
+          contractVersion: "v2",
+          planId: "private-plan",
+          itemId: "item-1",
+          packetVersion: "sha256:test",
+        },
+      ],
+      ["list_plans", { contractVersion: "v2" }],
+    ] as const;
+    for (const [tool, args] of incompatibleCalls) {
+      await expect(clientA.callTool(tool, args)).resolves.toMatchObject({
+        isError: true,
+        structuredContent: { error: { code: "CONTRACT_UNSUPPORTED" } },
+      });
+    }
 
     const protocolResponse = await fetch(`${running.url}/mcp`, {
       method: "POST",

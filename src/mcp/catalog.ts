@@ -46,7 +46,10 @@ export const tools = [
       type: "object",
       required: ["contractVersion", "planId", "itemId", "packetVersion"],
       properties: {
-        contractVersion: { const: CONTRACT_VERSION },
+        contractVersion: {
+          type: "string",
+          description: `Plan contract version; currently ${CONTRACT_VERSION}`,
+        },
         planId: { type: "string" },
         itemId: { type: "string" },
         packetVersion: { type: "string" },

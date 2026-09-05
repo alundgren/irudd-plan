@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { clonePlan, tenItemPlan } from "./fixture.js";
 import { startTestServer } from "./test-service.js";
@@ -13,7 +13,11 @@ const activeServers: Array<{ close(): Promise<void> }> = [];
 const activeClients: IruddMcpClient[] = [];
 
 afterEach(async () => {
-  await Promise.all(activeClients.splice(0).map((client) => client.close().catch(() => undefined)));
+  await Promise.all(
+    activeClients
+      .splice(0)
+      .map((client) => client.close().catch(() => undefined)),
+  );
   await Promise.all(activeServers.splice(0).map((server) => server.close()));
 });
 
@@ -34,7 +38,9 @@ describe("authenticated MCP", () => {
       supportedVersions: expect.arrayContaining(["2026-07-28"]),
     });
     await expect(client.listTools()).resolves.toMatchObject({
-      tools: expect.arrayContaining([expect.objectContaining({ name: "write_plan" })]),
+      tools: expect.arrayContaining([
+        expect.objectContaining({ name: "write_plan" }),
+      ]),
     });
     const plan = tenItemPlan();
     const writeResult = await client.callTool<{
@@ -44,9 +50,9 @@ describe("authenticated MCP", () => {
       expectedVersion: null,
       plan,
     });
-    const overview = await client.readResource<{ contents: Array<{ text: string }> }>(
-      writeResult.structuredContent.resourceUri,
-    );
+    const overview = await client.readResource<{
+      contents: Array<{ text: string }>;
+    }>(writeResult.structuredContent.resourceUri);
     expect(overview.contents[0]!.text).not.toContain("Sibling specification 2");
     await client.close();
     activeClients.splice(activeClients.indexOf(client), 1);
@@ -75,20 +81,19 @@ describe("authenticated MCP", () => {
     const packet = result.structuredContent;
     expect(packet.item.id).toBe("item-1");
     expect(packet.epic.index).toHaveLength(10);
-    expect(packet.contexts.map((value: { id: string }) => value.id).sort()).toEqual([
-      "context-auth",
-      "context-base",
-    ]);
+    expect(
+      packet.contexts.map((value: { id: string }) => value.id).sort(),
+    ).toEqual(["context-auth", "context-base"]);
     expect(packet.relatedContextIds).toEqual(["context-optional"]);
     expect(JSON.stringify(packet)).not.toContain("Sibling specification 2");
-    const currentItem = await restarted.readResource<{ contents: Array<{ text: string }> }>(
-      packet.resourceUri,
-    );
+    const currentItem = await restarted.readResource<{
+      contents: Array<{ text: string }>;
+    }>(packet.resourceUri);
     expect(currentItem.contents[0]!.text).toContain('"itemId":"item-1"');
 
-    const sibling = await restarted.readResource<{ contents: Array<{ text: string }> }>(
-      "irudd-plan://plans/plan-alpha/items/item-2",
-    );
+    const sibling = await restarted.readResource<{
+      contents: Array<{ text: string }>;
+    }>("irudd-plan://plans/plan-alpha/items/item-2");
     expect(sibling.contents[0]!.text).toContain("Sibling specification 2");
   });
 
@@ -125,9 +130,13 @@ describe("authenticated MCP", () => {
     });
     expect(privateRead).toMatchObject({
       isError: true,
-      structuredContent: { error: { code: "PLAN_NOT_FOUND", message: "Plan is unavailable" } },
+      structuredContent: {
+        error: { code: "PLAN_NOT_FOUND", message: "Plan is unavailable" },
+      },
     });
-    await expect(clientB.callTool("list_plans", { contractVersion: "v1" })).resolves.toMatchObject({
+    await expect(
+      clientB.callTool("list_plans", { contractVersion: "v1" }),
+    ).resolves.toMatchObject({
       structuredContent: [],
     });
     await expect(
@@ -136,13 +145,22 @@ describe("authenticated MCP", () => {
         planId: "private-plan",
         contextId: "context-auth",
       }),
-    ).resolves.toMatchObject({ structuredContent: { error: { code: "PLAN_NOT_FOUND" } } });
+    ).resolves.toMatchObject({
+      structuredContent: { error: { code: "PLAN_NOT_FOUND" } },
+    });
 
     const incompatibleCalls = [
-      ["get_work_item", { contractVersion: "v2", planId: "private-plan", itemId: "item-1" }],
+      [
+        "get_work_item",
+        { contractVersion: "v2", planId: "private-plan", itemId: "item-1" },
+      ],
       [
         "get_related_context",
-        { contractVersion: "v2", planId: "private-plan", contextId: "context-auth" },
+        {
+          contractVersion: "v2",
+          planId: "private-plan",
+          contextId: "context-auth",
+        },
       ],
       [
         "check_packet",
@@ -228,7 +246,9 @@ describe("authenticated MCP", () => {
         },
       }),
     });
-    expect(await nameMismatch.json()).toMatchObject({ error: { code: -32020 } });
+    expect(await nameMismatch.json()).toMatchObject({
+      error: { code: -32020 },
+    });
   });
 
   it("rejects invalid nested content and non-positive or fractional versions at the MCP boundary", async () => {
@@ -273,12 +293,18 @@ describe("authenticated MCP", () => {
     vi.spyOn(running.store, "list").mockRejectedValueOnce(
       new Error("database path and query must stay private"),
     );
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorLog = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     try {
-      const result = await client.callTool("list_plans", { contractVersion: "v1" });
+      const result = await client.callTool("list_plans", {
+        contractVersion: "v1",
+      });
       expect(result).toMatchObject({
         isError: true,
-        structuredContent: { error: { code: "INTERNAL", message: "Internal error" } },
+        structuredContent: {
+          error: { code: "INTERNAL", message: "Internal error" },
+        },
       });
       expect(JSON.stringify(result)).not.toContain("database path");
       expect(errorLog).toHaveBeenCalledOnce();
@@ -298,45 +324,44 @@ describe("authenticated MCP", () => {
       expectedVersion: null,
       plan,
     });
-    const read = await client.callTool<{ structuredContent: { packetVersion: string } }>(
-      "get_work_item",
-      {
-        contractVersion: "v1",
-        planId: plan.planId,
-        itemId: "item-2",
-      },
-    );
+    const read = await client.callTool<{
+      structuredContent: { packetVersion: string };
+    }>("get_work_item", {
+      contractVersion: "v1",
+      planId: plan.planId,
+      itemId: "item-2",
+    });
     const withoutItemSource = clonePlan(plan);
     const withoutItem = {
       ...withoutItemSource,
       items: withoutItemSource.items
         .filter((item) => item.id !== "item-2")
-        .map((item) => (item.id === "item-1" ? { ...item, relatedItemIds: [] } : item)),
+        .map((item) =>
+          item.id === "item-1" ? { ...item, relatedItemIds: [] } : item,
+        ),
     };
     await client.callTool("write_plan", {
       operationId: "check-delete",
       expectedVersion: 1,
       plan: withoutItem,
     });
-    const deleted = await client.callTool<{ structuredContent: { status: string } }>(
-      "check_packet",
-      {
-        contractVersion: "v1",
-        planId: plan.planId,
-        itemId: "item-2",
-        packetVersion: read.structuredContent.packetVersion,
-      },
-    );
+    const deleted = await client.callTool<{
+      structuredContent: { status: string };
+    }>("check_packet", {
+      contractVersion: "v1",
+      planId: plan.planId,
+      itemId: "item-2",
+      packetVersion: read.structuredContent.packetVersion,
+    });
     expect(deleted.structuredContent).toEqual({ status: "deleted" });
-    const unavailable = await client.callTool<{ structuredContent: { status: string } }>(
-      "check_packet",
-      {
-        contractVersion: "v1",
-        planId: "missing",
-        itemId: "item-2",
-        packetVersion: read.structuredContent.packetVersion,
-      },
-    );
+    const unavailable = await client.callTool<{
+      structuredContent: { status: string };
+    }>("check_packet", {
+      contractVersion: "v1",
+      planId: "missing",
+      itemId: "item-2",
+      packetVersion: read.structuredContent.packetVersion,
+    });
     expect(unavailable.structuredContent).toEqual({ status: "unavailable" });
   });
 });
@@ -344,12 +369,19 @@ describe("authenticated MCP", () => {
 function modernMeta(version: string = MCP_PROTOCOL_VERSION) {
   return {
     "io.modelcontextprotocol/protocolVersion": version,
-    "io.modelcontextprotocol/clientInfo": { name: "irudd-plan-test", version: "1" },
+    "io.modelcontextprotocol/clientInfo": {
+      name: "irudd-plan-test",
+      version: "1",
+    },
     "io.modelcontextprotocol/clientCapabilities": {},
   };
 }
 
-function modernHeaders(token: string, method: string, version: string = MCP_PROTOCOL_VERSION) {
+function modernHeaders(
+  token: string,
+  method: string,
+  version: string = MCP_PROTOCOL_VERSION,
+) {
   return {
     authorization: `Bearer ${token}`,
     "content-type": "application/json",

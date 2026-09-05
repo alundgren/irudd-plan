@@ -6,7 +6,11 @@ import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 
 import { PlanError } from "../contract/errors.js";
 import type { Plan, WritePlanRequest } from "../contract/plan.js";
-import { canonicalJson, digest, validatePlan } from "../domain/validate-plan.js";
+import {
+  canonicalJson,
+  digest,
+  validatePlan,
+} from "../domain/validate-plan.js";
 import {
   acceptanceCriteria,
   assets,
@@ -44,12 +48,18 @@ export interface StoredPlan {
 export interface ListedPlan {
   readonly planId: string;
   readonly epicGoal: string;
-  readonly repository: { readonly provider: string; readonly owner: string; readonly name: string };
+  readonly repository: {
+    readonly provider: string;
+    readonly owner: string;
+    readonly name: string;
+  };
   readonly version: number;
   readonly updatedAt: string;
 }
 
-type Database = Effect.Success<ReturnType<typeof SQLiteNodeDrizzle.makeWithDefaults>>;
+type Database = Effect.Success<
+  ReturnType<typeof SQLiteNodeDrizzle.makeWithDefaults>
+>;
 
 export class PlanStore {
   constructor(
@@ -57,8 +67,13 @@ export class PlanStore {
     private readonly migrationsFolder: string,
   ) {}
 
-  private run<A, E>(program: (db: Database) => Effect.Effect<A, E>): Promise<A> {
-    const layer = SqliteClient.layer({ filename: this.filename, busyTimeout: "5 seconds" });
+  private run<A, E>(
+    program: (db: Database) => Effect.Effect<A, E>,
+  ): Promise<A> {
+    const layer = SqliteClient.layer({
+      filename: this.filename,
+      busyTimeout: "5 seconds",
+    });
     const scoped = Effect.gen(function* () {
       const db = yield* SQLiteNodeDrizzle.makeWithDefaults();
       yield* db.run(sql.raw("PRAGMA foreign_keys = ON"));
@@ -68,21 +83,32 @@ export class PlanStore {
   }
 
   async migrate(): Promise<void> {
-    await this.run((db) => migrate(db, { migrationsFolder: this.migrationsFolder }));
+    await this.run((db) =>
+      migrate(db, { migrationsFolder: this.migrationsFolder }),
+    );
   }
 
-  async configureOwners(mappings: ReadonlyArray<CredentialMapping>): Promise<void> {
+  async configureOwners(
+    mappings: ReadonlyArray<CredentialMapping>,
+  ): Promise<void> {
     await this.run((db) =>
       db.transaction((tx) =>
         Effect.gen(function* () {
           yield* tx.delete(ownerCredentials);
           for (const mapping of mappings) {
-            yield* tx.insert(owners).values({ id: mapping.ownerId }).onConflictDoNothing();
+            yield* tx
+              .insert(owners)
+              .values({ id: mapping.ownerId })
+              .onConflictDoNothing();
             yield* tx
               .insert(ownerCredentials)
               .values(mapping)
               .onConflictDoUpdate({
-                target: [ownerCredentials.issuer, ownerCredentials.claim, ownerCredentials.value],
+                target: [
+                  ownerCredentials.issuer,
+                  ownerCredentials.claim,
+                  ownerCredentials.value,
+                ],
                 set: { kind: mapping.kind, ownerId: mapping.ownerId },
               });
           }
@@ -121,7 +147,10 @@ export class PlanStore {
     );
   }
 
-  async write(ownerId: string, request: WritePlanRequest): Promise<WriteResult> {
+  async write(
+    ownerId: string,
+    request: WritePlanRequest,
+  ): Promise<WriteResult> {
     if (request.operationId.trim().length === 0) {
       throw new PlanError("REQUEST_INVALID", "operationId cannot be empty");
     }
@@ -136,7 +165,12 @@ export class PlanStore {
           const previousOperations = yield* tx
             .select()
             .from(operations)
-            .where(and(eq(operations.ownerId, ownerId), eq(operations.id, request.operationId)))
+            .where(
+              and(
+                eq(operations.ownerId, ownerId),
+                eq(operations.id, request.operationId),
+              ),
+            )
             .limit(1);
           const previousOperation = previousOperations[0];
           if (previousOperation !== undefined) {
@@ -157,23 +191,39 @@ export class PlanStore {
           const existingRows = yield* tx
             .select()
             .from(plans)
-            .where(and(eq(plans.ownerId, ownerId), eq(plans.id, request.plan.planId)))
+            .where(
+              and(
+                eq(plans.ownerId, ownerId),
+                eq(plans.id, request.plan.planId),
+              ),
+            )
             .limit(1);
           const existing = existingRows[0];
           if (existing === undefined && request.expectedVersion !== null) {
             return yield* Effect.fail(
-              new PlanError("PLAN_CONFLICT", "Plan does not exist at the expected version", {
-                actualVersion: null,
-                expectedVersion: request.expectedVersion,
-              }),
+              new PlanError(
+                "PLAN_CONFLICT",
+                "Plan does not exist at the expected version",
+                {
+                  actualVersion: null,
+                  expectedVersion: request.expectedVersion,
+                },
+              ),
             );
           }
-          if (existing !== undefined && request.expectedVersion !== existing.currentVersion) {
+          if (
+            existing !== undefined &&
+            request.expectedVersion !== existing.currentVersion
+          ) {
             return yield* Effect.fail(
-              new PlanError("PLAN_CONFLICT", "Plan version does not match expectedVersion", {
-                actualVersion: existing.currentVersion,
-                expectedVersion: request.expectedVersion,
-              }),
+              new PlanError(
+                "PLAN_CONFLICT",
+                "Plan version does not match expectedVersion",
+                {
+                  actualVersion: existing.currentVersion,
+                  expectedVersion: request.expectedVersion,
+                },
+              ),
             );
           }
           if (
@@ -183,7 +233,10 @@ export class PlanStore {
               existing.repositoryName !== request.plan.repository.name)
           ) {
             return yield* Effect.fail(
-              new PlanError("PLAN_CONFLICT", "A plan cannot be rebound to another repository"),
+              new PlanError(
+                "PLAN_CONFLICT",
+                "A plan cannot be rebound to another repository",
+              ),
             );
           }
 
@@ -218,7 +271,10 @@ export class PlanStore {
             yield* tx
               .delete(workItems)
               .where(
-                and(eq(workItems.ownerId, ownerId), eq(workItems.planId, request.plan.planId)),
+                and(
+                  eq(workItems.ownerId, ownerId),
+                  eq(workItems.planId, request.plan.planId),
+                ),
               );
             yield* tx
               .delete(sharedContexts)
@@ -231,11 +287,19 @@ export class PlanStore {
             yield* tx
               .delete(decisions)
               .where(
-                and(eq(decisions.ownerId, ownerId), eq(decisions.planId, request.plan.planId)),
+                and(
+                  eq(decisions.ownerId, ownerId),
+                  eq(decisions.planId, request.plan.planId),
+                ),
               );
             yield* tx
               .delete(assets)
-              .where(and(eq(assets.ownerId, ownerId), eq(assets.planId, request.plan.planId)));
+              .where(
+                and(
+                  eq(assets.ownerId, ownerId),
+                  eq(assets.planId, request.plan.planId),
+                ),
+              );
           }
 
           if (request.plan.items.length > 0) {
@@ -257,7 +321,8 @@ export class PlanStore {
                 text: criterion.text,
               })),
             );
-            if (criteria.length > 0) yield* tx.insert(acceptanceCriteria).values(criteria);
+            if (criteria.length > 0)
+              yield* tx.insert(acceptanceCriteria).values(criteria);
           }
           if (request.plan.contexts.length > 0) {
             yield* tx.insert(sharedContexts).values(
@@ -347,7 +412,10 @@ export class PlanStore {
           .limit(1);
         const current = rows[0];
         if (current === undefined) return undefined;
-        return { plan: JSON.parse(current.contentJson) as Plan, version: current.version };
+        return {
+          plan: JSON.parse(current.contentJson) as Plan,
+          version: current.version,
+        };
       }),
     );
   }

@@ -15,7 +15,10 @@
       "deferrals": [],
       "completionExpectation": "The client prints the selected packet",
       "acceptanceCriteria": [
-        { "id": "criterion-round-trip", "text": "The service returns item-service after the write" }
+        {
+          "id": "criterion-round-trip",
+          "text": "The service returns item-service after the write"
+        }
       ],
       "requiredContextIds": ["context-auth"],
       "requiredDecisionIds": ["decision-sqlite"],

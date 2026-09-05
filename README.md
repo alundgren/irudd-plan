@@ -6,40 +6,58 @@ The current release implements contract `v1` over MCP `2026-07-28`. Plan data st
 
 ## Run it locally
 
-Install Node `24.20.0` and pnpm `11.25.0`, then run:
+Install Vite+ and the project dependencies:
 
-```bash
-pnpm install --frozen-lockfile
+```sh
+curl -fsSL https://vite.plus | bash
+vp install --frozen-lockfile
+```
+
+Vite+ installs the required Node.js runtime and the pinned pnpm release. Open a
+new shell if the installer adds `vp` to your path but the current shell cannot
+find it.
+
+Configure and start the service:
+
+```sh
 cp .env.example .env
 # Replace every placeholder in .env, then load it into your shell.
 set -a
 . ./.env
 set +a
-pnpm dev
+vp run dev
 ```
 
 Production startup requires a valid issuer, audience, JWKS URL, and at least one service identity mapping. There is no environment flag that disables authentication. Tests inject a verifier in process and never change production startup behavior.
 
 Create the example plan and retrieve its first item with an Access application token:
 
-```bash
+```sh
 IRUDD_MCP_URL=http://127.0.0.1:3000/mcp \
 CF_ACCESS_TOKEN='<signed-access-jwt>' \
-pnpm example:mcp
+vp run example:mcp
 ```
 
 The example client negotiates `2026-07-28`, calls `write_plan`, then calls `get_work_item`. Run it again with a different plan ID, or update `scripts/mcp-example.ts` to pass the returned version as `expectedVersion` for a revision.
 
 ## Checks
 
-```bash
-pnpm check
-pnpm test
-pnpm build
-pnpm db:generate
+```sh
+vp run check
+vp run test
+vp run build
+vp run db:generate --name <semantic_name>
 ```
 
-`pnpm check` uses Vite+ for formatting, linting, and TypeScript. `pnpm test` uses the Vitest release bundled with the pinned Vite+ toolchain.
+`vp run check` reports advisory warnings for files over 500 lines, functions
+over 100 lines, and functions with cyclomatic complexity over 20. Automation
+uses `vp run check:ci` to hide those warnings while retaining format, lint, and
+type failures.
+
+Use `vp install` or `vp i` to install dependencies, `vp add` and `vp remove` to
+change them, `vp exec` for project binaries, and `vp node` for direct Node.js
+entry points. These commands keep Node.js and pnpm on the versions declared by
+this repository.
 
 See [the MCP contract](docs/mcp.md), [architecture](docs/architecture.md), and [operations](docs/operations.md) for the public API and deployment details.
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { decode, WritePlanRequest } from "../src/contract/plan.js";
 import { clonePlan, tenItemPlan } from "./fixture.js";
@@ -21,7 +21,12 @@ describe("write plan contract", () => {
         ...base,
         items: base.items.map((item, index) =>
           index === 0
-            ? { ...item, acceptanceCriteria: [{ ...item.acceptanceCriteria[0]!, text: "" }] }
+            ? {
+                ...item,
+                acceptanceCriteria: [
+                  { ...item.acceptanceCriteria[0]!, text: "" },
+                ],
+              }
             : item,
         ),
       },
@@ -33,16 +38,29 @@ describe("write plan contract", () => {
       },
       {
         ...base,
-        assets: base.assets.map((asset, index) => (index === 0 ? { ...asset, uri: "" } : asset)),
+        assets: base.assets.map((asset, index) =>
+          index === 0 ? { ...asset, uri: "" } : asset,
+        ),
       },
     ];
 
     for (const plan of invalidPlans) {
-      expectInvalid({ operationId: "invalid-content", expectedVersion: null, plan });
+      expectInvalid({
+        operationId: "invalid-content",
+        expectedVersion: null,
+        plan,
+      });
     }
   });
 
-  it.each([-1, 0, 1.5])("rejects invalid expectedVersion %s", (expectedVersion) => {
-    expectInvalid({ operationId: "invalid-version", expectedVersion, plan: tenItemPlan() });
-  });
+  it.each([-1, 0, 1.5])(
+    "rejects invalid expectedVersion %s",
+    (expectedVersion) => {
+      expectInvalid({
+        operationId: "invalid-version",
+        expectedVersion,
+        plan: tenItemPlan(),
+      });
+    },
+  );
 });

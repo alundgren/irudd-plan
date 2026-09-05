@@ -6,7 +6,11 @@ import type {
   WritePlanRequest,
 } from "../contract/plan.js";
 import type { PlanStore, StoredPlan } from "../database/store.js";
-import { collectRequiredPacket, digest, validatePlan } from "./validate-plan.js";
+import {
+  collectRequiredPacket,
+  digest,
+  validatePlan,
+} from "./validate-plan.js";
 
 export class PlanService {
   constructor(private readonly store: PlanStore) {}
@@ -21,7 +25,8 @@ export class PlanService {
 
   async getOverview(ownerId: string, planId: string) {
     const stored = await this.store.get(ownerId, planId);
-    if (stored === undefined) throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    if (stored === undefined)
+      throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
     return {
       contractVersion: stored.plan.contractVersion,
       planId: stored.plan.planId,
@@ -55,7 +60,9 @@ export class PlanService {
       decisions: required.decisions,
       assets: required.assets,
     };
-    const includedContextIds = new Set(required.contexts.map((context) => context.id));
+    const includedContextIds = new Set(
+      required.contexts.map((context) => context.id),
+    );
     return {
       contractVersion: stored.plan.contractVersion,
       planId: stored.plan.planId,
@@ -82,7 +89,8 @@ export class PlanService {
 
   async getContext(ownerId: string, request: GetRelatedContextRequest) {
     const stored = await this.store.get(ownerId, request.planId);
-    if (stored === undefined) throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    if (stored === undefined)
+      throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
     const index = validatePlan(stored.plan);
     const root = index.contexts.get(request.contextId);
     if (root === undefined) {
@@ -93,7 +101,8 @@ export class PlanService {
     const visit = (id: string): void => {
       if (contextIds.has(id)) return;
       const context = index.contexts.get(id);
-      if (context === undefined) throw new PlanError("REFERENCE_MISSING", `Missing context: ${id}`);
+      if (context === undefined)
+        throw new PlanError("REFERENCE_MISSING", `Missing context: ${id}`);
       contextIds.add(id);
       for (const childId of context.requiredContextIds) visit(childId);
       for (const assetId of context.assetIds) assetIds.add(assetId);
@@ -115,12 +124,17 @@ export class PlanService {
   async checkPacket(ownerId: string, request: CheckPacketRequest) {
     const stored = await this.store.get(ownerId, request.planId);
     if (stored === undefined) return { status: "unavailable" as const };
-    if (!stored.plan.items.some((candidate) => candidate.id === request.itemId)) {
+    if (
+      !stored.plan.items.some((candidate) => candidate.id === request.itemId)
+    ) {
       return { status: "deleted" as const };
     }
     const current = this.itemPacket(stored, request.itemId);
     if (current.packetVersion === request.packetVersion) {
-      return { status: "unchanged" as const, packetVersion: current.packetVersion };
+      return {
+        status: "unchanged" as const,
+        packetVersion: current.packetVersion,
+      };
     }
     return {
       status: "changed" as const,

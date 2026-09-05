@@ -67,7 +67,9 @@ export function tenItemPlan(planId = "plan-alpha"): Plan {
         checks: [`Check ${number}`],
         deferrals: [`Deferred ${number}`],
         completionExpectation: `Task ${number} is verified`,
-        acceptanceCriteria: [{ id: `criterion-${number}`, text: `Criterion ${number}` }],
+        acceptanceCriteria: [
+          { id: `criterion-${number}`, text: `Criterion ${number}` },
+        ],
         requiredContextIds: number === 1 ? ["context-auth"] : [],
         requiredDecisionIds: number === 1 ? ["decision-database"] : [],
         requiredAssetIds: number === 1 ? ["asset-contract"] : [],

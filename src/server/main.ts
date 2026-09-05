@@ -1,7 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import { Authenticator, CloudflareAccessVerifier } from "../auth/authentication.js";
+import {
+  Authenticator,
+  CloudflareAccessVerifier,
+} from "../auth/authentication.js";
 import { PlanStore } from "../database/store.js";
 import { PlanService } from "../domain/plan-service.js";
 import { createMcpHttpServer } from "../mcp/server.js";

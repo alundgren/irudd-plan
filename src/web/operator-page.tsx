@@ -5,7 +5,9 @@ function OperatorPage() {
     <main>
       <h1>irudd-plan</h1>
       <p>The plan service is running.</p>
-      <p>Agents retrieve plan content through the authenticated MCP endpoint.</p>
+      <p>
+        Agents retrieve plan content through the authenticated MCP endpoint.
+      </p>
       <nav aria-label="Service checks">
         <a href="/healthz">Health</a> <a href="/readyz">Readiness</a>
       </nav>

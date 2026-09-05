@@ -51,4 +51,9 @@ docker run --rm -p 3000:3000 \
   irudd-plan:local
 ```
 
-The image runs as the Node user, has a readiness health check, and stores no credentials in its layers.
+The build and dependency stages use the pinned Vite+ image. Vite+ provisions
+the Node.js and pnpm versions declared by the project, runs the checks and
+build, then exports the resolved Node.js binary. The final Debian image contains
+that binary, the built service, and production dependencies. It runs as an
+unprivileged user, has a readiness health check, and stores no credentials in
+its layers.

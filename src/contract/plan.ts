@@ -5,7 +5,10 @@ export const MCP_PROTOCOL_VERSION = "2026-07-28" as const;
 
 const Identifier = Schema.String.check(Schema.isPattern(/\S/));
 const NonEmptyText = Schema.String.check(Schema.isPattern(/\S/));
-const PositiveInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
+const PositiveInteger = Schema.Number.check(
+  Schema.isInt(),
+  Schema.isGreaterThan(0),
+);
 
 export const RepositoryIdentity = Schema.Struct({
   provider: Schema.Literal("github"),

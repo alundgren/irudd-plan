@@ -2,7 +2,10 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { Authenticator, TestAccessVerifier } from "../src/auth/authentication.js";
+import {
+  Authenticator,
+  TestAccessVerifier,
+} from "../src/auth/authentication.js";
 import type { CredentialMapping } from "../src/database/store.js";
 import { PlanStore } from "../src/database/store.js";
 import { PlanService } from "../src/domain/plan-service.js";
@@ -10,16 +13,45 @@ import { createMcpHttpServer } from "../src/mcp/server.js";
 
 export const issuer = "https://example.cloudflareaccess.com";
 export const mappings: ReadonlyArray<CredentialMapping> = [
-  { issuer, claim: "common_name", value: "service-a", kind: "service", ownerId: "owner-a" },
-  { issuer, claim: "common_name", value: "service-a-2", kind: "service", ownerId: "owner-a" },
-  { issuer, claim: "common_name", value: "service-b", kind: "service", ownerId: "owner-b" },
-  { issuer, claim: "email", value: "person@example.com", kind: "browser", ownerId: "owner-a" },
+  {
+    issuer,
+    claim: "common_name",
+    value: "service-a",
+    kind: "service",
+    ownerId: "owner-a",
+  },
+  {
+    issuer,
+    claim: "common_name",
+    value: "service-a-2",
+    kind: "service",
+    ownerId: "owner-a",
+  },
+  {
+    issuer,
+    claim: "common_name",
+    value: "service-b",
+    kind: "service",
+    ownerId: "owner-b",
+  },
+  {
+    issuer,
+    claim: "email",
+    value: "person@example.com",
+    kind: "browser",
+    ownerId: "owner-a",
+  },
 ];
 
 export async function createTestStore(filename?: string): Promise<PlanStore> {
   const directory =
-    filename === undefined ? await mkdtemp(join(tmpdir(), "irudd-plan-")) : undefined;
-  const store = new PlanStore(filename ?? join(directory!, "plans.db"), resolve("drizzle"));
+    filename === undefined
+      ? await mkdtemp(join(tmpdir(), "irudd-plan-"))
+      : undefined;
+  const store = new PlanStore(
+    filename ?? join(directory!, "plans.db"),
+    resolve("drizzle"),
+  );
   await store.migrate();
   await store.configureOwners(mappings);
   return store;
@@ -40,7 +72,9 @@ export async function startTestServer(filename?: string) {
     new PlanService(store),
     new Authenticator(verifier, store, "service"),
   );
-  await new Promise<void>((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
+  await new Promise<void>((resolveListen) =>
+    server.listen(0, "127.0.0.1", resolveListen),
+  );
   const address = server.address();
   if (address === null || typeof address === "string")
     throw new Error("Missing test server address");

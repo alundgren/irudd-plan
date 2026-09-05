@@ -1,20 +1,23 @@
 import { renderToStaticMarkup } from "react-dom/server";
 
-function OperatorPage() {
+function AppPage() {
   return (
-    <main>
-      <h1>irudd-plan</h1>
-      <p>The plan service is running.</p>
-      <p>
-        Agents retrieve plan content through the authenticated MCP endpoint.
-      </p>
-      <nav aria-label="Service checks">
-        <a href="/healthz">Health</a> <a href="/readyz">Readiness</a>
-      </nav>
-    </main>
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="color-scheme" content="light" />
+        <title>irudd plan review</title>
+        <link rel="stylesheet" href="/assets/app.css" />
+      </head>
+      <body>
+        <div id="root" />
+        <script type="module" src="/assets/app.js" />
+      </body>
+    </html>
   );
 }
 
-export function renderOperatorPage(): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>irudd-plan</title></head><body>${renderToStaticMarkup(<OperatorPage />)}</body></html>`;
+export function renderAppPage(): string {
+  return `<!doctype html>${renderToStaticMarkup(<AppPage />)}`;
 }

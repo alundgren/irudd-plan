@@ -8,7 +8,7 @@ import { Schema } from "effect";
 
 import { PlanError } from "../src/contract/errors.js";
 import { PlanService } from "../src/domain/plan-service.js";
-import { clonePlan, tenItemPlan } from "./fixture.js";
+import { clonePlan, fixtureAssetUpload, tenItemPlan } from "./fixture.js";
 import { mappings, createTestStore } from "./test-service.js";
 import { PlanStore } from "../src/database/store.js";
 import { OwnerRecord } from "../src/database/schema.js";
@@ -20,6 +20,10 @@ describe("plan storage and packet versions", () => {
     const store = await createTestStore(filename);
     const service = new PlanService(store);
     const initialPlan = tenItemPlan();
+    await service.uploadAsset(
+      "owner-a",
+      fixtureAssetUpload(initialPlan.planId),
+    );
     const created = await service.write("owner-a", {
       operationId: "operation-create",
       expectedVersion: null,

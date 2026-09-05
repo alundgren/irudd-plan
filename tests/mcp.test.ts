@@ -1,10 +1,11 @@
 import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { clonePlan, tenItemPlan } from "./fixture.js";
+import { clonePlan, fixtureAssetUpload, tenItemPlan } from "./fixture.js";
 import { startTestServer } from "./test-service.js";
 import { IruddMcpClient } from "../src/client/mcp-client.js";
 import { MCP_PROTOCOL_VERSION } from "../src/contract/plan.js";
@@ -43,6 +44,22 @@ describe("authenticated MCP", () => {
       ]),
     });
     const plan = tenItemPlan();
+    const uploaded = await client.callTool<{
+      structuredContent: { digest: string };
+    }>("upload_asset", fixtureAssetUpload(plan.planId));
+    const retrieved = await client.callTool<{
+      structuredContent: { bytesBase64: string };
+    }>("get_asset", {
+      contractVersion: "v1",
+      planId: plan.planId,
+      assetId: "asset-contract",
+      digest: uploaded.structuredContent.digest,
+    });
+    expect(
+      `sha256:${createHash("sha256")
+        .update(Buffer.from(retrieved.structuredContent.bytesBase64, "base64"))
+        .digest("hex")}`,
+    ).toBe(uploaded.structuredContent.digest);
     const writeResult = await client.callTool<{
       structuredContent: { resourceUri: string };
     }>("write_plan", {
@@ -116,6 +133,7 @@ describe("authenticated MCP", () => {
 
     const clientA = trackedClient(running.url, "token-a");
     await clientA.connect();
+    await clientA.callTool("upload_asset", fixtureAssetUpload("private-plan"));
     await clientA.callTool("write_plan", {
       operationId: "private-create",
       expectedVersion: null,
@@ -319,6 +337,7 @@ describe("authenticated MCP", () => {
     const client = trackedClient(running.url, "token-a");
     await client.connect();
     const plan = tenItemPlan("packet-checks");
+    await client.callTool("upload_asset", fixtureAssetUpload(plan.planId));
     await client.callTool("write_plan", {
       operationId: "check-create",
       expectedVersion: null,

@@ -1,11 +1,15 @@
 import { PlanError } from "../contract/errors.js";
 import type {
   CheckPacketRequest,
+  GetAssetRequest,
   GetItemRequest,
   GetRelatedContextRequest,
+  UploadAssetRequest,
   WritePlanRequest,
 } from "../contract/plan.js";
 import type { PlanStore, StoredPlan } from "../database/store.js";
+import { prepareAsset, type AssetLimits } from "./assets.js";
+import { PlanUpdateHub } from "./plan-update-hub.js";
 import {
   collectRequiredPacket,
   digest,
@@ -13,14 +17,72 @@ import {
 } from "./validate-plan.js";
 
 export class PlanService {
-  constructor(private readonly store: PlanStore) {}
+  constructor(
+    private readonly store: PlanStore,
+    readonly updates = new PlanUpdateHub(),
+    private readonly assetLimits: AssetLimits = {
+      maxAssetBytes: 5_000_000,
+      maxSourceBytes: 2_000_000,
+      maxOwnerStorageBytes: 100_000_000,
+    },
+  ) {}
 
-  write(ownerId: string, request: WritePlanRequest) {
-    return this.store.write(ownerId, request);
+  async write(ownerId: string, request: WritePlanRequest) {
+    await this.store.assertPlanAssets(ownerId, request.plan);
+    const result = await this.store.write(ownerId, request);
+    if (!result.replayed) {
+      this.updates.publish({
+        ownerId,
+        planId: result.planId,
+        version: result.version,
+      });
+    }
+    return result;
   }
 
   list(ownerId: string) {
     return this.store.list(ownerId);
+  }
+
+  current(ownerId: string, planId: string) {
+    return this.store.get(ownerId, planId);
+  }
+
+  async uploadAsset(ownerId: string, request: UploadAssetRequest) {
+    const prepared = prepareAsset(request, this.assetLimits);
+    return this.store.putAsset(ownerId, prepared, this.assetLimits);
+  }
+
+  async getAsset(ownerId: string, request: GetAssetRequest) {
+    const stored = await this.store.getAsset(
+      ownerId,
+      request.planId,
+      request.assetId,
+      request.digest,
+    );
+    if (stored === undefined) {
+      throw new PlanError("ASSET_UNAVAILABLE", "Asset is unavailable");
+    }
+    if (request.content === "source") {
+      if (stored.source === undefined) {
+        throw new PlanError(
+          "ASSET_UNAVAILABLE",
+          "Editable source is unavailable",
+        );
+      }
+      return {
+        descriptor: stored.descriptor,
+        content: "source" as const,
+        mediaType: stored.source.mediaType,
+        bytesBase64: stored.source.content.toString("base64"),
+      };
+    }
+    return {
+      descriptor: stored.descriptor,
+      content: "rendered" as const,
+      mediaType: stored.descriptor.mediaType,
+      bytesBase64: stored.content.toString("base64"),
+    };
   }
 
   async getOverview(ownerId: string, planId: string) {

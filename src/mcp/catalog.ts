@@ -76,6 +76,62 @@ export const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: "upload_asset",
+    description:
+      "Upload one immutable self-contained visual asset and optional editable source before referencing its returned descriptor in a plan revision.",
+    inputSchema: {
+      type: "object",
+      required: [
+        "contractVersion",
+        "planId",
+        "assetId",
+        "mediaType",
+        "caption",
+        "role",
+        "bytesBase64",
+      ],
+      properties: {
+        contractVersion: { type: "string" },
+        planId: { type: "string" },
+        assetId: { type: "string" },
+        mediaType: { type: "string" },
+        caption: { type: "string" },
+        role: {
+          type: "string",
+          enum: ["binding-reference", "illustration"],
+        },
+        bytesBase64: { type: "string" },
+        source: {
+          type: "object",
+          required: ["mediaType", "bytesBase64"],
+          properties: {
+            mediaType: { type: "string" },
+            bytesBase64: { type: "string" },
+          },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_asset",
+    description:
+      "Retrieve immutable rendered bytes or editable source through authenticated MCP and verify the returned digest.",
+    inputSchema: {
+      type: "object",
+      required: ["contractVersion", "planId", "assetId", "digest"],
+      properties: {
+        contractVersion: { type: "string" },
+        planId: { type: "string" },
+        assetId: { type: "string" },
+        digest: { type: "string" },
+        content: { type: "string", enum: ["rendered", "source"] },
+      },
+      additionalProperties: false,
+    },
+  },
 ] as const;
 
 function planItemSchema() {
@@ -113,6 +169,13 @@ export const resourceTemplates = [
     name: "Current shared context",
     description:
       "One deliberately selected shared context and its requirements.",
+    mimeType: "application/json",
+  },
+  {
+    uriTemplate: "irudd-plan://plans/{planId}/assets/{assetId}?digest={digest}",
+    name: "Immutable plan asset",
+    description:
+      "Owner-authenticated rendered asset bytes for an exact SHA-256 digest.",
     mimeType: "application/json",
   },
 ] as const;

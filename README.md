@@ -1,6 +1,6 @@
 # irudd-plan
 
-`irudd-plan` stores private, versioned work-item plans and returns one focused implementation packet through authenticated MCP. It does not run agents, schedule issues, or decide whether work is approved.
+`irudd-plan` stores private, versioned work-item plans, returns focused implementation packets through authenticated MCP, and presents current plans in a read-only canvas for human review. It does not run agents, schedule issues, edit plan content in the browser, or decide whether work is approved.
 
 The current release implements contract `v1` over MCP `2026-07-28`. Plan data stays in SQLite under the owner resolved from a verified Cloudflare Access identity.
 
@@ -45,6 +45,7 @@ The example client negotiates `2026-07-28`, calls `write_plan`, then calls `get_
 ```sh
 vp run check
 vp run test
+vp run test:browser
 vp run build
 vp run db:generate --name <semantic_name>
 ```
@@ -59,7 +60,7 @@ change them, `vp exec` for project binaries, and `vp node` for direct Node.js
 entry points. These commands keep Node.js and pnpm on the versions declared by
 this repository.
 
-See [the MCP contract](docs/mcp.md), [architecture](docs/architecture.md), and [operations](docs/operations.md) for the public API and deployment details.
+See [the review interface](ux.md), [MCP contract](docs/mcp.md), [architecture](docs/architecture.md), and [operations](docs/operations.md) for the public behavior and deployment details.
 
 ## Version record
 

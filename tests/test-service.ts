@@ -41,6 +41,13 @@ export const mappings: ReadonlyArray<CredentialMapping> = [
     kind: "browser",
     ownerId: "owner-a",
   },
+  {
+    issuer,
+    claim: "email",
+    value: "other@example.com",
+    kind: "browser",
+    ownerId: "owner-b",
+  },
 ];
 
 export async function createTestStore(filename?: string): Promise<PlanStore> {
@@ -57,34 +64,48 @@ export async function createTestStore(filename?: string): Promise<PlanStore> {
   return store;
 }
 
-export async function startTestServer(filename?: string) {
+export async function startTestServer(
+  filename?: string,
+  port = 0,
+  initialize?: (service: PlanService) => Promise<void>,
+) {
   const store = await createTestStore(filename);
+  const expiredTokens = new Set(["expired"]);
   const verifier = new TestAccessVerifier(
     new Map([
       ["token-a", { issuer, claims: { common_name: "service-a" } }],
       ["token-a-2", { issuer, claims: { common_name: "service-a-2" } }],
       ["token-b", { issuer, claims: { common_name: "service-b" } }],
       ["unknown", { issuer, claims: { common_name: "not-mapped" } }],
+      ["browser-a", { issuer, claims: { email: "person@example.com" } }],
+      ["browser-b", { issuer, claims: { email: "other@example.com" } }],
     ]),
-    new Set(["expired"]),
+    expiredTokens,
   );
+  const service = new PlanService(store);
   const server = createMcpHttpServer(
-    new PlanService(store),
+    service,
     new Authenticator(verifier, store, "service"),
+    {
+      browserAuthenticator: new Authenticator(verifier, store, "browser"),
+    },
   );
+  if (initialize !== undefined) await initialize(service);
   await new Promise<void>((resolveListen) =>
-    server.listen(0, "127.0.0.1", resolveListen),
+    server.listen(port, "127.0.0.1", resolveListen),
   );
   const address = server.address();
   if (address === null || typeof address === "string")
     throw new Error("Missing test server address");
   return {
     store,
+    service,
     server,
     url: `http://127.0.0.1:${address.port}`,
     close: () =>
       new Promise<void>((resolveClose, reject) =>
         server.close((error) => (error ? reject(error) : resolveClose())),
       ),
+    expire: (token: string) => expiredTokens.add(token),
   };
 }

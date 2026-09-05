@@ -4,18 +4,22 @@
 
 The service reads configuration from environment variables. Keep real values in the deployment secret store, not Git.
 
-| Variable                   | Purpose                                                            |
-| -------------------------- | ------------------------------------------------------------------ |
-| `DATABASE_PATH`            | SQLite file. Production defaults to `/data/irudd-plan.db`.         |
-| `MIGRATIONS_DIR`           | Generated migration history. The image uses `/app/drizzle`.        |
-| `HOST`, `PORT`             | HTTP listener.                                                     |
-| `REQUEST_BODY_LIMIT_BYTES` | Maximum JSON-RPC request size. Defaults to 2,000,000 bytes.        |
-| `CF_ACCESS_ISSUER`         | Exact Access team issuer, without a trailing slash.                |
-| `CF_ACCESS_AUDIENCE`       | Access application audience.                                       |
-| `CF_ACCESS_JWKS_URL`       | Team certificate endpoint. Defaults from the issuer.               |
-| `OWNER_MAPPINGS_JSON`      | Operator-managed mappings from verified claims to internal owners. |
+| Variable                        | Purpose                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `DATABASE_PATH`                 | SQLite file. Production defaults to `/data/irudd-plan.db`.                      |
+| `MIGRATIONS_DIR`                | Generated migration history. The image uses `/app/drizzle`.                     |
+| `HOST`, `PORT`                  | HTTP listener.                                                                  |
+| `REQUEST_BODY_LIMIT_BYTES`      | Maximum JSON-RPC request size. Defaults to 12,000,000 bytes.                    |
+| `MAX_ASSET_BYTES`               | Maximum decoded rendered asset size. Defaults to 5,000,000 bytes.               |
+| `MAX_ASSET_SOURCE_BYTES`        | Maximum decoded source-file size. Defaults to 2,000,000 bytes.                  |
+| `MAX_OWNER_ASSET_STORAGE_BYTES` | Maximum stored asset and source bytes per owner. Defaults to 100,000,000 bytes. |
+| `CLIENT_ASSETS_DIR`             | Built browser asset directory. Defaults to `dist/client/assets`.                |
+| `CF_ACCESS_ISSUER`              | Exact Access team issuer, without a trailing slash.                             |
+| `CF_ACCESS_AUDIENCE`            | Access application audience.                                                    |
+| `CF_ACCESS_JWKS_URL`            | Team certificate endpoint. Defaults from the issuer.                            |
+| `OWNER_MAPPINGS_JSON`           | Operator-managed mappings from verified claims to internal owners.              |
 
-A service mapping normally uses the token `common_name`. A browser mapping can use `email` or `sub`. Set `kind` explicitly. Several mappings may point to one owner. MCP accepts only mappings with `kind: "service"`.
+A service mapping normally uses the token `common_name`. A browser mapping can use `email` or `sub`. Set `kind` explicitly. Several mappings may point to one owner. MCP accepts only `service` mappings, while browser pages, JSON reads, asset reads, and update subscriptions accept only `browser` mappings.
 
 Cloudflare must validate the service token at the protected application before it forwards the signed assertion. The origin still checks the JWT signature, issuer, audience, and expiry. Unknown verified identities receive no owner access.
 
@@ -25,7 +29,9 @@ Mount a persistent writable volume at `/data`. The service applies the committed
 
 - `GET /healthz` reports that the process accepts HTTP.
 - `GET /readyz` reports whether migrations and owner configuration completed.
-- `GET /` is an operator status page. It contains no plan data.
+- `GET /` lists plans for an authenticated browser owner.
+- `GET /plans/{planId}` and `/plans/{planId}/items/{itemId}` serve the review application.
+- `GET /api/plans/{planId}/events` is the private live-update stream. It rechecks authentication before each revision notice.
 
 ## Container image
 

@@ -11,6 +11,8 @@ import {
   digest,
   validatePlan,
 } from "../domain/validate-plan.js";
+import type { AssetLimits, PreparedAsset } from "../domain/assets.js";
+import { AssetStore, type StoredAsset } from "./asset-store.js";
 import {
   acceptanceCriteria,
   assets,
@@ -62,10 +64,14 @@ type Database = Effect.Success<
 >;
 
 export class PlanStore {
+  private readonly assetStore: AssetStore;
+
   constructor(
     private readonly filename: string,
     private readonly migrationsFolder: string,
-  ) {}
+  ) {
+    this.assetStore = new AssetStore(filename);
+  }
 
   private run<A, E>(
     program: (db: Database) => Effect.Effect<A, E>,
@@ -389,6 +395,27 @@ export class PlanStore {
         }),
       ),
     );
+  }
+
+  async putAsset(
+    ownerId: string,
+    asset: PreparedAsset,
+    limits: AssetLimits,
+  ): Promise<Plan["assets"][number]> {
+    return this.assetStore.put(ownerId, asset, limits);
+  }
+
+  async assertPlanAssets(ownerId: string, plan: Plan): Promise<void> {
+    await this.assetStore.assertPlanAssets(ownerId, plan);
+  }
+
+  async getAsset(
+    ownerId: string,
+    planId: string,
+    assetId: string,
+    assetDigest: string,
+  ): Promise<StoredAsset | undefined> {
+    return this.assetStore.get(ownerId, planId, assetId, assetDigest);
   }
 
   async get(ownerId: string, planId: string): Promise<StoredPlan | undefined> {

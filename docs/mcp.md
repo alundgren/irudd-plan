@@ -17,8 +17,14 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 | `get_related_context` | Retrieves one deliberately selected shared context and its required records.                      |
 | `check_packet`        | Returns `unchanged`, `changed`, `deleted`, or `unavailable`.                                      |
 | `list_plans`          | Lists plans for the authenticated owner only.                                                     |
+| `upload_asset`        | Stores immutable self-contained visual bytes and optional editable source.                        |
+| `get_asset`           | Returns exact rendered or source bytes as base64 for digest verification.                         |
 
 `write_plan` takes `operationId`, `expectedVersion`, and the complete `plan`. Use `expectedVersion: null` only when creating a plan. A retry with the same operation ID and identical request returns the first result. Reusing the ID with different input returns `OPERATION_MISMATCH`.
+
+Upload every asset before referencing it in a plan revision. `upload_asset` accepts PNG, JPEG, GIF, WebP, SVG, or self-contained HTML. Its result is the complete asset descriptor to put in `plan.assets`. Roles are `binding-reference` and `illustration`. Optional editable source accepts text, JSON, or SVG. The server calculates every SHA-256 digest. Reusing an asset ID with new bytes creates another immutable digest; later revisions may reference the new digest without changing the old bytes.
+
+HTML and SVG must not contain relative or external tag or CSS dependencies. Unsupported media, malformed base64, oversize content, and uploads above the owner storage limit fail without storing a partial asset. `get_asset` accepts `content: "source"` for the optional editable source and defaults to rendered bytes.
 
 ## Resources
 
@@ -26,6 +32,7 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 irudd-plan://plans/{planId}
 irudd-plan://plans/{planId}/items/{itemId}
 irudd-plan://plans/{planId}/contexts/{contextId}
+irudd-plan://plans/{planId}/assets/{assetId}?digest={digest}
 ```
 
 All templates are listed through `resources/templates/list` and resolved through `resources/read`. The plan URI returns only the epic goal, repository identity, and compact item index. The URIs identify current content and never contain a revision segment.
@@ -49,6 +56,9 @@ The selected packet contains the full requested item, every recursively required
 | `REFERENCE_MISSING`     | A required context, decision, asset, related item, or other required field is absent.                        |
 | `REFERENCE_CYCLE`       | Required shared contexts contain a cycle.                                                                    |
 | `ASSET_UNAVAILABLE`     | A required asset descriptor says the asset is unavailable.                                                   |
+| `ASSET_INVALID`         | Asset bytes, media type, immutable metadata, or self-contained markup rules are invalid.                     |
+| `ASSET_TOO_LARGE`       | Rendered or source bytes exceed the configured per-upload limit.                                             |
+| `STORAGE_LIMIT`         | An upload would exceed the authenticated owner's configured storage limit.                                   |
 | `PLAN_CONFLICT`         | `expectedVersion` does not match current state or the repository identity changed.                           |
 | `OPERATION_MISMATCH`    | An operation ID was reused with different input.                                                             |
 | `PLAN_NOT_FOUND`        | The authenticated owner cannot retrieve the plan. The response does not reveal whether another owner has it. |

@@ -1,4 +1,25 @@
+import { createHash } from "node:crypto";
+
 import type { Plan } from "../src/contract/plan.js";
+
+export const fixtureSvg =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160"><rect width="320" height="160" fill="#effbf9"/><path d="M50 80h220" stroke="#178e89" stroke-width="8"/><circle cx="50" cy="80" r="24" fill="#dc9c58"/><circle cx="270" cy="80" r="24" fill="#178e89"/></svg>';
+
+export const fixtureAssetDigest = `sha256:${createHash("sha256")
+  .update(fixtureSvg)
+  .digest("hex")}`;
+
+export function fixtureAssetUpload(planId: string) {
+  return {
+    contractVersion: "v1" as const,
+    planId,
+    assetId: "asset-contract",
+    mediaType: "image/svg+xml",
+    caption: "Contract diagram",
+    role: "binding-reference" as const,
+    bytesBase64: Buffer.from(fixtureSvg).toString("base64"),
+  };
+}
 
 export function tenItemPlan(planId = "plan-alpha"): Plan {
   return {
@@ -47,9 +68,9 @@ export function tenItemPlan(planId = "plan-alpha"): Plan {
     assets: [
       {
         id: "asset-contract",
-        uri: "https://example.test/contract.svg",
+        uri: `irudd-plan://plans/${encodeURIComponent(planId)}/assets/asset-contract?digest=${encodeURIComponent(fixtureAssetDigest)}`,
         mediaType: "image/svg+xml",
-        digest: "sha256:fixture",
+        digest: fixtureAssetDigest,
         caption: "Contract diagram",
         role: "binding-reference",
         available: true,

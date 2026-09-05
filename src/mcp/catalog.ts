@@ -78,6 +78,12 @@ function planItemSchema() {
 
 export const resourceTemplates = [
   {
+    uriTemplate: "irudd-plan://plans/{planId}",
+    name: "Current compact plan overview",
+    description: "The epic goal and compact work-item index for one private plan.",
+    mimeType: "application/json",
+  },
+  {
     uriTemplate: "irudd-plan://plans/{planId}/items/{itemId}",
     name: "Current work-item packet",
     description: "The current complete packet for one private work item.",

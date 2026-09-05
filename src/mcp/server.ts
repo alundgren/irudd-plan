@@ -112,7 +112,14 @@ async function dispatch(
     case "tools/list":
       return { tools };
     case "resources/list":
-      return { resources: [] };
+      return {
+        resources: (await service.list(ownerId)).map((plan) => ({
+          uri: `irudd-plan://plans/${encodeURIComponent(plan.planId)}`,
+          name: plan.planId,
+          description: plan.epicGoal,
+          mimeType: "application/json",
+        })),
+      };
     case "resources/templates/list":
       return { resourceTemplates };
     case "resources/read":
@@ -175,6 +182,7 @@ async function readResource(
   if (typeof uri !== "string") throw new ProtocolError(-32602, "Resource URI is required");
   const itemMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/items\/([^/]+)$/);
   const contextMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/contexts\/([^/]+)$/);
+  const planMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)$/);
   let value: unknown;
   if (itemMatch?.[1] !== undefined && itemMatch[2] !== undefined) {
     value = await service.getItem(ownerId, {
@@ -188,6 +196,8 @@ async function readResource(
       planId: decodeURIComponent(contextMatch[1]),
       contextId: decodeURIComponent(contextMatch[2]),
     });
+  } else if (planMatch?.[1] !== undefined) {
+    value = await service.getOverview(ownerId, decodeURIComponent(planMatch[1]));
   } else {
     throw new ProtocolError(-32602, "Unsupported resource URI");
   }

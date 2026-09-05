@@ -23,11 +23,12 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 ## Resources
 
 ```text
+irudd-plan://plans/{planId}
 irudd-plan://plans/{planId}/items/{itemId}
 irudd-plan://plans/{planId}/contexts/{contextId}
 ```
 
-Both templates are listed through `resources/templates/list` and resolved through `resources/read`. They identify current content and never contain a revision segment.
+All templates are listed through `resources/templates/list` and resolved through `resources/read`. The plan URI returns only the epic goal, repository identity, and compact item index. The URIs identify current content and never contain a revision segment.
 
 ## Selected packet rules
 

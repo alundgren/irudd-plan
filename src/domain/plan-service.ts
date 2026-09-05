@@ -19,6 +19,26 @@ export class PlanService {
     return this.store.list(ownerId);
   }
 
+  async getOverview(ownerId: string, planId: string) {
+    const stored = await this.store.get(ownerId, planId);
+    if (stored === undefined) throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    return {
+      contractVersion: stored.plan.contractVersion,
+      planId: stored.plan.planId,
+      resourceUri: planResourceUri(stored.plan.planId),
+      epicGoal: stored.plan.epicGoal,
+      repository: stored.plan.repository,
+      index: stored.plan.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        shortGoal: item.shortGoal,
+        relatedItemIds: item.relatedItemIds,
+        resourceUri: itemResourceUri(stored.plan.planId, item.id),
+      })),
+      internalRevision: stored.version,
+    };
+  }
+
   async getItem(ownerId: string, request: GetItemRequest) {
     const stored = await this.store.get(ownerId, request.planId);
     if (stored === undefined) {
@@ -111,4 +131,8 @@ export class PlanService {
 
 export function itemResourceUri(planId: string, itemId: string): string {
   return `irudd-plan://plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`;
+}
+
+export function planResourceUri(planId: string): string {
+  return `irudd-plan://plans/${encodeURIComponent(planId)}`;
 }

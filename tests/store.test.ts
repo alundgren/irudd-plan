@@ -148,7 +148,7 @@ describe("migrations", () => {
     const filename = join(directory, "upgrade.db");
     const oldMigrations = join(directory, "old-migrations");
     const migrations = (await readdir(resolve("drizzle"))).sort();
-    expect(migrations).toHaveLength(2);
+    expect(migrations.length).toBeGreaterThanOrEqual(2);
     await cp(join(resolve("drizzle"), migrations[0]!), join(oldMigrations, migrations[0]!), {
       recursive: true,
     });

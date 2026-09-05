@@ -26,11 +26,17 @@ describe("authenticated MCP", () => {
       tools: expect.arrayContaining([expect.objectContaining({ name: "write_plan" })]),
     });
     const plan = tenItemPlan();
-    await client.callTool("write_plan", {
+    const writeResult = await client.callTool<{
+      structuredContent: { resourceUri: string };
+    }>("write_plan", {
       operationId: "mcp-create",
       expectedVersion: null,
       plan,
     });
+    const overview = await client.readResource<{ contents: Array<{ text: string }> }>(
+      writeResult.structuredContent.resourceUri,
+    );
+    expect(overview.contents[0]!.text).not.toContain("Sibling specification 2");
     await first.close();
     activeServers.splice(activeServers.indexOf(first), 1);
 
@@ -45,6 +51,7 @@ describe("authenticated MCP", () => {
         epic: { index: unknown[] };
         contexts: Array<{ id: string }>;
         relatedContextIds: string[];
+        resourceUri: string;
       };
     }>("get_work_item", {
       contractVersion: "v1",
@@ -61,6 +68,10 @@ describe("authenticated MCP", () => {
     ]);
     expect(packet.relatedContextIds).toEqual(["context-optional"]);
     expect(JSON.stringify(packet)).not.toContain("Sibling specification 2");
+    const currentItem = await restarted.readResource<{ contents: Array<{ text: string }> }>(
+      packet.resourceUri,
+    );
+    expect(currentItem.contents[0]!.text).toContain('"itemId":"item-1"');
 
     const sibling = await restarted.readResource<{ contents: Array<{ text: string }> }>(
       "irudd-plan://plans/plan-alpha/items/item-2",

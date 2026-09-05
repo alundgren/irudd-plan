@@ -117,7 +117,6 @@ export const workItems = sqliteTable(
     id: text("id").notNull(),
     title: text("title").notNull(),
     shortGoal: text("short_goal").notNull(),
-    contentJson: text("content_json").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.planId, table.id] }),
@@ -134,7 +133,6 @@ export const sharedContexts = sqliteTable(
     title: text("title").notNull(),
     reason: text("reason").notNull(),
     source: text("source"),
-    contentJson: text("content_json").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.planId, table.id] }),
@@ -151,7 +149,6 @@ export const decisions = sqliteTable(
     title: text("title").notNull(),
     reason: text("reason").notNull(),
     source: text("source"),
-    contentJson: text("content_json").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.planId, table.id] }),
@@ -171,7 +168,6 @@ export const assets = sqliteTable(
     caption: text("caption").notNull(),
     role: text("role").notNull(),
     available: integer("available", { mode: "boolean" }).notNull(),
-    contentJson: text("content_json").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.planId, table.id] }),

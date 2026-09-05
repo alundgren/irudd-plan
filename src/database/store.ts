@@ -245,7 +245,6 @@ export class PlanStore {
                 id: item.id,
                 title: item.title,
                 shortGoal: item.shortGoal,
-                contentJson: canonicalJson(item),
               })),
             );
             const criteria = request.plan.items.flatMap((item) =>
@@ -268,7 +267,6 @@ export class PlanStore {
                 title: context.title,
                 reason: context.reason,
                 source: context.source,
-                contentJson: canonicalJson(context),
               })),
             );
           }
@@ -281,7 +279,6 @@ export class PlanStore {
                 title: decision.title,
                 reason: decision.reason,
                 source: decision.source,
-                contentJson: canonicalJson(decision),
               })),
             );
           }
@@ -297,7 +294,6 @@ export class PlanStore {
                 caption: asset.caption,
                 role: asset.role,
                 available: asset.available,
-                contentJson: canonicalJson(asset),
               })),
             );
           }

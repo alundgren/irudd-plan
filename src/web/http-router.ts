@@ -105,7 +105,7 @@ async function handlePublicRequest(
   if (route.kind === "page") {
     const current = await service.publicCurrent(route.ownerId, route.planId);
     if (current === undefined) throw publicUnavailable();
-    sendHtml(response, renderAppPage(), "public, no-cache");
+    sendHtml(response, renderAppPage(true), "public, no-cache");
   } else if (route.kind === "events") {
     await subscribePublic(
       request,
@@ -289,7 +289,7 @@ function isPlanPage(pathname: string): boolean {
 }
 
 function isClientAsset(pathname: string): boolean {
-  return /^\/assets\/[A-Za-z0-9._-]+$/.test(pathname);
+  return /^\/(?:public\/)?assets\/[A-Za-z0-9._-]+$/.test(pathname);
 }
 
 async function serveClientAsset(
@@ -297,7 +297,7 @@ async function serveClientAsset(
   directory: string,
   pathname: string,
 ): Promise<void> {
-  const filename = pathname.slice("/assets/".length);
+  const filename = pathname.slice(pathname.lastIndexOf("/") + 1);
   try {
     const content = await readFile(join(directory, filename));
     response.writeHead(200, {

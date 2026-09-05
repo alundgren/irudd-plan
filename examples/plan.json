@@ -1,0 +1,49 @@
+{
+  "contractVersion": "v1",
+  "planId": "example-plan",
+  "repository": { "provider": "github", "owner": "example", "name": "project" },
+  "epicGoal": "Demonstrate private plan storage",
+  "items": [
+    {
+      "id": "item-service",
+      "title": "Start the service",
+      "shortGoal": "Run one authenticated MCP request",
+      "goal": "Create and retrieve this example plan",
+      "requirements": ["Use the configured Cloudflare Access identity"],
+      "relevantPriorArt": ["docs/mcp.md"],
+      "checks": ["The returned packet version starts with sha256:"],
+      "deferrals": [],
+      "completionExpectation": "The client prints the selected packet",
+      "acceptanceCriteria": [
+        { "id": "criterion-round-trip", "text": "The service returns item-service after the write" }
+      ],
+      "requiredContextIds": ["context-auth"],
+      "requiredDecisionIds": ["decision-sqlite"],
+      "requiredAssetIds": [],
+      "relatedItemIds": []
+    }
+  ],
+  "contexts": [
+    {
+      "id": "context-auth",
+      "title": "Authentication",
+      "body": "Cloudflare verifies the caller before the service resolves an owner.",
+      "reason": "Plans are private.",
+      "source": "docs/operations.md",
+      "requiredContextIds": [],
+      "assetIds": []
+    }
+  ],
+  "decisions": [
+    {
+      "id": "decision-sqlite",
+      "title": "SQLite storage",
+      "body": "Store current records and immutable revisions in SQLite.",
+      "reason": "The initial deployment runs on one node.",
+      "source": "docs/architecture.md",
+      "requiredContextIds": [],
+      "assetIds": []
+    }
+  ],
+  "assets": []
+}

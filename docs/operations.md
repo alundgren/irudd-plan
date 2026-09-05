@@ -1,0 +1,54 @@
+# Operations
+
+## Configuration
+
+The service reads configuration from environment variables. Keep real values in the deployment secret store, not Git.
+
+| Variable                   | Purpose                                                            |
+| -------------------------- | ------------------------------------------------------------------ |
+| `DATABASE_PATH`            | SQLite file. Production defaults to `/data/irudd-plan.db`.         |
+| `MIGRATIONS_DIR`           | Generated migration history. The image uses `/app/drizzle`.        |
+| `HOST`, `PORT`             | HTTP listener.                                                     |
+| `REQUEST_BODY_LIMIT_BYTES` | Maximum JSON-RPC request size. Defaults to 2,000,000 bytes.        |
+| `CF_ACCESS_ISSUER`         | Exact Access team issuer, without a trailing slash.                |
+| `CF_ACCESS_AUDIENCE`       | Access application audience.                                       |
+| `CF_ACCESS_JWKS_URL`       | Team certificate endpoint. Defaults from the issuer.               |
+| `OWNER_MAPPINGS_JSON`      | Operator-managed mappings from verified claims to internal owners. |
+
+A service mapping normally uses the token `common_name`. A browser mapping can use `email` or `sub`. Set `kind` explicitly. Several mappings may point to one owner. MCP accepts only mappings with `kind: "service"`.
+
+Cloudflare must validate the service token at the protected application before it forwards the signed assertion. The origin still checks the JWT signature, issuer, audience, and expiry. Unknown verified identities receive no owner access.
+
+## Storage and startup
+
+Mount a persistent writable volume at `/data`. The service applies the committed generated SQL migrations before it becomes ready. `SIGINT` and `SIGTERM` stop readiness, wait for active HTTP requests, and exit within ten seconds.
+
+- `GET /healthz` reports that the process accepts HTTP.
+- `GET /readyz` reports whether migrations and owner configuration completed.
+- `GET /` is an operator status page. It contains no plan data.
+
+## Container image
+
+Build the ordinary image:
+
+```bash
+docker build -t irudd-plan:local .
+```
+
+Verify or build the Linux ARM64 path used by a Raspberry Pi:
+
+```bash
+docker buildx build --platform linux/arm64 -t irudd-plan:arm64 --load .
+```
+
+Run it with a persistent volume and an environment file held outside the repository:
+
+```bash
+docker volume create irudd-plan-data
+docker run --rm -p 3000:3000 \
+  --env-file /secure/path/irudd-plan.env \
+  -v irudd-plan-data:/data \
+  irudd-plan:local
+```
+
+The image runs as the Node user, has a readiness health check, and stores no credentials in its layers.

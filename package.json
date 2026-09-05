@@ -1,0 +1,42 @@
+{
+  "name": "irudd-plan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp build",
+    "check": "vp check",
+    "dev": "tsx watch src/server/main.ts",
+    "db:generate": "drizzle-kit generate",
+    "example:mcp": "tsx scripts/mcp-example.ts examples/plan.json",
+    "start": "node dist/main.js",
+    "test": "vp test --run"
+  },
+  "dependencies": {
+    "@effect/sql-sqlite-node": "4.0.0-rc.112",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "drizzle-orm": "1.0.0-rc.5-169397b",
+    "effect": "4.0.0-rc.112",
+    "jose": "6.2.10",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "drizzle-kit": "1.0.0-rc.5-ab785fc",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vite-plus": "0.3.0",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": "24.20.0",
+    "pnpm": "11.25.0"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

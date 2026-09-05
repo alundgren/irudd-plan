@@ -18,7 +18,6 @@ CREATE TABLE `assets` (
 	`caption` text NOT NULL,
 	`role` text NOT NULL,
 	`available` integer NOT NULL,
-	`content_json` text NOT NULL,
 	CONSTRAINT `assets_pk` PRIMARY KEY(`owner_id`, `plan_id`, `id`),
 	CONSTRAINT `fk_assets_owner_id_plan_id_plans_owner_id_id_fk` FOREIGN KEY (`owner_id`,`plan_id`) REFERENCES `plans`(`owner_id`,`id`) ON DELETE CASCADE
 );
@@ -30,7 +29,6 @@ CREATE TABLE `decisions` (
 	`title` text NOT NULL,
 	`reason` text NOT NULL,
 	`source` text,
-	`content_json` text NOT NULL,
 	CONSTRAINT `decisions_pk` PRIMARY KEY(`owner_id`, `plan_id`, `id`),
 	CONSTRAINT `fk_decisions_owner_id_plan_id_plans_owner_id_id_fk` FOREIGN KEY (`owner_id`,`plan_id`) REFERENCES `plans`(`owner_id`,`id`) ON DELETE CASCADE
 );
@@ -56,7 +54,7 @@ CREATE TABLE `owner_credentials` (
 );
 --> statement-breakpoint
 CREATE TABLE `owners` (
-	`id` text PRIMARY KEY,
+	`id` text PRIMARY KEY NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
@@ -79,6 +77,7 @@ CREATE TABLE `plans` (
 	`repository_owner` text NOT NULL,
 	`repository_name` text NOT NULL,
 	`repository_verified` integer DEFAULT false NOT NULL,
+	`contract_version` text DEFAULT 'v1' NOT NULL,
 	`epic_goal` text NOT NULL,
 	`current_version` integer NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -94,7 +93,6 @@ CREATE TABLE `shared_contexts` (
 	`title` text NOT NULL,
 	`reason` text NOT NULL,
 	`source` text,
-	`content_json` text NOT NULL,
 	CONSTRAINT `shared_contexts_pk` PRIMARY KEY(`owner_id`, `plan_id`, `id`),
 	CONSTRAINT `fk_shared_contexts_owner_id_plan_id_plans_owner_id_id_fk` FOREIGN KEY (`owner_id`,`plan_id`) REFERENCES `plans`(`owner_id`,`id`) ON DELETE CASCADE
 );
@@ -105,7 +103,6 @@ CREATE TABLE `work_items` (
 	`id` text NOT NULL,
 	`title` text NOT NULL,
 	`short_goal` text NOT NULL,
-	`content_json` text NOT NULL,
 	CONSTRAINT `work_items_pk` PRIMARY KEY(`owner_id`, `plan_id`, `id`),
 	CONSTRAINT `fk_work_items_owner_id_plan_id_plans_owner_id_id_fk` FOREIGN KEY (`owner_id`,`plan_id`) REFERENCES `plans`(`owner_id`,`id`) ON DELETE CASCADE
 );

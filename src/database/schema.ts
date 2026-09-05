@@ -10,12 +10,16 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-export const owners = sqliteTable("owners", {
-  id: text("id").primaryKey(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+export const owners = sqliteTable(
+  "owners",
+  {
+    id: text("id").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [primaryKey({ columns: [table.id] })],
+);
 
 export const ownerCredentials = sqliteTable(
   "owner_credentials",

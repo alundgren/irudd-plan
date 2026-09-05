@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { clonePlan, tenItemPlan } from "./fixture.js";
 import { startTestServer } from "./test-service.js";
@@ -10,10 +10,18 @@ import { IruddMcpClient } from "../src/client/mcp-client.js";
 import { MCP_PROTOCOL_VERSION } from "../src/contract/plan.js";
 
 const activeServers: Array<{ close(): Promise<void> }> = [];
+const activeClients: IruddMcpClient[] = [];
 
 afterEach(async () => {
+  await Promise.all(activeClients.splice(0).map((client) => client.close().catch(() => undefined)));
   await Promise.all(activeServers.splice(0).map((server) => server.close()));
 });
+
+function trackedClient(url: string, token: string): IruddMcpClient {
+  const client = new IruddMcpClient(new URL(`${url}/mcp`), token);
+  activeClients.push(client);
+  return client;
+}
 
 describe("authenticated MCP", () => {
   it("negotiates 2026-07-28, persists a plan, and returns a focused packet after restart", async () => {
@@ -21,7 +29,7 @@ describe("authenticated MCP", () => {
     const filename = join(directory, "plans.db");
     const first = await startTestServer(filename);
     activeServers.push(first);
-    const client = new IruddMcpClient(new URL(`${first.url}/mcp`), "token-a");
+    const client = trackedClient(first.url, "token-a");
     await expect(client.connect()).resolves.toMatchObject({
       supportedVersions: expect.arrayContaining(["2026-07-28"]),
     });
@@ -40,12 +48,14 @@ describe("authenticated MCP", () => {
       writeResult.structuredContent.resourceUri,
     );
     expect(overview.contents[0]!.text).not.toContain("Sibling specification 2");
+    await client.close();
+    activeClients.splice(activeClients.indexOf(client), 1);
     await first.close();
     activeServers.splice(activeServers.indexOf(first), 1);
 
     const second = await startTestServer(filename);
     activeServers.push(second);
-    const restarted = new IruddMcpClient(new URL(`${second.url}/mcp`), "token-a");
+    const restarted = trackedClient(second.url, "token-a");
     await restarted.connect();
     const result = await restarted.callTool<{
       isError?: boolean;
@@ -99,14 +109,14 @@ describe("authenticated MCP", () => {
       expect(response.status).toBe(401);
     }
 
-    const clientA = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
+    const clientA = trackedClient(running.url, "token-a");
     await clientA.connect();
     await clientA.callTool("write_plan", {
       operationId: "private-create",
       expectedVersion: null,
       plan: tenItemPlan("private-plan"),
     });
-    const clientB = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-b");
+    const clientB = trackedClient(running.url, "token-b");
     await clientB.connect();
     const privateRead = await clientB.callTool("get_work_item", {
       contractVersion: "v1",
@@ -224,7 +234,7 @@ describe("authenticated MCP", () => {
   it("rejects invalid nested content and non-positive or fractional versions at the MCP boundary", async () => {
     const running = await startTestServer();
     activeServers.push(running);
-    const client = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
+    const client = trackedClient(running.url, "token-a");
     await client.connect();
     const plan = clonePlan(tenItemPlan("invalid-boundary"));
     const emptyRequirement = {
@@ -255,10 +265,32 @@ describe("authenticated MCP", () => {
     }
   });
 
+  it("does not expose unexpected failure details", async () => {
+    const running = await startTestServer();
+    activeServers.push(running);
+    const client = trackedClient(running.url, "token-a");
+    await client.connect();
+    vi.spyOn(running.store, "list").mockRejectedValueOnce(
+      new Error("database path and query must stay private"),
+    );
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const result = await client.callTool("list_plans", { contractVersion: "v1" });
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: { error: { code: "INTERNAL", message: "Internal error" } },
+      });
+      expect(JSON.stringify(result)).not.toContain("database path");
+      expect(errorLog).toHaveBeenCalledOnce();
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
   it("reports deleted and unavailable packets without returning stale content", async () => {
     const running = await startTestServer();
     activeServers.push(running);
-    const client = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
+    const client = trackedClient(running.url, "token-a");
     await client.connect();
     const plan = tenItemPlan("packet-checks");
     await client.callTool("write_plan", {

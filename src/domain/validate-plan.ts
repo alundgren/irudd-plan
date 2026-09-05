@@ -5,7 +5,7 @@ import type { AssetDescriptor, Decision, Plan, SharedContext, WorkItem } from ".
 
 function requireText(value: string, field: string): void {
   if (value.trim().length === 0) {
-    throw new PlanError("REFERENCE_MISSING", `${field} cannot be empty`);
+    throw new PlanError("REQUEST_INVALID", `${field} cannot be empty`);
   }
 }
 
@@ -83,18 +83,17 @@ export function validatePlan(plan: Plan): PlanIndex {
   requireText(plan.repository.owner, "repository.owner");
   requireText(plan.repository.name, "repository.name");
 
-  const seen = new Set<string>();
-  const items = uniqueIds(plan.items, "work item", seen);
-  const contexts = uniqueIds(plan.contexts, "shared context", seen);
-  const decisions = uniqueIds(plan.decisions, "decision", seen);
-  const assets = uniqueIds(plan.assets, "asset", seen);
+  const items = uniqueIds(plan.items, "work item", new Set());
+  const contexts = uniqueIds(plan.contexts, "shared context", new Set());
+  const decisions = uniqueIds(plan.decisions, "decision", new Set());
+  const assets = uniqueIds(plan.assets, "asset", new Set());
 
   for (const item of plan.items) {
     requireText(item.title, `item ${item.id} title`);
     requireText(item.goal, `item ${item.id} goal`);
     requireText(item.shortGoal, `item ${item.id} shortGoal`);
     requireText(item.completionExpectation, `item ${item.id} completionExpectation`);
-    uniqueIds(item.acceptanceCriteria, `acceptance criterion for ${item.id}`, seen);
+    uniqueIds(item.acceptanceCriteria, `acceptance criterion for ${item.id}`, new Set());
     for (const id of item.requiredContextIds) requireReference(contexts, id, `item ${item.id}`);
     for (const id of item.requiredDecisionIds) requireReference(decisions, id, `item ${item.id}`);
     for (const id of item.requiredAssetIds) requireAvailableAsset(assets, id, `item ${item.id}`);
@@ -126,7 +125,7 @@ function canonicalize(value: unknown): unknown {
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
         .map(([key, child]) => [key, canonicalize(child)]),
     );
   }

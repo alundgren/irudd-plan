@@ -28,6 +28,7 @@ export class CloudflareAccessVerifier implements AccessTokenVerifier {
       const result = await jwtVerify(token, this.jwks, {
         issuer: this.issuer,
         audience: this.audience,
+        algorithms: ["RS256"],
         requiredClaims: ["exp"],
       });
       return { issuer: this.issuer, claims: result.payload as JWTPayload };
@@ -35,9 +36,27 @@ export class CloudflareAccessVerifier implements AccessTokenVerifier {
       if (error instanceof errors.JWTExpired) {
         throw new PlanError("AUTH_EXPIRED", "Cloudflare Access token has expired");
       }
+      if (isJwksProviderFailure(error)) {
+        console.error("Cloudflare Access JWKS retrieval failed", error);
+        throw new PlanError(
+          "AUTH_PROVIDER_UNAVAILABLE",
+          "Cloudflare Access verification is unavailable",
+        );
+      }
       throw new PlanError("AUTH_INVALID", "Cloudflare Access token is invalid");
     }
   }
+}
+
+function isJwksProviderFailure(error: unknown): boolean {
+  return (
+    error instanceof errors.JWKSTimeout ||
+    error instanceof errors.JWKSInvalid ||
+    error instanceof errors.JWKInvalid ||
+    error instanceof errors.JWKSMultipleMatchingKeys ||
+    (error instanceof Error && error.constructor === errors.JOSEError) ||
+    error instanceof TypeError
+  );
 }
 
 export class TestAccessVerifier implements AccessTokenVerifier {

@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import { PlanError } from "../src/contract/errors.js";
-import { validatePlan } from "../src/domain/validate-plan.js";
+import { canonicalJson, validatePlan } from "../src/domain/validate-plan.js";
 import { clonePlan, tenItemPlan } from "./fixture.js";
 
 function expectCode(action: () => void, code: PlanError["code"]): void {
+  let thrown: unknown;
   try {
     action();
-    throw new Error(`Expected ${code}`);
   } catch (error) {
-    expect(error).toBeInstanceOf(PlanError);
-    expect((error as PlanError).code).toBe(code);
+    thrown = error;
   }
+  expect(thrown, `Expected ${code}`).toBeInstanceOf(PlanError);
+  expect((thrown as PlanError).code).toBe(code);
 }
 
 describe("plan validation", () => {
@@ -57,5 +58,28 @@ describe("plan validation", () => {
       ),
     };
     expectCode(() => validatePlan(changed), "REFERENCE_CYCLE");
+  });
+
+  it("allows IDs to repeat in separate entity and acceptance-criterion namespaces", () => {
+    const plan = clonePlan(tenItemPlan());
+    const sharedId = plan.contexts[0]!.id;
+    const changed = {
+      ...plan,
+      decisions: plan.decisions.map((decision, index) =>
+        index === 0 ? { ...decision, id: sharedId } : decision,
+      ),
+      items: plan.items.map((item) => ({
+        ...item,
+        acceptanceCriteria: item.acceptanceCriteria.map((criterion, index) =>
+          index === 0 ? { ...criterion, id: "criterion-shared" } : criterion,
+        ),
+        requiredDecisionIds: item.requiredDecisionIds.map(() => sharedId),
+      })),
+    };
+    expect(() => validatePlan(changed)).not.toThrow();
+  });
+
+  it("orders canonical object keys by code unit", () => {
+    expect(canonicalJson({ ä: 1, z: 2, a: 3 })).toBe('{"a":3,"z":2,"ä":1}');
   });
 });

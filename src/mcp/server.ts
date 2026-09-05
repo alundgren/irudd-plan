@@ -75,6 +75,11 @@ export function createMcpHttpServer(
         parsedBody,
       );
     } catch (error) {
+      if (response.headersSent) {
+        console.error("MCP failure after response started", error);
+        response.destroy();
+        return;
+      }
       sendHttpError(response, error);
     }
   });
@@ -285,12 +290,19 @@ function sendHtml(response: ServerResponse, body: string): void {
 
 function sendHttpError(response: ServerResponse, error: unknown): void {
   const normalized = normalizeError(error);
-  const status = normalized.code.startsWith("AUTH_") ? 401 : 400;
+  const status =
+    normalized.code === "AUTH_PROVIDER_UNAVAILABLE"
+      ? 503
+      : normalized.code.startsWith("AUTH_")
+        ? 401
+        : normalized.code === "INTERNAL"
+          ? 500
+          : 400;
   sendJson(response, status, {
     jsonrpc: "2.0",
     id: null,
     error: {
-      code: status === 401 ? -32001 : -32600,
+      code: status === 401 ? -32001 : status >= 500 ? -32603 : -32600,
       message: normalized.message,
       data: { code: normalized.code, details: normalized.details },
     },
@@ -312,6 +324,6 @@ function normalizeError(error: unknown): {
   if (error instanceof Error && error.name === "SchemaError") {
     return { code: "REQUEST_INVALID", message: error.message };
   }
-  if (error instanceof Error) return { code: "INTERNAL", message: error.message };
-  return { code: "INTERNAL", message: "Unknown failure" };
+  console.error("Unhandled MCP failure", error);
+  return { code: "INTERNAL", message: "Internal error" };
 }

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import * as SQLiteNodeDrizzle from "drizzle-orm/effect-sqlite-node";
 import { migrate } from "drizzle-orm/effect-sqlite-node/migrator";
 import * as Effect from "effect/Effect";
@@ -61,6 +61,7 @@ export class PlanStore {
     const layer = SqliteClient.layer({ filename: this.filename, busyTimeout: "5 seconds" });
     const scoped = Effect.gen(function* () {
       const db = yield* SQLiteNodeDrizzle.makeWithDefaults();
+      yield* db.run(sql.raw("PRAGMA foreign_keys = ON"));
       return yield* program(db);
     }).pipe(Effect.provide(layer), Effect.scoped);
     return Effect.runPromise(scoped);
@@ -205,7 +206,7 @@ export class PlanStore {
               .set({
                 epicGoal: request.plan.epicGoal,
                 currentVersion: version,
-                updatedAt: new Date().toISOString(),
+                updatedAt: sql`CURRENT_TIMESTAMP`,
               })
               .where(
                 and(

@@ -1,9 +1,9 @@
-import { cp, mkdtemp, readdir } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Schema } from "effect";
 
 import { PlanError } from "../src/contract/errors.js";
@@ -89,6 +89,7 @@ describe("plan storage and packet versions", () => {
       itemId: "item-1",
     });
     expect(afterDecision.packetVersion).not.toBe(firstPacket.packetVersion);
+    const getSpy = vi.spyOn(store, "get");
     await expect(
       service.checkPacket("owner-a", {
         contractVersion: "v1",
@@ -97,6 +98,11 @@ describe("plan storage and packet versions", () => {
         packetVersion: firstPacket.packetVersion,
       }),
     ).resolves.toMatchObject({ status: "changed", packetVersion: afterDecision.packetVersion });
+    expect(getSpy).toHaveBeenCalledTimes(1);
+    getSpy.mockRestore();
+
+    const listed = await store.list("owner-a");
+    expect(listed[0]!.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 
     const stale = { ...clonePlan(decisionEdit), epicGoal: "This stale value must not commit" };
     await expect(
@@ -143,44 +149,34 @@ describe("plan storage and packet versions", () => {
 });
 
 describe("migrations", () => {
-  it("upgrades an existing database, retains rows, and can run twice", async () => {
+  it("creates the current schema, enforces owner identity, and can run twice", async () => {
     const directory = await mkdtemp(join(tmpdir(), "irudd-plan-upgrade-"));
     const filename = join(directory, "upgrade.db");
-    const oldMigrations = join(directory, "old-migrations");
-    const migrations = (await readdir(resolve("drizzle"))).sort();
-    expect(migrations.length).toBeGreaterThanOrEqual(2);
-    await cp(join(resolve("drizzle"), migrations[0]!), join(oldMigrations, migrations[0]!), {
-      recursive: true,
-    });
-    const oldStore = new PlanStore(filename, oldMigrations);
-    await oldStore.migrate();
+    const store = new PlanStore(filename, resolve("drizzle"));
+    await store.migrate();
+    await store.migrate();
+    await store.configureOwners(mappings);
+    await expect(
+      store.write("missing-owner", {
+        operationId: "foreign-key-check",
+        expectedVersion: null,
+        plan: tenItemPlan("foreign-key-check"),
+      }),
+    ).rejects.toThrow();
     const database = new DatabaseSync(filename);
-    database.exec("PRAGMA foreign_keys = ON");
-    database.prepare("insert into owners (id) values (?)").run("retained-owner");
-    database
-      .prepare(
-        "insert into plans (owner_id, id, repository_provider, repository_owner, repository_name, epic_goal, current_version) values (?, ?, ?, ?, ?, ?, ?)",
-      )
-      .run("retained-owner", "retained-plan", "github", "example", "project", "Keep this row", 1);
+    expect(() => database.exec("insert into owners (id) values (NULL)")).toThrow();
+    const row = database
+      .prepare("select id, created_at as createdAt from owners limit 1")
+      .get() as {
+      id: string;
+      createdAt: string;
+    };
     database.close();
-
-    const upgraded = new PlanStore(filename, resolve("drizzle"));
-    await upgraded.migrate();
-    await upgraded.migrate();
-    await upgraded.configureOwners(mappings);
-    const upgradedDatabase = new DatabaseSync(filename);
-    const row = upgradedDatabase
-      .prepare(
-        "select id, contract_version as contractVersion from plans where owner_id = ? and id = ?",
-      )
-      .get("retained-owner", "retained-plan") as { id: string; contractVersion: string };
-    upgradedDatabase.close();
-    expect(row).toEqual({ id: "retained-plan", contractVersion: "v1" });
     expect(
       Schema.decodeUnknownSync(OwnerRecord)({
-        id: "retained-owner",
-        createdAt: "2026-09-05 00:00:00",
+        id: row.id,
+        createdAt: row.createdAt,
       }),
-    ).toMatchObject({ id: "retained-owner" });
+    ).toMatchObject({ id: row.id });
   });
 });

@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "632e2212-380b-4179-a504-4531a2f9ffb7",
-  "prevIds": ["c823cd9a-3d50-4c8c-8868-5066efcae5da"],
+  "id": "074ceb94-68dd-4044-8564-ddd02b9103c4",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
       "name": "acceptance_criteria",
@@ -346,7 +346,7 @@
     },
     {
       "type": "text",
-      "notNull": false,
+      "notNull": true,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -789,6 +789,13 @@
       "table": "owner_credentials"
     },
     {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "owners_pk",
+      "entityType": "pks",
+      "table": "owners"
+    },
+    {
       "columns": ["owner_id", "plan_id", "version"],
       "nameExplicit": false,
       "name": "plan_revisions_pk",
@@ -815,13 +822,6 @@
       "name": "work_items_pk",
       "entityType": "pks",
       "table": "work_items"
-    },
-    {
-      "columns": ["id"],
-      "nameExplicit": false,
-      "name": "owners_pk",
-      "table": "owners",
-      "entityType": "pks"
     },
     {
       "columns": [

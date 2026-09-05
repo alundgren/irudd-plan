@@ -1,1 +1,0 @@
-ALTER TABLE `plans` ADD `contract_version` text DEFAULT 'v1' NOT NULL;

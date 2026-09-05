@@ -5,7 +5,7 @@ import type {
   GetRelatedContextRequest,
   WritePlanRequest,
 } from "../contract/plan.js";
-import type { PlanStore } from "../database/store.js";
+import type { PlanStore, StoredPlan } from "../database/store.js";
 import { collectRequiredPacket, digest, validatePlan } from "./validate-plan.js";
 
 export class PlanService {
@@ -44,7 +44,11 @@ export class PlanService {
     if (stored === undefined) {
       throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
     }
-    const required = collectRequiredPacket(stored.plan, request.itemId);
+    return this.itemPacket(stored, request.itemId);
+  }
+
+  private itemPacket(stored: StoredPlan, itemId: string) {
+    const required = collectRequiredPacket(stored.plan, itemId);
     const requiredContent = {
       item: required.item,
       contexts: required.contexts,
@@ -111,13 +115,10 @@ export class PlanService {
   async checkPacket(ownerId: string, request: CheckPacketRequest) {
     const stored = await this.store.get(ownerId, request.planId);
     if (stored === undefined) return { status: "unavailable" as const };
-    const item = stored.plan.items.find((candidate) => candidate.id === request.itemId);
-    if (item === undefined) return { status: "deleted" as const };
-    const current = await this.getItem(ownerId, {
-      contractVersion: request.contractVersion,
-      planId: request.planId,
-      itemId: request.itemId,
-    });
+    if (!stored.plan.items.some((candidate) => candidate.id === request.itemId)) {
+      return { status: "deleted" as const };
+    }
+    const current = this.itemPacket(stored, request.itemId);
     if (current.packetVersion === request.packetVersion) {
       return { status: "unchanged" as const, packetVersion: current.packetVersion };
     }

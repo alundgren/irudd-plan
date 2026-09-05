@@ -103,6 +103,10 @@ describe("GitHub verification and publication", () => {
         response.writeHead(500).end("{}");
         return;
       }
+      if (request.url === "/app/installations/501/access_tokens") {
+        response.end("{");
+        return;
+      }
       if (request.url === "/app/installations/101/access_tokens") {
         tokenRequests += 1;
         expect(request.method).toBe("POST");
@@ -116,6 +120,10 @@ describe("GitHub verification and publication", () => {
         return;
       }
       if (request.url?.startsWith("/repos/example/")) {
+        if (request.url === "/repos/example/invalid-json") {
+          response.end("{");
+          return;
+        }
         const workMatch = request.url.match(
           /^\/repos\/example\/project\/(issues|pulls)\/(\d+)$/,
         );
@@ -186,6 +194,12 @@ describe("GitHub verification and publication", () => {
       }
       await expect(
         reader.repository(500, "example", "project"),
+      ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
+      await expect(
+        reader.repository(501, "example", "project"),
+      ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
+      await expect(
+        reader.repository(101, "example", "invalid-json"),
       ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
       expect(tokenRequests).toBe(1);
       expect(repositoryRequests).toBe(3);

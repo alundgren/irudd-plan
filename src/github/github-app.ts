@@ -197,7 +197,7 @@ export class GitHubAppReader implements GitHubReader {
         "GitHub verification is unavailable",
       );
     }
-    return (await response.json()) as T;
+    return this.json<T>(response);
   }
 
   private async installationToken(installationId: number): Promise<string> {
@@ -240,10 +240,10 @@ export class GitHubAppReader implements GitHubReader {
         "GitHub installation access was denied",
       );
     }
-    const body = (await response.json()) as {
+    const body = await this.json<{
       token?: unknown;
       expires_at?: unknown;
-    };
+    }>(response);
     const token = string(body.token);
     const expiresAt = Date.parse(string(body.expires_at));
     if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
@@ -261,6 +261,17 @@ export class GitHubAppReader implements GitHubReader {
       throw new PlanError(
         "GITHUB_UNAVAILABLE",
         "GitHub verification is unavailable",
+      );
+    }
+  }
+
+  private async json<T>(response: Response): Promise<T> {
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new PlanError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub returned an invalid response",
       );
     }
   }

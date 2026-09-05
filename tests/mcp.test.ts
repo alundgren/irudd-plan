@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clonePlan, tenItemPlan } from "./fixture.js";
 import { startTestServer } from "./test-service.js";
 import { IruddMcpClient } from "../src/client/mcp-client.js";
+import { MCP_PROTOCOL_VERSION } from "../src/contract/plan.js";
 
 const activeServers: Array<{ close(): Promise<void> }> = [];
 
@@ -21,7 +22,9 @@ describe("authenticated MCP", () => {
     const first = await startTestServer(filename);
     activeServers.push(first);
     const client = new IruddMcpClient(new URL(`${first.url}/mcp`), "token-a");
-    await expect(client.initialize()).resolves.toMatchObject({ protocolVersion: "2026-07-28" });
+    await expect(client.connect()).resolves.toMatchObject({
+      supportedVersions: expect.arrayContaining(["2026-07-28"]),
+    });
     await expect(client.listTools()).resolves.toMatchObject({
       tools: expect.arrayContaining([expect.objectContaining({ name: "write_plan" })]),
     });
@@ -43,7 +46,7 @@ describe("authenticated MCP", () => {
     const second = await startTestServer(filename);
     activeServers.push(second);
     const restarted = new IruddMcpClient(new URL(`${second.url}/mcp`), "token-a");
-    await restarted.initialize();
+    await restarted.connect();
     const result = await restarted.callTool<{
       isError?: boolean;
       structuredContent: {
@@ -85,30 +88,26 @@ describe("authenticated MCP", () => {
     for (const token of ["forged", "expired", "unknown"]) {
       const response = await fetch(`${running.url}/mcp`, {
         method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        headers: modernHeaders(token, "server/discover"),
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
-          method: "initialize",
-          params: {
-            protocolVersion: "2026-07-28",
-            capabilities: {},
-            clientInfo: { name: "x", version: "1" },
-          },
+          method: "server/discover",
+          params: { _meta: modernMeta() },
         }),
       });
       expect(response.status).toBe(401);
     }
 
     const clientA = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
-    await clientA.initialize();
+    await clientA.connect();
     await clientA.callTool("write_plan", {
       operationId: "private-create",
       expectedVersion: null,
       plan: tenItemPlan("private-plan"),
     });
     const clientB = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-b");
-    await clientB.initialize();
+    await clientB.connect();
     const privateRead = await clientB.callTool("get_work_item", {
       contractVersion: "v1",
       planId: "private-plan",
@@ -141,28 +140,112 @@ describe("authenticated MCP", () => {
 
     const protocolResponse = await fetch(`${running.url}/mcp`, {
       method: "POST",
-      headers: { authorization: "Bearer token-a", "content-type": "application/json" },
+      headers: modernHeaders("token-a", "server/discover", "2099-01-01"),
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-11-25",
-          capabilities: {},
-          clientInfo: { name: "x", version: "1" },
-        },
+        method: "server/discover",
+        params: { _meta: modernMeta("2099-01-01") },
       }),
     });
     expect(await protocolResponse.json()).toMatchObject({
-      error: { data: { code: "MCP_PROTOCOL_UNSUPPORTED", supported: ["2026-07-28"] } },
+      error: { data: { supported: ["2026-07-28"] } },
     });
+  });
+
+  it("emits modern wire fields and rejects routing-header mismatches", async () => {
+    const running = await startTestServer();
+    activeServers.push(running);
+    const discovery = await fetch(`${running.url}/mcp`, {
+      method: "POST",
+      headers: modernHeaders("token-a", "server/discover"),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "server/discover",
+        params: { _meta: modernMeta() },
+      }),
+    });
+    expect(await discovery.json()).toMatchObject({
+      result: {
+        resultType: "complete",
+        ttlMs: 0,
+        cacheScope: "private",
+        supportedVersions: expect.arrayContaining([MCP_PROTOCOL_VERSION]),
+      },
+    });
+
+    const mismatch = await fetch(`${running.url}/mcp`, {
+      method: "POST",
+      headers: modernHeaders("token-a", "resources/list"),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: { _meta: modernMeta() },
+      }),
+    });
+    expect(await mismatch.json()).toMatchObject({ error: { code: -32020 } });
+
+    const nameMismatch = await fetch(`${running.url}/mcp`, {
+      method: "POST",
+      headers: {
+        ...modernHeaders("token-a", "tools/call"),
+        "mcp-name": "list_plans",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: {
+          name: "get_work_item",
+          arguments: { contractVersion: "v1", planId: "x", itemId: "y" },
+          _meta: modernMeta(),
+        },
+      }),
+    });
+    expect(await nameMismatch.json()).toMatchObject({ error: { code: -32020 } });
+  });
+
+  it("rejects invalid nested content and non-positive or fractional versions at the MCP boundary", async () => {
+    const running = await startTestServer();
+    activeServers.push(running);
+    const client = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
+    await client.connect();
+    const plan = clonePlan(tenItemPlan("invalid-boundary"));
+    const emptyRequirement = {
+      ...plan,
+      items: plan.items.map((item, index) =>
+        index === 0 ? { ...item, requirements: [""] } : item,
+      ),
+    };
+    await expect(
+      client.callTool("write_plan", {
+        operationId: "invalid-content",
+        expectedVersion: null,
+        plan: emptyRequirement,
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "REQUEST_INVALID" } },
+    });
+
+    for (const expectedVersion of [-1, 1.5]) {
+      await expect(
+        client.callTool("write_plan", {
+          operationId: `invalid-version-${expectedVersion}`,
+          expectedVersion,
+          plan,
+        }),
+      ).resolves.toMatchObject({ isError: true });
+    }
   });
 
   it("reports deleted and unavailable packets without returning stale content", async () => {
     const running = await startTestServer();
     activeServers.push(running);
     const client = new IruddMcpClient(new URL(`${running.url}/mcp`), "token-a");
-    await client.initialize();
+    await client.connect();
     const plan = tenItemPlan("packet-checks");
     await client.callTool("write_plan", {
       operationId: "check-create",
@@ -211,3 +294,21 @@ describe("authenticated MCP", () => {
     expect(unavailable.structuredContent).toEqual({ status: "unavailable" });
   });
 });
+
+function modernMeta(version: string = MCP_PROTOCOL_VERSION) {
+  return {
+    "io.modelcontextprotocol/protocolVersion": version,
+    "io.modelcontextprotocol/clientInfo": { name: "irudd-plan-test", version: "1" },
+    "io.modelcontextprotocol/clientCapabilities": {},
+  };
+}
+
+function modernHeaders(token: string, method: string, version: string = MCP_PROTOCOL_VERSION) {
+  return {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    "mcp-protocol-version": version,
+    "mcp-method": method,
+  };
+}

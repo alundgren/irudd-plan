@@ -6,7 +6,7 @@ Protocol: `2026-07-28`
 
 Plan contract: `v1`
 
-Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a bearer token. After initialization, send `MCP-Protocol-Version: 2026-07-28` with every request.
+Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a bearer token. This is a stateless modern MCP endpoint: it does not use `initialize`, `notifications/initialized`, or sessions. Every request must carry the protocol version, client identity, and client capabilities in `params._meta`. Its `MCP-Protocol-Version`, `Mcp-Method`, and applicable `Mcp-Name` headers must match the body. The official v2 client performs this automatically when pinned to `2026-07-28`.
 
 ## Tools
 
@@ -55,24 +55,28 @@ The selected packet contains the full requested item, every recursively required
 | `ITEM_NOT_FOUND`        | The requested item is absent.                                                                                |
 | `CONTEXT_NOT_FOUND`     | The deliberately requested shared context is absent.                                                         |
 
-MCP version failures use JSON-RPC error data code `MCP_PROTOCOL_UNSUPPORTED` and list the supported version.
+MCP version failures use JSON-RPC error code `-32022` and list the requested and supported versions in error data.
 
 ## Minimal call sequence
+
+First send `server/discover` with `MCP-Protocol-Version: 2026-07-28` and `Mcp-Method: server/discover`:
 
 ```json
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "method": "initialize",
+  "method": "server/discover",
   "params": {
-    "protocolVersion": "2026-07-28",
-    "capabilities": {},
-    "clientInfo": { "name": "example", "version": "1" }
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientInfo": { "name": "example", "version": "1" },
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
   }
 }
 ```
 
-Then call a tool with the protocol header:
+Then call a tool with the same protocol header plus `Mcp-Method: tools/call` and `Mcp-Name: get_work_item`:
 
 ```json
 {
@@ -81,7 +85,12 @@ Then call a tool with the protocol header:
   "method": "tools/call",
   "params": {
     "name": "get_work_item",
-    "arguments": { "contractVersion": "v1", "planId": "example-plan", "itemId": "item-service" }
+    "arguments": { "contractVersion": "v1", "planId": "example-plan", "itemId": "item-service" },
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientInfo": { "name": "example", "version": "1" },
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
   }
 }
 ```

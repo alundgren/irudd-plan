@@ -20,7 +20,7 @@ const firstItem = plan.items[0];
 if (firstItem === undefined) throw new Error("The example plan needs at least one work item");
 
 const client = new IruddMcpClient(new URL(endpoint), accessToken);
-const initialized = await client.initialize();
+const discovery = await client.connect();
 const written = await client.callTool("write_plan", {
   operationId: `example-${randomUUID()}`,
   expectedVersion: null,
@@ -31,4 +31,4 @@ const packet = await client.callTool("get_work_item", {
   planId: plan.planId,
   itemId: firstItem.id,
 });
-console.log(JSON.stringify({ initialized, written, packet }, null, 2));
+console.log(JSON.stringify({ discovery, written, packet }, null, 2));

@@ -1,5 +1,17 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 
+import { toNodeHandler } from "@modelcontextprotocol/node";
+import {
+  createMcpHandler,
+  fromJsonSchema,
+  McpServer,
+  ResourceTemplate,
+  type AuthInfo,
+  type CallToolResult,
+  type JsonSchemaType,
+  type ReadResourceResult,
+} from "@modelcontextprotocol/server";
+
 import type { Authenticator } from "../auth/authentication.js";
 import { PlanError } from "../contract/errors.js";
 import {
@@ -13,15 +25,8 @@ import {
   WritePlanRequest,
 } from "../contract/plan.js";
 import type { PlanService } from "../domain/plan-service.js";
-import { resourceTemplates, tools } from "./catalog.js";
 import { renderOperatorPage } from "../web/operator-page.js";
-
-interface JsonRpcRequest {
-  readonly jsonrpc: "2.0";
-  readonly id?: string | number;
-  readonly method: string;
-  readonly params?: Record<string, unknown>;
-}
+import { resourceTemplates, tools } from "./catalog.js";
 
 interface ServerOptions {
   readonly bodyLimitBytes?: number;
@@ -34,8 +39,12 @@ export function createMcpHttpServer(
   options: ServerOptions = {},
 ): Server {
   const bodyLimitBytes = options.bodyLimitBytes ?? 2_000_000;
-  return createServer(async (request, response) => {
-    let requestId: string | number | null = null;
+  const handler = createMcpHandler(
+    (context) => createOwnerServer(service, requireOwner(context.authInfo)),
+    { legacy: "reject" },
+  );
+  const nodeHandler = toNodeHandler(handler);
+  const server = createServer(async (request, response) => {
     try {
       if (request.url === "/" && request.method === "GET") {
         sendHtml(response, renderOperatorPage());
@@ -57,87 +66,85 @@ export function createMcpHttpServer(
 
       const ownerId = await authenticator.authenticate(request.headers);
       const body = await readBody(request, bodyLimitBytes);
-      const rpc = parseRpc(body);
-      requestId = rpc.id ?? null;
-      const result = await dispatch(service, ownerId, rpc, request);
-      if (rpc.id === undefined) {
-        response.writeHead(202).end();
-        return;
-      }
-      sendJson(response, 200, { jsonrpc: "2.0", id: rpc.id, result });
+      const parsedBody = parseJson(body);
+      const authenticatedRequest = request as IncomingMessage & { auth?: AuthInfo };
+      authenticatedRequest.auth = { token: "verified", clientId: ownerId, scopes: [] };
+      await nodeHandler(
+        authenticatedRequest as Parameters<typeof nodeHandler>[0],
+        response,
+        parsedBody,
+      );
     } catch (error) {
-      sendRpcError(response, error, requestId);
+      sendHttpError(response, error);
     }
   });
+  server.on("close", () => void handler.close());
+  return server;
 }
 
-async function dispatch(
-  service: PlanService,
-  ownerId: string,
-  request: JsonRpcRequest,
-  httpRequest: IncomingMessage,
-): Promise<unknown> {
-  if (request.method === "initialize") {
-    const requested = request.params?.protocolVersion;
-    if (requested !== MCP_PROTOCOL_VERSION) {
-      throw new ProtocolError(-32602, "Unsupported MCP protocol version", {
-        code: "MCP_PROTOCOL_UNSUPPORTED",
-        requested,
-        supported: [MCP_PROTOCOL_VERSION],
-      });
-    }
-    return {
-      protocolVersion: MCP_PROTOCOL_VERSION,
+function createOwnerServer(service: PlanService, ownerId: string): McpServer {
+  const server = new McpServer(
+    { name: "irudd-plan", version: "0.1.0" },
+    {
       capabilities: { resources: {}, tools: {} },
-      serverInfo: { name: "irudd-plan", version: "0.1.0" },
       instructions:
         "Retrieve one selected work item by default. Use related context IDs only when the task needs them.",
-    };
+      supportedProtocolVersions: [MCP_PROTOCOL_VERSION],
+      cacheHints: {
+        "server/discover": { ttlMs: 0, cacheScope: "private" },
+        "tools/list": { ttlMs: 0, cacheScope: "private" },
+        "resources/list": { ttlMs: 0, cacheScope: "private" },
+        "resources/templates/list": { ttlMs: 0, cacheScope: "private" },
+        "resources/read": { ttlMs: 0, cacheScope: "private" },
+      },
+    },
+  );
+
+  for (const tool of tools) {
+    server.registerTool(
+      tool.name,
+      {
+        description: tool.description,
+        inputSchema: fromJsonSchema(tool.inputSchema as unknown as JsonSchemaType),
+      },
+      async (args) => callTool(service, ownerId, tool.name, args),
+    );
   }
 
-  const headerVersion = firstHeader(httpRequest.headers["mcp-protocol-version"]);
-  if (headerVersion !== MCP_PROTOCOL_VERSION) {
-    throw new ProtocolError(-32602, "Missing or unsupported MCP-Protocol-Version header", {
-      code: "MCP_PROTOCOL_UNSUPPORTED",
-      requested: headerVersion,
-      supported: [MCP_PROTOCOL_VERSION],
-    });
+  for (const template of resourceTemplates) {
+    server.registerResource(
+      template.name,
+      new ResourceTemplate(template.uriTemplate, {
+        list:
+          template.uriTemplate === "irudd-plan://plans/{planId}"
+            ? async () => ({
+                resources: (await service.list(ownerId)).map((plan) => ({
+                  uri: `irudd-plan://plans/${encodeURIComponent(plan.planId)}`,
+                  name: plan.planId,
+                  description: plan.epicGoal,
+                  mimeType: "application/json",
+                })),
+              })
+            : undefined,
+      }),
+      {
+        description: template.description,
+        mimeType: template.mimeType,
+        cacheHint: { ttlMs: 0, cacheScope: "private" },
+      },
+      async (uri) => readResource(service, ownerId, uri.href),
+    );
   }
 
-  switch (request.method) {
-    case "notifications/initialized":
-      return {};
-    case "ping":
-      return {};
-    case "tools/list":
-      return { tools };
-    case "resources/list":
-      return {
-        resources: (await service.list(ownerId)).map((plan) => ({
-          uri: `irudd-plan://plans/${encodeURIComponent(plan.planId)}`,
-          name: plan.planId,
-          description: plan.epicGoal,
-          mimeType: "application/json",
-        })),
-      };
-    case "resources/templates/list":
-      return { resourceTemplates };
-    case "resources/read":
-      return readResource(service, ownerId, request.params);
-    case "tools/call":
-      return callTool(service, ownerId, request.params);
-    default:
-      throw new ProtocolError(-32601, `Method not found: ${request.method}`);
-  }
+  return server;
 }
 
 async function callTool(
   service: PlanService,
   ownerId: string,
-  params: Record<string, unknown> | undefined,
-): Promise<unknown> {
-  const name = params?.name;
-  const args = params?.arguments;
+  name: string,
+  args: unknown,
+): Promise<CallToolResult> {
   try {
     assertContractVersion(args);
     let value: unknown;
@@ -159,11 +166,10 @@ async function callTool(
         value = await service.list(ownerId);
         break;
       default:
-        throw new ProtocolError(-32602, `Unknown tool: ${String(name)}`);
+        throw new PlanError("REQUEST_INVALID", `Unknown tool: ${name}`);
     }
     return toolResult(value);
   } catch (error) {
-    if (error instanceof ProtocolError) throw error;
     const normalized = normalizeError(error);
     return {
       isError: true,
@@ -176,10 +182,8 @@ async function callTool(
 async function readResource(
   service: PlanService,
   ownerId: string,
-  params: Record<string, unknown> | undefined,
-): Promise<unknown> {
-  const uri = params?.uri;
-  if (typeof uri !== "string") throw new ProtocolError(-32602, "Resource URI is required");
+  uri: string,
+): Promise<ReadResourceResult> {
   const itemMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/items\/([^/]+)$/);
   const contextMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/contexts\/([^/]+)$/);
   const planMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)$/);
@@ -199,16 +203,21 @@ async function readResource(
   } else if (planMatch?.[1] !== undefined) {
     value = await service.getOverview(ownerId, decodeURIComponent(planMatch[1]));
   } else {
-    throw new ProtocolError(-32602, "Unsupported resource URI");
+    throw new PlanError("REQUEST_INVALID", "Unsupported resource URI");
   }
   return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(value) }] };
 }
 
-function toolResult(value: unknown) {
+function toolResult(value: unknown): CallToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(value) }],
     structuredContent: value,
-  };
+  } as CallToolResult;
+}
+
+function requireOwner(authInfo: AuthInfo | undefined): string {
+  if (authInfo === undefined) throw new PlanError("AUTH_INVALID", "Authentication is required");
+  return authInfo.clientId;
 }
 
 function assertContractVersion(args: unknown): void {
@@ -235,38 +244,24 @@ function assertContractVersion(args: unknown): void {
   }
 }
 
-function parseRpc(body: string): JsonRpcRequest {
-  let value: unknown;
-  try {
-    value = JSON.parse(body);
-  } catch {
-    throw new ProtocolError(-32700, "Invalid JSON");
-  }
-  if (
-    value === null ||
-    typeof value !== "object" ||
-    (value as Partial<JsonRpcRequest>).jsonrpc !== "2.0" ||
-    typeof (value as Partial<JsonRpcRequest>).method !== "string"
-  ) {
-    throw new ProtocolError(-32600, "Invalid JSON-RPC request");
-  }
-  return value as JsonRpcRequest;
-}
-
 async function readBody(request: IncomingMessage, limit: number): Promise<string> {
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     length += buffer.length;
-    if (length > limit) throw new ProtocolError(-32600, "Request body is too large");
+    if (length > limit) throw new PlanError("REQUEST_INVALID", "Request body is too large");
     chunks.push(buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
 }
 
-function firstHeader(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+function parseJson(body: string): unknown {
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new PlanError("REQUEST_INVALID", "Invalid JSON");
+  }
 }
 
 function sendJson(response: ServerResponse, status: number, body: unknown): void {
@@ -288,21 +283,16 @@ function sendHtml(response: ServerResponse, body: string): void {
   response.end(body);
 }
 
-function sendRpcError(
-  response: ServerResponse,
-  error: unknown,
-  requestId: string | number | null,
-): void {
-  const protocol = error instanceof ProtocolError ? error : undefined;
+function sendHttpError(response: ServerResponse, error: unknown): void {
   const normalized = normalizeError(error);
-  const status = normalized.code.startsWith("AUTH_") ? 401 : protocol === undefined ? 500 : 400;
+  const status = normalized.code.startsWith("AUTH_") ? 401 : 400;
   sendJson(response, status, {
     jsonrpc: "2.0",
-    id: requestId,
+    id: null,
     error: {
-      code: protocol?.rpcCode ?? -32603,
+      code: status === 401 ? -32001 : -32600,
       message: normalized.message,
-      data: protocol?.data ?? { code: normalized.code, details: normalized.details },
+      data: { code: normalized.code, details: normalized.details },
     },
   });
 }
@@ -324,14 +314,4 @@ function normalizeError(error: unknown): {
   }
   if (error instanceof Error) return { code: "INTERNAL", message: error.message };
   return { code: "INTERNAL", message: "Unknown failure" };
-}
-
-class ProtocolError extends Error {
-  constructor(
-    readonly rpcCode: number,
-    message: string,
-    readonly data?: Record<string, unknown>,
-  ) {
-    super(message);
-  }
 }

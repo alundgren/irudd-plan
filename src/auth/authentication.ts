@@ -28,6 +28,7 @@ export class CloudflareAccessVerifier implements AccessTokenVerifier {
       const result = await jwtVerify(token, this.jwks, {
         issuer: this.issuer,
         audience: this.audience,
+        requiredClaims: ["exp"],
       });
       return { issuer: this.issuer, claims: result.payload as JWTPayload };
     } catch (error) {

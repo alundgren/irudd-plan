@@ -354,7 +354,11 @@ export class PlanStore {
   async list(ownerId: string): Promise<ReadonlyArray<ListedPlan>> {
     return this.run((db) =>
       Effect.gen(function* () {
-        const rows = yield* db.select().from(plans).where(eq(plans.ownerId, ownerId));
+        const rows = yield* db
+          .select()
+          .from(plans)
+          .where(eq(plans.ownerId, ownerId))
+          .orderBy(plans.id);
         return rows.map((row) => ({
           planId: row.id,
           epicGoal: row.epicGoal,

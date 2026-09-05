@@ -1,71 +1,49 @@
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  type CallToolResult,
+  type DiscoverResult,
+  type ReadResourceResult,
+} from "@modelcontextprotocol/client";
+
 import { MCP_PROTOCOL_VERSION } from "../contract/plan.js";
 
-interface JsonRpcResponse {
-  readonly result?: unknown;
-  readonly error?: {
-    readonly code: number;
-    readonly message: string;
-    readonly data?: unknown;
-  };
-}
-
 export class IruddMcpClient {
-  private id = 0;
-  private initialized = false;
-
-  constructor(
-    private readonly endpoint: URL,
-    private readonly accessToken: string,
-  ) {}
-
-  async initialize(): Promise<unknown> {
-    const result = await this.request("initialize", {
-      protocolVersion: MCP_PROTOCOL_VERSION,
+  private readonly client = new Client(
+    { name: "irudd-plan-client", version: "0.1.0" },
+    {
       capabilities: {},
-      clientInfo: { name: "irudd-plan-client", version: "0.1.0" },
+      versionNegotiation: { mode: { pin: MCP_PROTOCOL_VERSION } },
+    },
+  );
+  private readonly transport: StreamableHTTPClientTransport;
+
+  constructor(endpoint: URL, accessToken: string) {
+    this.transport = new StreamableHTTPClientTransport(endpoint, {
+      requestInit: { headers: { authorization: `Bearer ${accessToken}` } },
     });
-    this.initialized = true;
-    await this.notify("notifications/initialized", {});
-    return result;
   }
 
-  listTools(): Promise<unknown> {
-    return this.request("tools/list", {});
+  async connect(): Promise<DiscoverResult> {
+    await this.client.connect(this.transport);
+    const discovery = this.client.getDiscoverResult();
+    if (discovery === undefined) throw new Error("Modern MCP discovery did not complete");
+    return discovery;
   }
 
-  async callTool<T = unknown>(name: string, args: unknown): Promise<T> {
-    return (await this.request("tools/call", { name, arguments: args })) as T;
+  close(): Promise<void> {
+    return this.client.close();
   }
 
-  async readResource<T = unknown>(uri: string): Promise<T> {
-    return (await this.request("resources/read", { uri })) as T;
+  listTools() {
+    return this.client.listTools();
   }
 
-  private async request(method: string, params: Record<string, unknown>): Promise<unknown> {
-    const response = await this.send({ jsonrpc: "2.0", id: ++this.id, method, params });
-    const body = (await response.json()) as JsonRpcResponse;
-    if (body.error !== undefined) {
-      throw Object.assign(new Error(body.error.message), { response, rpcError: body.error });
-    }
-    return body.result;
+  callTool<T = CallToolResult>(name: string, args: unknown): Promise<T> {
+    return this.client.callTool({ name, arguments: args as Record<string, unknown> }) as Promise<T>;
   }
 
-  private async notify(method: string, params: Record<string, unknown>): Promise<void> {
-    const response = await this.send({ jsonrpc: "2.0", method, params });
-    if (response.status !== 202)
-      throw new Error(`MCP notification failed with HTTP ${response.status}`);
-  }
-
-  private send(body: unknown): Promise<Response> {
-    return fetch(this.endpoint, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.accessToken}`,
-        "content-type": "application/json",
-        accept: "application/json",
-        ...(this.initialized ? { "mcp-protocol-version": MCP_PROTOCOL_VERSION } : {}),
-      },
-      body: JSON.stringify(body),
-    });
+  readResource<T = ReadResourceResult>(uri: string): Promise<T> {
+    return this.client.readResource({ uri }) as Promise<T>;
   }
 }

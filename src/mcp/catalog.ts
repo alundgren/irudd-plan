@@ -29,7 +29,10 @@ export const tools = [
       type: "object",
       required: ["contractVersion", "planId", "contextId"],
       properties: {
-        contractVersion: { const: CONTRACT_VERSION },
+        contractVersion: {
+          type: "string",
+          description: `Plan contract version; currently ${CONTRACT_VERSION}`,
+        },
         planId: { type: "string" },
         contextId: { type: "string" },
       },
@@ -57,7 +60,12 @@ export const tools = [
     inputSchema: {
       type: "object",
       required: ["contractVersion"],
-      properties: { contractVersion: { const: CONTRACT_VERSION } },
+      properties: {
+        contractVersion: {
+          type: "string",
+          description: `Plan contract version; currently ${CONTRACT_VERSION}`,
+        },
+      },
       additionalProperties: false,
     },
   },
@@ -68,7 +76,10 @@ function planItemSchema() {
     type: "object",
     required: ["contractVersion", "planId", "itemId"],
     properties: {
-      contractVersion: { const: CONTRACT_VERSION },
+      contractVersion: {
+        type: "string",
+        description: `Plan contract version; currently ${CONTRACT_VERSION}`,
+      },
       planId: { type: "string" },
       itemId: { type: "string" },
     },

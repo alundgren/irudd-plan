@@ -48,6 +48,13 @@ describe("authentication", () => {
     try {
       const valid = await sign(trusted.privateKey, Math.floor(Date.now() / 1000) + 60);
       await expect(verifier.verify(valid)).resolves.toMatchObject({ issuer });
+      const missingExpiry = await new SignJWT({ common_name: "service-a" })
+        .setProtectedHeader({ alg: "RS256", kid: "trusted" })
+        .setIssuer(issuer)
+        .setAudience("test-audience")
+        .setIssuedAt()
+        .sign(trusted.privateKey);
+      await expect(verifier.verify(missingExpiry)).rejects.toMatchObject({ code: "AUTH_INVALID" });
       const expired = await sign(trusted.privateKey, Math.floor(Date.now() / 1000) - 1);
       await expect(verifier.verify(expired)).rejects.toMatchObject({ code: "AUTH_EXPIRED" });
       const forgedToken = await sign(forged.privateKey, Math.floor(Date.now() / 1000) + 60);

@@ -6,11 +6,12 @@
   "scripts": {
     "build": "vp build",
     "check": "vp check",
+    "check:ci": "vp fmt --check && vp lint --quiet",
     "dev": "tsx watch src/server/main.ts",
     "db:generate": "drizzle-kit generate",
     "example:mcp": "tsx scripts/mcp-example.ts examples/plan.json",
     "start": "node dist/main.js",
-    "test": "vp test --run"
+    "test": "vp test"
   },
   "dependencies": {
     "@effect/sql-sqlite-node": "4.0.0-rc.112",
@@ -30,9 +31,8 @@
     "drizzle-kit": "1.0.0-rc.5-ab785fc",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
-    "vite": "8.2.2",
-    "vite-plus": "0.3.0",
-    "vitest": "4.1.11"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
+    "vite-plus": "0.3.0"
   },
   "engines": {
     "node": "24.20.0",

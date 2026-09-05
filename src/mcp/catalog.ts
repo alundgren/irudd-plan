@@ -11,7 +11,10 @@ export const tools = [
       properties: {
         operationId: { type: "string" },
         expectedVersion: { type: ["integer", "null"], minimum: 1 },
-        plan: { type: "object", description: `Complete ${CONTRACT_VERSION} plan document` },
+        plan: {
+          type: "object",
+          description: `Complete ${CONTRACT_VERSION} plan document`,
+        },
       },
       additionalProperties: false,
     },
@@ -24,7 +27,8 @@ export const tools = [
   },
   {
     name: "get_related_context",
-    description: "Deliberately retrieve one shared context and everything it requires.",
+    description:
+      "Deliberately retrieve one shared context and everything it requires.",
     inputSchema: {
       type: "object",
       required: ["contractVersion", "planId", "contextId"],
@@ -94,7 +98,8 @@ export const resourceTemplates = [
   {
     uriTemplate: "irudd-plan://plans/{planId}",
     name: "Current compact plan overview",
-    description: "The epic goal and compact work-item index for one private plan.",
+    description:
+      "The epic goal and compact work-item index for one private plan.",
     mimeType: "application/json",
   },
   {
@@ -106,7 +111,8 @@ export const resourceTemplates = [
   {
     uriTemplate: "irudd-plan://plans/{planId}/contexts/{contextId}",
     name: "Current shared context",
-    description: "One deliberately selected shared context and its requirements.",
+    description:
+      "One deliberately selected shared context and its requirements.",
     mimeType: "application/json",
   },
 ] as const;

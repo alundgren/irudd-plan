@@ -1,5 +1,8 @@
 import { sql } from "drizzle-orm";
-import { createInsertSchema, createSelectSchema } from "drizzle-orm/effect-schema";
+import {
+  createInsertSchema,
+  createSelectSchema,
+} from "drizzle-orm/effect-schema";
 import {
   foreignKey,
   index,
@@ -68,7 +71,10 @@ export const plans = sqliteTable(
 );
 
 const planReference = <
-  T extends { ownerId: ReturnType<typeof text>; planId: ReturnType<typeof text> },
+  T extends {
+    ownerId: ReturnType<typeof text>;
+    planId: ReturnType<typeof text>;
+  },
 >(
   table: T,
 ) =>
@@ -92,7 +98,10 @@ export const planRevisions = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.planId, table.version] }),
-    uniqueIndex("plan_revisions_operation_idx").on(table.ownerId, table.operationId),
+    uniqueIndex("plan_revisions_operation_idx").on(
+      table.ownerId,
+      table.operationId,
+    ),
     planReference(table),
   ],
 );
@@ -189,7 +198,9 @@ export const acceptanceCriteria = sqliteTable(
     text: text("text").notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.ownerId, table.planId, table.itemId, table.id] }),
+    primaryKey({
+      columns: [table.ownerId, table.planId, table.itemId, table.id],
+    }),
     foreignKey({
       columns: [table.ownerId, table.planId, table.itemId],
       foreignColumns: [workItems.ownerId, workItems.planId, workItems.id],

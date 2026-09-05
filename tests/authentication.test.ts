@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import {
   Authenticator,
@@ -30,9 +30,12 @@ describe("authentication", () => {
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ keys: [publicJwk, alternateJwk] }));
     });
-    await new Promise<void>((resolve) => jwksServer.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      jwksServer.listen(0, "127.0.0.1", resolve),
+    );
     const address = jwksServer.address();
-    if (address === null || typeof address === "string") throw new Error("Missing JWKS address");
+    if (address === null || typeof address === "string")
+      throw new Error("Missing JWKS address");
     const verifier = new CloudflareAccessVerifier(
       issuer,
       "test-audience",
@@ -55,7 +58,10 @@ describe("authentication", () => {
         .setExpirationTime(expiresAt)
         .sign(key);
     try {
-      const valid = await sign(trusted.privateKey, Math.floor(Date.now() / 1000) + 60);
+      const valid = await sign(
+        trusted.privateKey,
+        Math.floor(Date.now() / 1000) + 60,
+      );
       await expect(verifier.verify(valid)).resolves.toMatchObject({ issuer });
       const missingExpiry = await new SignJWT({ common_name: "service-a" })
         .setProtectedHeader({ alg: "RS256", kid: "trusted" })
@@ -63,11 +69,23 @@ describe("authentication", () => {
         .setAudience("test-audience")
         .setIssuedAt()
         .sign(trusted.privateKey);
-      await expect(verifier.verify(missingExpiry)).rejects.toMatchObject({ code: "AUTH_INVALID" });
-      const expired = await sign(trusted.privateKey, Math.floor(Date.now() / 1000) - 1);
-      await expect(verifier.verify(expired)).rejects.toMatchObject({ code: "AUTH_EXPIRED" });
-      const forgedToken = await sign(forged.privateKey, Math.floor(Date.now() / 1000) + 60);
-      await expect(verifier.verify(forgedToken)).rejects.toMatchObject({ code: "AUTH_INVALID" });
+      await expect(verifier.verify(missingExpiry)).rejects.toMatchObject({
+        code: "AUTH_INVALID",
+      });
+      const expired = await sign(
+        trusted.privateKey,
+        Math.floor(Date.now() / 1000) - 1,
+      );
+      await expect(verifier.verify(expired)).rejects.toMatchObject({
+        code: "AUTH_EXPIRED",
+      });
+      const forgedToken = await sign(
+        forged.privateKey,
+        Math.floor(Date.now() / 1000) + 60,
+      );
+      await expect(verifier.verify(forgedToken)).rejects.toMatchObject({
+        code: "AUTH_INVALID",
+      });
       const alternateToken = await new SignJWT({ common_name: "service-a" })
         .setProtectedHeader({ alg: "ES256", kid: "alternate" })
         .setIssuer(issuer)
@@ -75,20 +93,26 @@ describe("authentication", () => {
         .setIssuedAt()
         .setExpirationTime(Math.floor(Date.now() / 1000) + 60)
         .sign(alternateAlgorithm.privateKey);
-      await expect(verifier.verify(alternateToken)).rejects.toMatchObject({ code: "AUTH_INVALID" });
+      await expect(verifier.verify(alternateToken)).rejects.toMatchObject({
+        code: "AUTH_INVALID",
+      });
       const wrongIssuer = await sign(
         trusted.privateKey,
         Math.floor(Date.now() / 1000) + 60,
         "https://attacker.example",
       );
-      await expect(verifier.verify(wrongIssuer)).rejects.toMatchObject({ code: "AUTH_INVALID" });
+      await expect(verifier.verify(wrongIssuer)).rejects.toMatchObject({
+        code: "AUTH_INVALID",
+      });
       const wrongAudience = await sign(
         trusted.privateKey,
         Math.floor(Date.now() / 1000) + 60,
         issuer,
         "other-audience",
       );
-      await expect(verifier.verify(wrongAudience)).rejects.toMatchObject({ code: "AUTH_INVALID" });
+      await expect(verifier.verify(wrongAudience)).rejects.toMatchObject({
+        code: "AUTH_INVALID",
+      });
 
       jwksAvailable = false;
       const unavailableVerifier = new CloudflareAccessVerifier(
@@ -96,7 +120,9 @@ describe("authentication", () => {
         "test-audience",
         `http://127.0.0.1:${address.port}/certs`,
       );
-      const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const errorLog = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
       try {
         await expect(unavailableVerifier.verify(valid)).rejects.toMatchObject({
           code: "AUTH_PROVIDER_UNAVAILABLE",
@@ -122,12 +148,12 @@ describe("authentication", () => {
     );
     const serviceAuth = new Authenticator(verifier, store, "service");
     const browserAuth = new Authenticator(verifier, store, "browser");
-    await expect(serviceAuth.authenticate({ authorization: "Bearer service" })).resolves.toBe(
-      "owner-a",
-    );
-    await expect(browserAuth.authenticate({ authorization: "Bearer browser" })).resolves.toBe(
-      "owner-a",
-    );
+    await expect(
+      serviceAuth.authenticate({ authorization: "Bearer service" }),
+    ).resolves.toBe("owner-a");
+    await expect(
+      browserAuth.authenticate({ authorization: "Bearer browser" }),
+    ).resolves.toBe("owner-a");
     await expect(
       browserAuth.authenticate({ authorization: "Bearer service" }),
     ).rejects.toMatchObject({

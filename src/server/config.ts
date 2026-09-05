@@ -15,20 +15,28 @@ export interface ServerConfig {
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
-  const accessIssuer = required(environment, "CF_ACCESS_ISSUER").replace(/\/$/, "");
+  const accessIssuer = required(environment, "CF_ACCESS_ISSUER").replace(
+    /\/$/,
+    "",
+  );
   requireHttpsUrl(accessIssuer, "CF_ACCESS_ISSUER");
-  const rawMappings = JSON.parse(required(environment, "OWNER_MAPPINGS_JSON")) as unknown;
+  const rawMappings = JSON.parse(
+    required(environment, "OWNER_MAPPINGS_JSON"),
+  ) as unknown;
   if (!Array.isArray(rawMappings) || rawMappings.length === 0) {
     throw new Error("OWNER_MAPPINGS_JSON must contain at least one mapping");
   }
-  const credentialMappings = rawMappings.map((value, index) => parseMapping(value, index));
+  const credentialMappings = rawMappings.map((value, index) =>
+    parseMapping(value, index),
+  );
   if (credentialMappings.some((mapping) => mapping.issuer !== accessIssuer)) {
     throw new Error("Every owner mapping issuer must match CF_ACCESS_ISSUER");
   }
   if (!credentialMappings.some((mapping) => mapping.kind === "service")) {
     throw new Error("OWNER_MAPPINGS_JSON must contain a service identity");
   }
-  const accessJwksUrl = environment.CF_ACCESS_JWKS_URL ?? `${accessIssuer}/cdn-cgi/access/certs`;
+  const accessJwksUrl =
+    environment.CF_ACCESS_JWKS_URL ?? `${accessIssuer}/cdn-cgi/access/certs`;
   requireHttpsUrl(accessJwksUrl, "CF_ACCESS_JWKS_URL");
   return {
     host: environment.HOST ?? "0.0.0.0",
@@ -65,7 +73,10 @@ function parseMapping(value: unknown, index: number): CredentialMapping {
     throw new Error(`Owner mapping ${index} has an unsupported kind`);
   }
   return {
-    issuer: requiredString(mapping.issuer, `Owner mapping ${index} issuer`).replace(/\/$/, ""),
+    issuer: requiredString(
+      mapping.issuer,
+      `Owner mapping ${index} issuer`,
+    ).replace(/\/$/, ""),
     claim,
     value: requiredString(mapping.value, `Owner mapping ${index} value`),
     kind,

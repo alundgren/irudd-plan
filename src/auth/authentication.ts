@@ -34,7 +34,10 @@ export class CloudflareAccessVerifier implements AccessTokenVerifier {
       return { issuer: this.issuer, claims: result.payload as JWTPayload };
     } catch (error) {
       if (error instanceof errors.JWTExpired) {
-        throw new PlanError("AUTH_EXPIRED", "Cloudflare Access token has expired");
+        throw new PlanError(
+          "AUTH_EXPIRED",
+          "Cloudflare Access token has expired",
+        );
       }
       if (isJwksProviderFailure(error)) {
         console.error("Cloudflare Access JWKS retrieval failed", error);
@@ -70,7 +73,8 @@ export class TestAccessVerifier implements AccessTokenVerifier {
       throw new PlanError("AUTH_EXPIRED", "Test token has expired");
     }
     const identity = this.identities.get(token);
-    if (identity === undefined) throw new PlanError("AUTH_INVALID", "Test token is invalid");
+    if (identity === undefined)
+      throw new PlanError("AUTH_INVALID", "Test token is invalid");
     return identity;
   }
 }
@@ -87,17 +91,26 @@ export class Authenticator {
   ): Promise<string> {
     const assertionHeader = headers["cf-access-jwt-assertion"];
     const authorizationHeader = headers.authorization;
-    const assertion = Array.isArray(assertionHeader) ? assertionHeader[0] : assertionHeader;
+    const assertion = Array.isArray(assertionHeader)
+      ? assertionHeader[0]
+      : assertionHeader;
     const authorization = Array.isArray(authorizationHeader)
       ? authorizationHeader[0]
       : authorizationHeader;
     const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
     const token = assertion ?? bearer;
     if (token === undefined || token.length === 0) {
-      throw new PlanError("AUTH_INVALID", "A Cloudflare Access assertion is required");
+      throw new PlanError(
+        "AUTH_INVALID",
+        "A Cloudflare Access assertion is required",
+      );
     }
     const identity = await this.verifier.verify(token);
-    const ownerId = await this.store.resolveOwner(identity.issuer, identity.claims, this.kind);
+    const ownerId = await this.store.resolveOwner(
+      identity.issuer,
+      identity.claims,
+      this.kind,
+    );
     if (ownerId === undefined) {
       throw new PlanError(
         "AUTH_UNKNOWN_IDENTITY",

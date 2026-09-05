@@ -69,7 +69,10 @@ First send `server/discover` with `MCP-Protocol-Version: 2026-07-28` and `Mcp-Me
   "params": {
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientInfo": { "name": "example", "version": "1" },
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "example",
+        "version": "1"
+      },
       "io.modelcontextprotocol/clientCapabilities": {}
     }
   }
@@ -85,10 +88,17 @@ Then call a tool with the same protocol header plus `Mcp-Method: tools/call` and
   "method": "tools/call",
   "params": {
     "name": "get_work_item",
-    "arguments": { "contractVersion": "v1", "planId": "example-plan", "itemId": "item-service" },
+    "arguments": {
+      "contractVersion": "v1",
+      "planId": "example-plan",
+      "itemId": "item-service"
+    },
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientInfo": { "name": "example", "version": "1" },
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "example",
+        "version": "1"
+      },
       "io.modelcontextprotocol/clientCapabilities": {}
     }
   }

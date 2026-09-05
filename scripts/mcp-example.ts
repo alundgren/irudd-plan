@@ -6,9 +6,13 @@ import { IruddMcpClient } from "../src/client/mcp-client.js";
 const planFile = process.argv[2];
 const endpoint = process.env.IRUDD_MCP_URL;
 const accessToken = process.env.CF_ACCESS_TOKEN;
-if (planFile === undefined || endpoint === undefined || accessToken === undefined) {
+if (
+  planFile === undefined ||
+  endpoint === undefined ||
+  accessToken === undefined
+) {
   throw new Error(
-    "Usage: IRUDD_MCP_URL=https://host/mcp CF_ACCESS_TOKEN=<assertion> pnpm example:mcp",
+    "Usage: IRUDD_MCP_URL=https://host/mcp CF_ACCESS_TOKEN=<assertion> vp run example:mcp",
   );
 }
 
@@ -17,7 +21,8 @@ const plan = JSON.parse(await readFile(planFile, "utf8")) as {
   items: Array<{ id: string }>;
 };
 const firstItem = plan.items[0];
-if (firstItem === undefined) throw new Error("The example plan needs at least one work item");
+if (firstItem === undefined)
+  throw new Error("The example plan needs at least one work item");
 
 const client = new IruddMcpClient(new URL(endpoint), accessToken);
 try {

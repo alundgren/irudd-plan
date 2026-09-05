@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { Schema } from "effect";
 
 import { PlanError } from "../src/contract/errors.js";
@@ -75,7 +75,9 @@ describe("plan storage and packet versions", () => {
     const decisionEdit = {
       ...clonePlan(siblingChanged),
       decisions: siblingChanged.decisions.map((decision, index) =>
-        index === 0 ? { ...decision, body: "Use durable SQLite revisions." } : decision,
+        index === 0
+          ? { ...decision, body: "Use durable SQLite revisions." }
+          : decision,
       ),
     };
     await service.write("owner-a", {
@@ -97,14 +99,22 @@ describe("plan storage and packet versions", () => {
         itemId: "item-1",
         packetVersion: firstPacket.packetVersion,
       }),
-    ).resolves.toMatchObject({ status: "changed", packetVersion: afterDecision.packetVersion });
+    ).resolves.toMatchObject({
+      status: "changed",
+      packetVersion: afterDecision.packetVersion,
+    });
     expect(getSpy).toHaveBeenCalledTimes(1);
     getSpy.mockRestore();
 
     const listed = await store.list("owner-a");
-    expect(listed[0]!.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(listed[0]!.updatedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+    );
 
-    const stale = { ...clonePlan(decisionEdit), epicGoal: "This stale value must not commit" };
+    const stale = {
+      ...clonePlan(decisionEdit),
+      epicGoal: "This stale value must not commit",
+    };
     await expect(
       service.write("owner-a", {
         operationId: "operation-stale",
@@ -112,17 +122,33 @@ describe("plan storage and packet versions", () => {
         plan: stale,
       }),
     ).rejects.toMatchObject({ code: "PLAN_CONFLICT" });
-    expect((await store.get("owner-a", initialPlan.planId))?.plan.epicGoal).toBe(
-      initialPlan.epicGoal,
-    );
+    expect(
+      (await store.get("owner-a", initialPlan.planId))?.plan.epicGoal,
+    ).toBe(initialPlan.epicGoal);
 
-    const left = { ...clonePlan(decisionEdit), epicGoal: "Concurrent result left" };
-    const right = { ...clonePlan(decisionEdit), epicGoal: "Concurrent result right" };
+    const left = {
+      ...clonePlan(decisionEdit),
+      epicGoal: "Concurrent result left",
+    };
+    const right = {
+      ...clonePlan(decisionEdit),
+      epicGoal: "Concurrent result right",
+    };
     const results = await Promise.allSettled([
-      service.write("owner-a", { operationId: "operation-left", expectedVersion: 3, plan: left }),
-      service.write("owner-a", { operationId: "operation-right", expectedVersion: 3, plan: right }),
+      service.write("owner-a", {
+        operationId: "operation-left",
+        expectedVersion: 3,
+        plan: left,
+      }),
+      service.write("owner-a", {
+        operationId: "operation-right",
+        expectedVersion: 3,
+        plan: right,
+      }),
     ]);
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
     const rejected = results.find(
       (result) => result.status === "rejected",
     ) as PromiseRejectedResult;
@@ -131,13 +157,17 @@ describe("plan storage and packet versions", () => {
     expect((await store.get("owner-a", initialPlan.planId))?.version).toBe(4);
     const database = new DatabaseSync(filename);
     const revisionCount = database
-      .prepare("select count(*) as count from plan_revisions where owner_id = ? and plan_id = ?")
+      .prepare(
+        "select count(*) as count from plan_revisions where owner_id = ? and plan_id = ?",
+      )
       .get("owner-a", initialPlan.planId) as { count: number };
     const operationCount = database
       .prepare("select count(*) as count from operations where owner_id = ?")
       .get("owner-a") as { count: number };
     const itemCount = database
-      .prepare("select count(*) as count from work_items where owner_id = ? and plan_id = ?")
+      .prepare(
+        "select count(*) as count from work_items where owner_id = ? and plan_id = ?",
+      )
       .get("owner-a", initialPlan.planId) as { count: number };
     database.close();
     expect({ revisionCount, operationCount, itemCount }).toEqual({
@@ -164,7 +194,9 @@ describe("migrations", () => {
       }),
     ).rejects.toThrow();
     const database = new DatabaseSync(filename);
-    expect(() => database.exec("insert into owners (id) values (NULL)")).toThrow();
+    expect(() =>
+      database.exec("insert into owners (id) values (NULL)"),
+    ).toThrow();
     const row = database
       .prepare("select id, created_at as createdAt from owners limit 1")
       .get() as {

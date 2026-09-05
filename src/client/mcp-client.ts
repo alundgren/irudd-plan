@@ -27,7 +27,8 @@ export class IruddMcpClient {
   async connect(): Promise<DiscoverResult> {
     await this.client.connect(this.transport);
     const discovery = this.client.getDiscoverResult();
-    if (discovery === undefined) throw new Error("Modern MCP discovery did not complete");
+    if (discovery === undefined)
+      throw new Error("Modern MCP discovery did not complete");
     return discovery;
   }
 
@@ -40,7 +41,10 @@ export class IruddMcpClient {
   }
 
   callTool<T = CallToolResult>(name: string, args: unknown): Promise<T> {
-    return this.client.callTool({ name, arguments: args as Record<string, unknown> }) as Promise<T>;
+    return this.client.callTool({
+      name,
+      arguments: args as Record<string, unknown>,
+    }) as Promise<T>;
   }
 
   readResource<T = ReadResourceResult>(uri: string): Promise<T> {

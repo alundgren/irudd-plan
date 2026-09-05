@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { PlanError } from "../src/contract/errors.js";
 import { canonicalJson, validatePlan } from "../src/domain/validate-plan.js";
@@ -54,7 +54,9 @@ describe("plan validation", () => {
     const changed = {
       ...plan,
       contexts: plan.contexts.map((context, index) =>
-        index === 1 ? { ...context, requiredContextIds: ["context-auth"] } : context,
+        index === 1
+          ? { ...context, requiredContextIds: ["context-auth"] }
+          : context,
       ),
     };
     expectCode(() => validatePlan(changed), "REFERENCE_CYCLE");

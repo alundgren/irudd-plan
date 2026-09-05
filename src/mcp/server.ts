@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import {
@@ -44,7 +49,10 @@ export function createMcpHttpServer(
     { legacy: "reject" },
   );
   const nodeHandler = toNodeHandler(handler);
-  const server = createServer(async (request, response) => {
+  const handleRequest = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
     try {
       if (request.url === "/" && request.method === "GET") {
         sendHtml(response, renderOperatorPage());
@@ -56,7 +64,9 @@ export function createMcpHttpServer(
       }
       if (request.url === "/readyz") {
         const ready = options.isReady?.() ?? true;
-        sendJson(response, ready ? 200 : 503, { status: ready ? "ready" : "starting" });
+        sendJson(response, ready ? 200 : 503, {
+          status: ready ? "ready" : "starting",
+        });
         return;
       }
       if (request.url !== "/mcp" || request.method !== "POST") {
@@ -67,8 +77,14 @@ export function createMcpHttpServer(
       const ownerId = await authenticator.authenticate(request.headers);
       const body = await readBody(request, bodyLimitBytes);
       const parsedBody = parseJson(body);
-      const authenticatedRequest = request as IncomingMessage & { auth?: AuthInfo };
-      authenticatedRequest.auth = { token: "verified", clientId: ownerId, scopes: [] };
+      const authenticatedRequest = request as IncomingMessage & {
+        auth?: AuthInfo;
+      };
+      authenticatedRequest.auth = {
+        token: "verified",
+        clientId: ownerId,
+        scopes: [],
+      };
       await nodeHandler(
         authenticatedRequest as Parameters<typeof nodeHandler>[0],
         response,
@@ -82,6 +98,9 @@ export function createMcpHttpServer(
       }
       sendHttpError(response, error);
     }
+  };
+  const server = createServer((request, response) => {
+    void handleRequest(request, response);
   });
   server.on("close", () => void handler.close());
   return server;
@@ -110,7 +129,9 @@ function createOwnerServer(service: PlanService, ownerId: string): McpServer {
       tool.name,
       {
         description: tool.description,
-        inputSchema: fromJsonSchema(tool.inputSchema as unknown as JsonSchemaType),
+        inputSchema: fromJsonSchema(
+          tool.inputSchema as unknown as JsonSchemaType,
+        ),
       },
       async (args) => callTool(service, ownerId, tool.name, args),
     );
@@ -161,10 +182,16 @@ async function callTool(
         value = await service.getItem(ownerId, decode(GetItemRequest, args));
         break;
       case "get_related_context":
-        value = await service.getContext(ownerId, decode(GetRelatedContextRequest, args));
+        value = await service.getContext(
+          ownerId,
+          decode(GetRelatedContextRequest, args),
+        );
         break;
       case "check_packet":
-        value = await service.checkPacket(ownerId, decode(CheckPacketRequest, args));
+        value = await service.checkPacket(
+          ownerId,
+          decode(CheckPacketRequest, args),
+        );
         break;
       case "list_plans":
         decode(ListPlansRequest, args);
@@ -178,7 +205,9 @@ async function callTool(
     const normalized = normalizeError(error);
     return {
       isError: true,
-      content: [{ type: "text", text: `${normalized.code}: ${normalized.message}` }],
+      content: [
+        { type: "text", text: `${normalized.code}: ${normalized.message}` },
+      ],
       structuredContent: { error: normalized },
     };
   }
@@ -189,8 +218,12 @@ async function readResource(
   ownerId: string,
   uri: string,
 ): Promise<ReadResourceResult> {
-  const itemMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/items\/([^/]+)$/);
-  const contextMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)\/contexts\/([^/]+)$/);
+  const itemMatch = uri.match(
+    /^irudd-plan:\/\/plans\/([^/]+)\/items\/([^/]+)$/,
+  );
+  const contextMatch = uri.match(
+    /^irudd-plan:\/\/plans\/([^/]+)\/contexts\/([^/]+)$/,
+  );
   const planMatch = uri.match(/^irudd-plan:\/\/plans\/([^/]+)$/);
   let value: unknown;
   if (itemMatch?.[1] !== undefined && itemMatch[2] !== undefined) {
@@ -206,11 +239,18 @@ async function readResource(
       contextId: decodeURIComponent(contextMatch[2]),
     });
   } else if (planMatch?.[1] !== undefined) {
-    value = await service.getOverview(ownerId, decodeURIComponent(planMatch[1]));
+    value = await service.getOverview(
+      ownerId,
+      decodeURIComponent(planMatch[1]),
+    );
   } else {
     throw new PlanError("REQUEST_INVALID", "Unsupported resource URI");
   }
-  return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(value) }] };
+  return {
+    contents: [
+      { uri, mimeType: "application/json", text: JSON.stringify(value) },
+    ],
+  };
 }
 
 function toolResult(value: unknown): CallToolResult {
@@ -221,7 +261,8 @@ function toolResult(value: unknown): CallToolResult {
 }
 
 function requireOwner(authInfo: AuthInfo | undefined): string {
-  if (authInfo === undefined) throw new PlanError("AUTH_INVALID", "Authentication is required");
+  if (authInfo === undefined)
+    throw new PlanError("AUTH_INVALID", "Authentication is required");
   return authInfo.clientId;
 }
 
@@ -243,19 +284,27 @@ function assertContractVersion(args: unknown): void {
     (directVersion !== undefined && directVersion !== CONTRACT_VERSION) ||
     (nestedVersion !== undefined && nestedVersion !== CONTRACT_VERSION)
   ) {
-    throw new PlanError("CONTRACT_UNSUPPORTED", "Unsupported plan contract version", {
-      supported: [CONTRACT_VERSION],
-    });
+    throw new PlanError(
+      "CONTRACT_UNSUPPORTED",
+      "Unsupported plan contract version",
+      {
+        supported: [CONTRACT_VERSION],
+      },
+    );
   }
 }
 
-async function readBody(request: IncomingMessage, limit: number): Promise<string> {
+async function readBody(
+  request: IncomingMessage,
+  limit: number,
+): Promise<string> {
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     length += buffer.length;
-    if (length > limit) throw new PlanError("REQUEST_INVALID", "Request body is too large");
+    if (length > limit)
+      throw new PlanError("REQUEST_INVALID", "Request body is too large");
     chunks.push(buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
@@ -269,7 +318,11 @@ function parseJson(body: string): unknown {
   }
 }
 
-function sendJson(response: ServerResponse, status: number, body: unknown): void {
+function sendJson(
+  response: ServerResponse,
+  status: number,
+  body: unknown,
+): void {
   const content = JSON.stringify(body);
   response.writeHead(status, {
     "content-type": "application/json",

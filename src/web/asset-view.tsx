@@ -23,6 +23,7 @@ export function AssetView({ planId, asset }: AssetViewProps) {
     if (!isolated) return;
     const controller = new AbortController();
     setFailed(false);
+    setDocument(undefined);
     void fetch(source, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Asset unavailable");

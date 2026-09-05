@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { parse } from "acorn";
+import { parseFragment } from "parse5";
 
 import { PlanError } from "../contract/errors.js";
 import type { AssetDescriptor, UploadAssetRequest } from "../contract/plan.js";
@@ -146,15 +147,42 @@ function requireWithinLimit(
 
 function validateSelfContained(mediaType: string, content: Buffer): void {
   if (mediaType !== "text/html" && mediaType !== "image/svg+xml") return;
+  const originalText = content.toString("utf8");
+  requireClosedScripts(originalText);
   const text = content
     .toString("utf8")
     .replace(/(<script\b[^>]*>)[\s\S]*?(<\/script\s*>)/gi, "$1$2");
-  validateInlineScripts(content.toString("utf8"));
+  validateInlineScripts(originalText);
   if (hasExternalMarkupDependency(text)) {
     throw new PlanError(
       "ASSET_INVALID",
       "HTML and SVG uploads must be self-contained; an external or relative dependency was found",
     );
+  }
+}
+
+interface MarkupNode {
+  readonly nodeName: string;
+  readonly childNodes?: ReadonlyArray<MarkupNode>;
+  readonly sourceCodeLocation?: { readonly endTag?: unknown } | null;
+}
+
+function requireClosedScripts(text: string): void {
+  const document = parseFragment(text, { sourceCodeLocationInfo: true });
+  const pending = [...document.childNodes] as MarkupNode[];
+  while (pending.length > 0) {
+    const node = pending.pop();
+    if (node === undefined) continue;
+    if (
+      node.nodeName === "script" &&
+      node.sourceCodeLocation?.endTag === undefined
+    ) {
+      throw new PlanError(
+        "ASSET_INVALID",
+        "HTML and SVG script elements must have a closing tag",
+      );
+    }
+    if (node.childNodes !== undefined) pending.push(...node.childNodes);
   }
 }
 

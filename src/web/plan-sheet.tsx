@@ -141,11 +141,7 @@ function ItemSheet({
             changed={changedSections.has(`${item.id}:visuals`)}
           >
             {assets.map((asset) => (
-              <AssetView
-                key={asset.digest}
-                planId={plan.planId}
-                asset={asset}
-              />
+              <AssetView key={asset.id} planId={plan.planId} asset={asset} />
             ))}
           </SheetSection>
         )}
@@ -243,8 +239,8 @@ function SheetSection({
 function Checklist({ values }: { readonly values: ReadonlyArray<string> }) {
   return (
     <ul className="checklist">
-      {values.map((value) => (
-        <li key={value}>
+      {values.map((value, index) => (
+        <li key={`${index}:${value}`}>
           <CheckCircle2 aria-hidden="true" size={16} />
           <span>{value}</span>
         </li>

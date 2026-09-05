@@ -57,8 +57,9 @@ export function InteractiveDocument({
         if (target?.nodeType !== 1) return;
         const interactive = target.closest("[id], a");
         if (interactive?.tagName.toLowerCase() === "a") event.preventDefault();
-        if (interactive?.id !== "") {
-          worker?.postMessage({ type: "click", id: interactive?.id });
+        const id = interactive?.id;
+        if (id !== undefined && id !== "") {
+          worker?.postMessage({ type: "click", id });
         }
       });
       frameDocument.addEventListener("submit", (event) =>

@@ -64,7 +64,11 @@ export async function createTestStore(filename?: string): Promise<PlanStore> {
   return store;
 }
 
-export async function startTestServer(filename?: string, port = 0) {
+export async function startTestServer(
+  filename?: string,
+  port = 0,
+  initialize?: (service: PlanService) => Promise<void>,
+) {
   const store = await createTestStore(filename);
   const expiredTokens = new Set(["expired"]);
   const verifier = new TestAccessVerifier(
@@ -86,6 +90,7 @@ export async function startTestServer(filename?: string, port = 0) {
       browserAuthenticator: new Authenticator(verifier, store, "browser"),
     },
   );
+  if (initialize !== undefined) await initialize(service);
   await new Promise<void>((resolveListen) =>
     server.listen(port, "127.0.0.1", resolveListen),
   );

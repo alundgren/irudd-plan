@@ -104,6 +104,7 @@ describe("immutable visual assets", () => {
       '<image href="//tracker.example/a.svg"/>',
       "<script>import('/api/plans')</script>",
       "<script>import('https://tracker.example/module.js')</script>",
+      "<script>fetch('/api/plans')",
     ];
     for (const [index, markup] of unsupportedMarkup.entries()) {
       await expect(

@@ -176,7 +176,9 @@ async function serveClientAsset(
     response.writeHead(200, {
       "content-type": clientAssetMediaType(filename),
       "content-length": content.byteLength,
-      "cache-control": "public, max-age=3600",
+      "cache-control": filename.startsWith("mockup-worker-")
+        ? "public, max-age=31536000, immutable"
+        : "no-cache, must-revalidate",
       ...(filename.startsWith("mockup-worker-")
         ? {
             "content-security-policy":

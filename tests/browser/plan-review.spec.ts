@@ -137,6 +137,7 @@ test.describe.serial("plan review canvas", () => {
       page.getByRole("heading", { name: revisionFour.epicGoal }),
     ).toBeVisible();
     await expect(page.locator(".react-flow__node-sheet")).toHaveCount(11);
+    await expect(page.locator(".react-flow__edge")).toHaveCount(11);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/plans/browser-plan/items/item-1");
@@ -168,6 +169,7 @@ test.describe.serial("plan review canvas", () => {
     let forbiddenNavigationRequests = 0;
     let forbiddenModuleRequests = 0;
     let workerCsp = "";
+    const stableAssetCacheHeaders: string[] = [];
     page.on("request", (request) => {
       const pathname = new URL(request.url()).pathname;
       if (pathname === "/api/plans") {
@@ -181,8 +183,12 @@ test.describe.serial("plan review canvas", () => {
       }
     });
     page.on("response", (response) => {
-      if (new URL(response.url()).pathname.includes("/assets/mockup-worker-")) {
+      const pathname = new URL(response.url()).pathname;
+      if (pathname.includes("/assets/mockup-worker-")) {
         workerCsp = response.headers()["content-security-policy"] ?? "";
+      }
+      if (pathname === "/assets/app.js" || pathname === "/assets/app.css") {
+        stableAssetCacheHeaders.push(response.headers()["cache-control"] ?? "");
       }
     });
     await page.goto("/plans/browser-plan/items/item-1");
@@ -214,6 +220,7 @@ test.describe.serial("plan review canvas", () => {
     const viewport = await page
       .locator(".react-flow__viewport")
       .getAttribute("style");
+    await mockup.getByRole("button", { name: "Fail one interaction" }).click();
     await mockup.getByRole("button", { name: "Reviewed 0 times" }).click();
     await expect(
       mockup.getByRole("button", { name: "Reviewed 1 time" }),
@@ -226,6 +233,11 @@ test.describe.serial("plan review canvas", () => {
     expect(forbiddenNavigationRequests).toBe(0);
     expect(forbiddenModuleRequests).toBe(0);
     expect(workerCsp).toContain("connect-src 'none'");
+    expect(stableAssetCacheHeaders).toHaveLength(2);
+    expect(stableAssetCacheHeaders).toEqual([
+      "no-cache, must-revalidate",
+      "no-cache, must-revalidate",
+    ]);
 
     const currentResponse = await page.request.get("/api/plans/browser-plan");
     const current = (await currentResponse.json()) as {
@@ -345,7 +357,19 @@ test.describe.serial("plan review canvas", () => {
     ).toBeVisible();
     await page.unroute("**/api/plans");
 
+    await page.route("**/api/plans", (route) =>
+      route.fulfill({ status: 503, body: "temporarily unavailable" }),
+    );
+    await page.goto("/");
+    await expect(page.locator(".state-card.error")).toBeVisible();
+    await expect(page.getByText("Loading current plan")).toHaveCount(0);
+    await page.unroute("**/api/plans");
+
     await page.goto("/plans/expired-or-missing");
+    await expect(
+      page.getByRole("heading", { name: "Plan unavailable" }),
+    ).toBeVisible();
+    await page.goto("/plans/%");
     await expect(
       page.getByRole("heading", { name: "Plan unavailable" }),
     ).toBeVisible();

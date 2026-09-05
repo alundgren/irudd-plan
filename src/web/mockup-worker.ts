@@ -33,7 +33,11 @@ globalThis.onmessage = (event: MessageEvent<IncomingMessage>) => {
   }
   const handler = handlers.get(event.data.id);
   if (handler !== undefined) {
-    handler.call(element(event.data.id), { preventDefault: () => undefined });
+    try {
+      handler.call(element(event.data.id), { preventDefault: () => undefined });
+    } catch {
+      // A failing uploaded handler stops only this interaction.
+    }
   }
 };
 

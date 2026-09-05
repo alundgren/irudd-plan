@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef } from "react";
 import {
   Background,
   Controls,
+  Handle,
   MarkerType,
+  Position,
   ReactFlow,
   ReactFlowProvider,
   type Edge,
@@ -93,7 +95,23 @@ function CanvasContents({
 }
 
 function SheetNodeView({ data }: NodeProps<SheetNode>) {
-  return <PlanSheet {...data} />;
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={false}
+        style={{ opacity: 0, pointerEvents: "none" }}
+      />
+      <PlanSheet {...data} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={false}
+        style={{ opacity: 0, pointerEvents: "none" }}
+      />
+    </>
+  );
 }
 
 function makeNodes(

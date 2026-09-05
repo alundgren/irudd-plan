@@ -107,7 +107,7 @@ function PlanList({
         <p>Open a plan to read its current committed revision.</p>
       </header>
       {error !== undefined ? <p className="state-card error">{error}</p> : null}
-      {plans === undefined ? (
+      {error !== undefined ? null : plans === undefined ? (
         <LoadingState />
       ) : plans.length === 0 ? (
         <section className="state-card empty-state">
@@ -199,13 +199,17 @@ function readRoute(): { readonly planId?: string; readonly itemId?: string } {
     /^\/plans\/([^/]+)(?:\/items\/([^/]+))?$/,
   );
   return {
-    ...(match?.[1] === undefined
-      ? {}
-      : { planId: decodeURIComponent(match[1]) }),
-    ...(match?.[2] === undefined
-      ? {}
-      : { itemId: decodeURIComponent(match[2]) }),
+    ...(match?.[1] === undefined ? {} : { planId: decodeSegment(match[1]) }),
+    ...(match?.[2] === undefined ? {} : { itemId: decodeSegment(match[2]) }),
   };
+}
+
+function decodeSegment(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function errorMessage(value: unknown): string {

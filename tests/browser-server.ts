@@ -1,16 +1,17 @@
 import { browserAssetUploads, makeBrowserPlan } from "./browser-fixture.js";
 import { startTestServer } from "./test-service.js";
 
-const running = await startTestServer(undefined, 4173);
-const assets = await Promise.all(
-  browserAssetUploads("browser-plan").map((request) =>
-    running.service.uploadAsset("owner-a", request),
-  ),
-);
-await running.service.write("owner-a", {
-  operationId: "browser-create",
-  expectedVersion: null,
-  plan: makeBrowserPlan(assets),
+const running = await startTestServer(undefined, 4173, async (service) => {
+  const assets = await Promise.all(
+    browserAssetUploads("browser-plan").map((request) =>
+      service.uploadAsset("owner-a", request),
+    ),
+  );
+  await service.write("owner-a", {
+    operationId: "browser-create",
+    expectedVersion: null,
+    plan: makeBrowserPlan(assets),
+  });
 });
 
 console.log(`browser test server listening at ${running.url}`);

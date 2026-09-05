@@ -34,19 +34,24 @@ export function browserAssetUploads(planId: string): UploadAssetRequest[] {
             count += 1;
             document.querySelector('#counter').textContent = 'Reviewed ' + count + ' time';
           };
+          document.querySelector('#thrower').onclick = () => { throw new Error('expected click failure'); };
           try { window.parent.localStorage.getItem('private'); document.body.dataset.storage = 'read'; }
           catch { document.body.dataset.storage = 'blocked'; }
           fetch('/api/plans').then(() => document.body.dataset.network = 'sent').catch(() => document.body.dataset.network = 'blocked');
           try { window.top.location = '/escaped'; } catch {}
           try { window.location.href = '/frame-escaped'; } catch {}
           setTimeout(function () {
-            try { this.indexedDB.open('timer-leak'); document.body.dataset.timerStorage = 'read'; }
+            try { globalThis.indexedDB.open('timer-leak'); document.body.dataset.timerStorage = 'read'; }
             catch { document.body.dataset.timerStorage = 'blocked'; }
-            try { this.fetch('/api/plans'); document.body.dataset.timerNetwork = 'sent'; }
-            catch { document.body.dataset.timerNetwork = 'blocked'; }
+            try {
+              globalThis.fetch('/api/plans')
+                .then(() => document.body.dataset.timerNetwork = 'sent')
+                .catch(() => document.body.dataset.timerNetwork = 'blocked');
+            } catch { document.body.dataset.timerNetwork = 'blocked'; }
           }, 0);
           setTimeout(() => document.querySelector('#security').textContent = 'Isolation active', 50);
         </script>
+        <button id="thrower">Fail one interaction</button>
         <script>
           const imports = ["/api/plans", "https://tracker.example/module.js"];
           Promise.all(imports.map((specifier) => {

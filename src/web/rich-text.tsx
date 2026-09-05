@@ -11,8 +11,8 @@ export function RichText({ text }: RichTextProps) {
         if (lines.every((line) => /^[-*] /.test(line))) {
           return (
             <ul key={index}>
-              {lines.map((line) => (
-                <li key={line}>{line.slice(2)}</li>
+              {lines.map((line, lineIndex) => (
+                <li key={lineIndex}>{line.slice(2)}</li>
               ))}
             </ul>
           );

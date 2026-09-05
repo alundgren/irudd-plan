@@ -92,7 +92,6 @@ export function useLivePlan(planId: string | undefined) {
     );
     setConnection("connecting");
     const synchronize = async (event: Event): Promise<void> => {
-      setConnection("reconnecting");
       const result = await load(planId, eventVersion(event));
       if (result === "applied") setConnection("live");
       if (result === "failed") setConnection("reconnecting");

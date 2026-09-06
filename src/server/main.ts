@@ -7,6 +7,7 @@ import {
 } from "../auth/authentication.js";
 import { PlanStore } from "../database/store.js";
 import { PlanService } from "../domain/plan-service.js";
+import { GitHubAppReader, GitHubConnection } from "../github/github-app.js";
 import { createMcpHttpServer } from "../mcp/server.js";
 import { loadConfig } from "./config.js";
 
@@ -24,11 +25,28 @@ const verifier = new CloudflareAccessVerifier(
 );
 const serviceAuthenticator = new Authenticator(verifier, store, "service");
 const browserAuthenticator = new Authenticator(verifier, store, "browser");
-const service = new PlanService(store, undefined, {
-  maxAssetBytes: config.maxAssetBytes,
-  maxSourceBytes: config.maxAssetSourceBytes,
-  maxOwnerStorageBytes: config.maxOwnerAssetStorageBytes,
-});
+const github =
+  config.github === undefined
+    ? undefined
+    : new GitHubConnection(
+        config.github.installations,
+        new GitHubAppReader(
+          config.github.appId,
+          config.github.privateKey,
+          config.github.apiUrl,
+        ),
+      );
+const service = new PlanService(
+  store,
+  undefined,
+  {
+    maxAssetBytes: config.maxAssetBytes,
+    maxSourceBytes: config.maxAssetSourceBytes,
+    maxOwnerStorageBytes: config.maxOwnerAssetStorageBytes,
+  },
+  github,
+  config.publicBaseUrl,
+);
 const server = createMcpHttpServer(service, serviceAuthenticator, {
   bodyLimitBytes: config.requestBodyLimitBytes,
   browserAuthenticator,

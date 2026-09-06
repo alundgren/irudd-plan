@@ -21,7 +21,13 @@ export function AssetView({
   feedbackCount,
   onAddFeedback,
 }: AssetViewProps) {
-  const source = `/api/plans/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`;
+  const publicRoute = window.location.pathname.match(
+    /^\/public\/plans\/([^/]+)\/([^/]+)/,
+  );
+  const source =
+    publicRoute?.[1] === undefined
+      ? `/api/plans/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`
+      : `/public/plans/${publicRoute[1]}/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`;
   const isolated =
     asset.mediaType === "text/html" || asset.mediaType === "image/svg+xml";
   const [document, setDocument] = useState<string | undefined>(undefined);

@@ -11,6 +11,8 @@ The URL identifies current content, not a historical revision:
 ```text
 /plans/{planId}
 /plans/{planId}/items/{itemId}
+/public/plans/{ownerId}/{planId}
+/public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
 A direct item URL centers that card. The overview button returns to the epic card, and related-item buttons move between explicitly related work items. Selecting another card changes the stable URL without reloading the application.
@@ -27,13 +29,19 @@ Existing cards retain their stable React Flow node IDs. A refresh does not run a
 
 The status badge shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
+A second status badge says `Private` or `Published`. The signed-in plan list also
+shows whether the repository still needs verification or cannot be published
+because it is private. Published routes omit the private plan list and return to
+the published overview. Publication remains an explicit authenticated MCP action,
+not a browser control.
+
 ## Local feedback
 
 Each text section and visual reference has a small feedback control outside the plan content. Selecting text alone does nothing. The reader can use the control to save the selected excerpt, or the complete section when nothing is selected. A separate mode adds a numbered pin to a blank canvas location.
 
 The pending-feedback panel edits and removes browser-local notes, then copies described notes as one self-contained MCP revision prompt. It records the plan, work item and section or asset digest, canvas location, original reference and observed internal revision. Copying the prompt is not submission, approval or agreement. The application never sends feedback text to the server.
 
-Feedback storage is partitioned by an opaque scope derived from the authenticated application owner and by plan ID. A different private owner cannot see the first owner's pending notes in the same browser profile. Public views can use a separate browser-local scope when anonymous reading is implemented.
+Feedback storage is partitioned by an opaque scope derived from the authenticated application owner and by plan ID. A different private owner cannot see the first owner's pending notes in the same browser profile. Public views use a separate browser-local scope from the authenticated owner view.
 
 Live revisions retain pending notes. The panel compares their saved section content or asset digest with the current plan and labels changed or missing targets without moving feedback to new content. When this happens, the panel locally records whether preserving the original reference helped or got in the way. Storage and clipboard failures keep the current draft in memory and show a selectable prompt for manual copy.
 

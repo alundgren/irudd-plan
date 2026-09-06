@@ -10,6 +10,7 @@ import type { CredentialMapping } from "../src/database/store.js";
 import { PlanStore } from "../src/database/store.js";
 import { PlanService } from "../src/domain/plan-service.js";
 import { createMcpHttpServer } from "../src/mcp/server.js";
+import type { GitHubConnection } from "../src/github/github-app.js";
 
 export const issuer = "https://example.cloudflareaccess.com";
 export const mappings: ReadonlyArray<CredentialMapping> = [
@@ -68,6 +69,7 @@ export async function startTestServer(
   filename?: string,
   port = 0,
   initialize?: (service: PlanService) => Promise<void>,
+  github?: GitHubConnection,
 ) {
   const store = await createTestStore(filename);
   const expiredTokens = new Set(["expired"]);
@@ -82,7 +84,13 @@ export async function startTestServer(
     ]),
     expiredTokens,
   );
-  const service = new PlanService(store);
+  const service = new PlanService(
+    store,
+    undefined,
+    undefined,
+    github,
+    "https://plans.example",
+  );
   const server = createMcpHttpServer(
     service,
     new Authenticator(verifier, store, "service"),

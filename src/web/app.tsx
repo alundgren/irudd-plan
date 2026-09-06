@@ -27,6 +27,7 @@ export function App() {
   const [listError, setListError] = useState<string | undefined>(undefined);
   const { document, error, connection, changedSections, retry } = useLivePlan(
     route.planId,
+    route.publicOwnerId,
   );
 
   const loadPlans = useCallback(async () => {
@@ -52,12 +53,12 @@ export function App() {
       if (route.planId === undefined) return;
       const path =
         itemId === undefined
-          ? `/plans/${encodeURIComponent(route.planId)}`
-          : `/plans/${encodeURIComponent(route.planId)}/items/${encodeURIComponent(itemId)}`;
+          ? planPath(route)
+          : `${planPath(route)}/items/${encodeURIComponent(itemId)}`;
       window.history.pushState({}, "", path);
       setRoute(readRoute());
     },
-    [route.planId],
+    [route],
   );
 
   if (route.planId === undefined) {
@@ -78,8 +79,15 @@ export function App() {
       document={document}
       connection={connection}
       changedSections={changedSections}
+      isPublic={route.publicOwnerId !== undefined}
+      publicationStatus={accessLabel(document.access)}
       {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
       onSelect={navigate}
+      onShowPlans={() =>
+        window.location.assign(
+          route.publicOwnerId === undefined ? "/" : planPath(route),
+        )
+      }
     />
   );
 }
@@ -88,14 +96,20 @@ function PlanWorkspace({
   document,
   connection,
   changedSections,
+  isPublic,
+  publicationStatus,
   itemId,
   onSelect,
+  onShowPlans,
 }: {
   readonly document: PlanDocument;
   readonly connection: ConnectionState;
   readonly changedSections: ReadonlySet<string>;
+  readonly isPublic: boolean;
+  readonly publicationStatus: string;
   readonly itemId?: string;
   readonly onSelect: (itemId?: string) => void;
+  readonly onShowPlans: () => void;
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [pinningCanvas, setPinningCanvas] = useState(false);
@@ -125,8 +139,10 @@ function PlanWorkspace({
         plan={document.plan}
         version={document.version}
         connection={connection}
+        isPublic={isPublic}
+        publicationStatus={publicationStatus}
         feedbackCount={feedbackState.items.length}
-        onShowPlans={() => window.location.assign("/")}
+        onShowPlans={onShowPlans}
         onOpenFeedback={() => setFeedbackOpen(true)}
       />
       {selectionDeleted ? (
@@ -219,7 +235,9 @@ function PlanList({
                 {plan.repository.owner}/{plan.repository.name}
               </span>
               <h2>{plan.epicGoal}</h2>
-              <span>Revision {plan.version}</span>
+              <span>
+                Revision {plan.version} · {publicationLabel(plan)}
+              </span>
             </a>
           ))}
         </div>
@@ -228,10 +246,25 @@ function PlanList({
   );
 }
 
+function publicationLabel(plan: PlanListEntry): string {
+  return accessLabel(plan.access);
+}
+
+function accessLabel(access: PlanListEntry["access"]): string {
+  if (access.published) return "Published";
+  if (!access.repositoryVerified) return "Private · repository unverified";
+  if (access.repositoryVisibility === "private") {
+    return "Private repository";
+  }
+  return "Private";
+}
+
 function ReviewHeader({
   plan,
   version,
   connection,
+  isPublic,
+  publicationStatus,
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
@@ -239,6 +272,8 @@ function ReviewHeader({
   readonly plan: Plan;
   readonly version: number;
   readonly connection: ConnectionState;
+  readonly isPublic: boolean;
+  readonly publicationStatus: string;
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
@@ -246,7 +281,8 @@ function ReviewHeader({
   return (
     <header className="review-header">
       <Button variant="ghost" size="sm" onClick={onShowPlans}>
-        <ListTree aria-hidden="true" size={16} /> Plans
+        <ListTree aria-hidden="true" size={16} />
+        {isPublic ? "Overview" : "Plans"}
       </Button>
       <div>
         <p className="eyebrow">
@@ -263,6 +299,7 @@ function ReviewHeader({
           )}
           {connection === "live" ? `Live · r${version}` : connection}
         </Badge>
+        <Badge>{publicationStatus}</Badge>
         <Button
           variant="outline"
           size="sm"
@@ -302,7 +339,25 @@ function UnavailableState({
   );
 }
 
-function readRoute(): { readonly planId?: string; readonly itemId?: string } {
+interface Route {
+  readonly planId?: string;
+  readonly itemId?: string;
+  readonly publicOwnerId?: string;
+}
+
+function readRoute(): Route {
+  const publicMatch = window.location.pathname.match(
+    /^\/public\/plans\/([^/]+)\/([^/]+)(?:\/items\/([^/]+))?$/,
+  );
+  if (publicMatch?.[1] !== undefined && publicMatch[2] !== undefined) {
+    return {
+      publicOwnerId: decodeSegment(publicMatch[1]),
+      planId: decodeSegment(publicMatch[2]),
+      ...(publicMatch[3] === undefined
+        ? {}
+        : { itemId: decodeSegment(publicMatch[3]) }),
+    };
+  }
   const match = window.location.pathname.match(
     /^\/plans\/([^/]+)(?:\/items\/([^/]+))?$/,
   );
@@ -310,6 +365,13 @@ function readRoute(): { readonly planId?: string; readonly itemId?: string } {
     ...(match?.[1] === undefined ? {} : { planId: decodeSegment(match[1]) }),
     ...(match?.[2] === undefined ? {} : { itemId: decodeSegment(match[2]) }),
   };
+}
+
+function planPath(route: Route): string {
+  const planId = encodeURIComponent(route.planId ?? "");
+  return route.publicOwnerId === undefined
+    ? `/plans/${planId}`
+    : `/public/plans/${encodeURIComponent(route.publicOwnerId)}/${planId}`;
 }
 
 function decodeSegment(value: string): string {

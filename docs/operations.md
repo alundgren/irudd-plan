@@ -191,6 +191,14 @@ when making the Docker env file. Set HOST=0.0.0.0 and DATABASE_PATH=/data/irudd-
 inside the container. Encode newlines in GITHUB_APP_PRIVATE_KEY as literal `\n`;
 the service restores them. Keep the file outside the checkout and mode 0600.
 
+A systemd `EnvironmentFile` uses different quoting rules. Wrap the complete
+private-key value in single quotes while keeping its newlines encoded as literal
+`\n`, as shown in `.env.example`. Without those quotes, systemd consumes the
+backslashes and passes an invalid one-line key to the service. After changing a
+systemd environment file, restart the process that reads it and replace any
+existing application container; a running container keeps its original
+environment.
+
 Route the chosen hostname through cloudflared to `http://127.0.0.1:3000` when
 cloudflared runs on the host. For a containerized tunnel, use a private Docker
 network and the service container's port instead. Do not publish an unauthenticated

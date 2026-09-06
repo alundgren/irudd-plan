@@ -34,3 +34,10 @@ installation tokens to verify the canonical repository ID and visibility before
 it accepts work links. A separate MCP action publishes verified public-repository
 plans. Published reads resolve the current revision through `/public/*`; private
 and unpublished records still require Cloudflare Access.
+
+`PlanRetention` checks persisted GitHub associations through the same read-only
+GitHub connection used for attachment. `RetentionStore` selects due plans and
+commits retention decisions against a saved mutation counter. Plan writes,
+repository updates and attachments advance that counter, preventing deletion
+based on an outdated verification. Final cleanup and deleted-ID reservation
+share one SQLite transaction. The server resumes due batches after restart.

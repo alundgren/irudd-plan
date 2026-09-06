@@ -139,6 +139,7 @@ export class PlanService {
         resourceUri: itemResourceUri(stored.plan.planId, item.id),
       })),
       internalRevision: stored.version,
+      retention: stored.retention,
     };
   }
 
@@ -182,6 +183,7 @@ export class PlanService {
         .filter((context) => !includedContextIds.has(context.id))
         .map((context) => context.id),
       internalRevision: stored.version,
+      retention: stored.retention,
     };
   }
 
@@ -216,6 +218,7 @@ export class PlanService {
       contexts,
       assets,
       internalRevision: stored.version,
+      retention: stored.retention,
     };
   }
 
@@ -280,6 +283,9 @@ export class PlanService {
       url: observation.url,
       state: observation.state,
       lastObservedAt: observation.observedAt,
+      ...(observation.closedAt === undefined
+        ? {}
+        : { closedAt: observation.closedAt }),
     });
     return {
       planId: request.planId,
@@ -345,6 +351,7 @@ export class PlanService {
       humanUrl,
       resourceUri,
       githubText: `${shortGoal}\n\nPlan: ${humanUrl}\nMCP: ${resourceUri}`,
+      retention: stored.retention,
       publicationStatus: stored.access.published ? "public" : "private",
       agentInstruction:
         "Use the MCP reference for implementation context. Keep personal and session details out unless the plan explicitly requests them.",

@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Plan } from "../contract/plan.js";
-import { fetchPlan, type PlanDocument } from "./client-api.js";
+import {
+  fetchPlan,
+  PlanUnavailableError,
+  type PlanDocument,
+} from "./client-api.js";
 import { collectRequiredContent } from "./required-content.js";
 
 export type ConnectionState = "connecting" | "live" | "reconnecting";
-type LoadResult = "applied" | "failed" | "superseded";
+type LoadResult = "applied" | "failed" | "superseded" | "unavailable";
 
 export function useLivePlan(
   planId: string | undefined,
@@ -22,10 +26,13 @@ export function useLivePlan(
   const latestVersion = useRef(0);
   const requestSequence = useRef(0);
   const activeRequest = useRef<AbortController | undefined>(undefined);
+  const unavailable = useRef(false);
+  const activeSource = useRef<EventSource | undefined>(undefined);
   const changeTimer = useRef<number | undefined>(undefined);
 
   const load = useCallback(
     async (id: string, minimumVersion = 0): Promise<LoadResult> => {
+      if (unavailable.current) return "unavailable";
       const sequence = requestSequence.current + 1;
       requestSequence.current = sequence;
       activeRequest.current?.abort();
@@ -59,6 +66,12 @@ export function useLivePlan(
           return "superseded";
         }
         setError(errorMessage(caught));
+        if (caught instanceof PlanUnavailableError) {
+          unavailable.current = true;
+          activeSource.current?.close();
+          setDocument(undefined);
+          return "unavailable";
+        }
         return "failed";
       }
     },
@@ -66,6 +79,7 @@ export function useLivePlan(
   );
 
   useEffect(() => {
+    unavailable.current = false;
     previousPlan.current = undefined;
     latestVersion.current = 0;
     setDocument(undefined);
@@ -75,8 +89,11 @@ export function useLivePlan(
   }, [load, planId]);
 
   useEffect(() => {
-    const offline = (): void => setConnection("reconnecting");
+    const offline = (): void => {
+      if (!unavailable.current) setConnection("reconnecting");
+    };
     const online = (): void => {
+      if (unavailable.current) return;
       setConnection("connecting");
       setConnectionEpoch((value) => value + 1);
     };
@@ -89,29 +106,48 @@ export function useLivePlan(
   }, []);
 
   useEffect(() => {
-    if (planId === undefined) return;
+    if (planId === undefined || unavailable.current) return;
     const eventsPath =
       publicOwnerId === undefined
         ? `/api/plans/${encodeURIComponent(planId)}/events`
         : `/public/plans/${encodeURIComponent(publicOwnerId)}/${encodeURIComponent(planId)}/events`;
     const source = new EventSource(eventsPath);
+    activeSource.current = source;
     setConnection("connecting");
-    const synchronize = async (event: Event): Promise<void> => {
-      const result = await load(planId, eventVersion(event));
-      if (result === "applied") setConnection("live");
+    const synchronize = async (event?: Event): Promise<void> => {
+      const result = await load(
+        planId,
+        event === undefined ? 0 : eventVersion(event),
+      );
+      if (result === "unavailable") source.close();
+      if (result === "applied" && event !== undefined) setConnection("live");
       if (result === "failed") setConnection("reconnecting");
     };
     source.addEventListener("ready", (event) => void synchronize(event));
     source.addEventListener("plan-update", (event) => void synchronize(event));
-    source.onerror = () => setConnection("reconnecting");
-    return () => source.close();
+    source.onerror = () => {
+      if (!unavailable.current) setConnection("reconnecting");
+      void synchronize();
+    };
+    return () => {
+      source.close();
+      if (activeSource.current === source) activeSource.current = undefined;
+    };
   }, [connectionEpoch, load, planId, publicOwnerId]);
 
   const retry = useCallback(async (): Promise<void> => {
     if (planId === undefined) return;
+    unavailable.current = false;
     setConnection("connecting");
     const result = await load(planId);
-    setConnection(result === "applied" ? "live" : "reconnecting");
+    if (
+      result === "applied" &&
+      (activeSource.current === undefined ||
+        activeSource.current.readyState === EventSource.CLOSED)
+    )
+      setConnectionEpoch((value) => value + 1);
+    if (result !== "unavailable")
+      setConnection(result === "applied" ? "live" : "reconnecting");
   }, [load, planId]);
 
   return { document, error, connection, changedSections, retry };

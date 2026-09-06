@@ -61,6 +61,22 @@ export const plans = sqliteTable(
       .default(false),
     repositoryVerifiedAt: text("repository_verified_at"),
     publishedAt: text("published_at"),
+    retentionGeneration: integer("retention_generation").notNull().default(0),
+    retentionStatus: text("retention_status", {
+      enum: ["scheduled", "retained", "unknown"],
+    })
+      .notNull()
+      .default("scheduled"),
+    retentionReason: text("retention_reason"),
+    retentionCheckedAt: text("retention_checked_at"),
+    retentionNextCheckAt: text("retention_next_check_at")
+      .notNull()
+      .default("1970-01-01T00:00:00.000Z"),
+    inactiveSince: text("inactive_since"),
+    expiresAt: text("expires_at"),
+    everAttached: integer("ever_attached", { mode: "boolean" })
+      .notNull()
+      .default(false),
     contractVersion: text("contract_version").notNull().default("v1"),
     epicGoal: text("epic_goal").notNull(),
     currentVersion: integer("current_version").notNull(),
@@ -73,8 +89,21 @@ export const plans = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.id] }),
+    index("plans_retention_due_idx").on(table.retentionNextCheckAt),
     index("plans_owner_updated_idx").on(table.ownerId, table.updatedAt),
   ],
+);
+
+export const deletedPlans = sqliteTable(
+  "deleted_plans",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => owners.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull(),
+    deletedAt: text("deleted_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.ownerId, table.planId] })],
 );
 
 export const githubWorkLinks = sqliteTable(
@@ -90,6 +119,7 @@ export const githubWorkLinks = sqliteTable(
     number: integer("number").notNull(),
     url: text("url").notNull(),
     state: text("state").notNull(),
+    closedAt: text("closed_at"),
     lastObservedAt: text("last_observed_at").notNull(),
   },
   (table) => [
@@ -276,6 +306,7 @@ export const schema = {
   assetObjects,
   assets,
   decisions,
+  deletedPlans,
   githubWorkLinks,
   operations,
   ownerCredentials,

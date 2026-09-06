@@ -41,17 +41,18 @@ summary {
 }
 
 .review-app {
+  display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
 .review-header {
-  position: absolute;
+  position: relative;
+  flex: none;
+  margin: 16px;
   z-index: 40;
-  top: 16px;
-  left: 16px;
-  right: 16px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -460,13 +461,13 @@ summary {
 }
 
 .feedback-panel {
-  position: fixed;
+  position: absolute;
   z-index: 60;
-  top: 98px;
+  top: 16px;
   right: 16px;
   overflow: auto;
   width: min(390px, calc(100vw - 32px));
-  max-height: calc(100vh - 114px);
+  max-height: calc(100% - 32px);
   padding: 18px;
   border: 1px solid #d9e0e2;
   border-radius: 12px;
@@ -668,10 +669,10 @@ summary {
 }
 
 .deleted-notice {
-  position: absolute;
-  z-index: 45;
-  top: 98px;
-  left: 50%;
+  flex: none;
+  align-self: center;
+  max-width: calc(100% - 24px);
+  margin: 0 12px 8px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -681,7 +682,6 @@ summary {
   color: #7c3219;
   background: #fff7ed;
   box-shadow: 0 8px 20px rgb(44 25 12 / 10%);
-  transform: translateX(-50%);
 }
 
 .plan-list-page {
@@ -807,9 +807,7 @@ summary {
 
 @media (max-width: 640px) {
   .review-header {
-    top: 8px;
-    left: 8px;
-    right: 8px;
+    margin: 8px;
     grid-template-columns: auto minmax(0, 1fr);
     min-height: 58px;
   }
@@ -859,16 +857,11 @@ summary {
     padding-left: 18px;
   }
 
-  .deleted-notice {
-    top: 100px;
-    width: calc(100vw - 24px);
-  }
-
   .feedback-panel {
-    top: 76px;
+    top: 8px;
     right: 8px;
     width: calc(100vw - 16px);
-    max-height: calc(100vh - 84px);
+    max-height: calc(100% - 16px);
   }
 
   .plan-list-page {
@@ -889,4 +882,21 @@ summary {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.retention-notice {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+.retention-notice p {
+  margin: 0;
+}
+.retention-notice small {
+  display: block;
+}
+
+.review-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }

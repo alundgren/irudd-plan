@@ -11,7 +11,7 @@ import {
   type AssetLimits,
   type PreparedAsset,
 } from "../domain/assets.js";
-import { assetObjects } from "./schema.js";
+import { assetObjects, deletedPlans } from "./schema.js";
 
 export interface StoredAsset {
   readonly descriptor: Plan["assets"][number];
@@ -34,6 +34,20 @@ export class AssetStore {
     return this.run((db) =>
       db.transaction((tx) =>
         Effect.gen(function* () {
+          const deleted = yield* tx
+            .select()
+            .from(deletedPlans)
+            .where(
+              and(
+                eq(deletedPlans.ownerId, ownerId),
+                eq(deletedPlans.planId, asset.planId),
+              ),
+            )
+            .limit(1);
+          if (deleted.length > 0)
+            return yield* Effect.fail(
+              new PlanError("PLAN_NOT_FOUND", "Plan is unavailable"),
+            );
           const existingRows = yield* tx
             .select()
             .from(assetObjects)

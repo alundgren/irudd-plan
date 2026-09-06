@@ -13,6 +13,7 @@ import {
   type PlanDocument,
   type PlanListEntry,
 } from "./client-api.js";
+import { RetentionNotice } from "./retention-notice.js";
 import { FeedbackPanel } from "./feedback-panel.js";
 import { type FeedbackTarget, newFeedbackItem } from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
@@ -141,6 +142,9 @@ function PlanWorkspace({
         connection={connection}
         isPublic={isPublic}
         publicationStatus={publicationStatus}
+        {...(isPublic || document.retention === undefined
+          ? {}
+          : { retention: document.retention })}
         feedbackCount={feedbackState.items.length}
         onShowPlans={onShowPlans}
         onOpenFeedback={() => setFeedbackOpen(true)}
@@ -148,39 +152,41 @@ function PlanWorkspace({
       {selectionDeleted ? (
         <DeletedNotice onOpenOverview={() => onSelect()} />
       ) : null}
-      <PlanCanvas
-        plan={document.plan}
-        {...(selectionDeleted || itemId === undefined
-          ? {}
-          : { selectedItemId: itemId })}
-        changedSections={changedSections}
-        feedbackItems={feedbackState.items}
-        pinningCanvas={pinningCanvas}
-        onSelect={onSelect}
-        onAddFeedback={addFeedback}
-        onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
-        onOpenFeedback={() => setFeedbackOpen(true)}
-      />
-      {feedbackOpen ? (
-        <FeedbackPanel
+      <div className="review-content">
+        <PlanCanvas
           plan={document.plan}
-          version={document.version}
-          items={feedbackState.items}
-          {...(storageError === undefined ? {} : { storageError })}
-          pinningCanvas={pinningCanvas}
-          {...(feedbackState.trialAssessment === undefined
+          {...(selectionDeleted || itemId === undefined
             ? {}
-            : { trialAssessment: feedbackState.trialAssessment })}
-          onClose={() => {
-            setFeedbackOpen(false);
-            setPinningCanvas(false);
-          }}
-          onStartCanvasPin={() => setPinningCanvas((value) => !value)}
-          onUpdate={update}
-          onRemove={remove}
-          onAssessTrial={assessTrial}
+            : { selectedItemId: itemId })}
+          changedSections={changedSections}
+          feedbackItems={feedbackState.items}
+          pinningCanvas={pinningCanvas}
+          onSelect={onSelect}
+          onAddFeedback={addFeedback}
+          onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
+          onOpenFeedback={() => setFeedbackOpen(true)}
         />
-      ) : null}
+        {feedbackOpen ? (
+          <FeedbackPanel
+            plan={document.plan}
+            version={document.version}
+            items={feedbackState.items}
+            {...(storageError === undefined ? {} : { storageError })}
+            pinningCanvas={pinningCanvas}
+            {...(feedbackState.trialAssessment === undefined
+              ? {}
+              : { trialAssessment: feedbackState.trialAssessment })}
+            onClose={() => {
+              setFeedbackOpen(false);
+              setPinningCanvas(false);
+            }}
+            onStartCanvasPin={() => setPinningCanvas((value) => !value)}
+            onUpdate={update}
+            onRemove={remove}
+            onAssessTrial={assessTrial}
+          />
+        ) : null}
+      </div>
     </main>
   );
 }
@@ -235,6 +241,9 @@ function PlanList({
                 {plan.repository.owner}/{plan.repository.name}
               </span>
               <h2>{plan.epicGoal}</h2>
+              {plan.retention !== undefined ? (
+                <RetentionNotice retention={plan.retention} />
+              ) : null}
               <span>
                 Revision {plan.version} · {publicationLabel(plan)}
               </span>
@@ -265,6 +274,7 @@ function ReviewHeader({
   connection,
   isPublic,
   publicationStatus,
+  retention,
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
@@ -274,6 +284,7 @@ function ReviewHeader({
   readonly connection: ConnectionState;
   readonly isPublic: boolean;
   readonly publicationStatus: string;
+  readonly retention?: PlanDocument["retention"];
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
@@ -310,6 +321,9 @@ function ReviewHeader({
           Feedback{feedbackCount === 0 ? "" : ` ${feedbackCount}`}
         </Button>
       </div>
+      {retention === undefined ? null : (
+        <RetentionNotice retention={retention} />
+      )}
     </header>
   );
 }

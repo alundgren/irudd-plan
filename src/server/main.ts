@@ -5,6 +5,11 @@ import {
   Authenticator,
   CloudflareAccessVerifier,
 } from "../auth/authentication.js";
+import { RetentionStore } from "../database/retention-store.js";
+import {
+  PlanRetention,
+  startRetentionWorker,
+} from "../domain/plan-retention.js";
 import { PlanStore } from "../database/store.js";
 import { PlanService } from "../domain/plan-service.js";
 import { GitHubAppReader, GitHubConnection } from "../github/github-app.js";
@@ -59,10 +64,25 @@ server.listen(config.port, config.host, () => {
   console.log(`irudd-plan listening on http://${config.host}:${config.port}`);
 });
 
+const stopRetention = startRetentionWorker(
+  new PlanRetention(
+    new RetentionStore(config.databasePath),
+    github,
+    undefined,
+    service.updates,
+  ),
+  (error) =>
+    console.error(
+      "Retention batch failed; pending work will be retried",
+      error,
+    ),
+);
+
 let stopping = false;
 const shutdown = (signal: string): void => {
   if (stopping) return;
   stopping = true;
+  stopRetention();
   ready = false;
   const timer = setTimeout(() => process.exit(1), 10_000).unref();
   server.close((error) => {

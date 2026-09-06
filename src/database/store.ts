@@ -4,6 +4,10 @@ import { migrate } from "drizzle-orm/effect-sqlite-node/migrator";
 import * as Effect from "effect/Effect";
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 
+import {
+  retentionStatus,
+  type RetentionStatus,
+} from "../domain/retention-status.js";
 import { PlanError } from "../contract/errors.js";
 import type { Plan, WritePlanRequest } from "../contract/plan.js";
 import {
@@ -17,6 +21,7 @@ import {
   acceptanceCriteria,
   assets,
   decisions,
+  deletedPlans,
   operations,
   ownerCredentials,
   owners,
@@ -51,6 +56,7 @@ export interface StoredPlan {
   readonly plan: Plan;
   readonly version: number;
   readonly access: PlanAccess;
+  readonly retention: RetentionStatus;
 }
 
 export interface PlanAccess {
@@ -62,6 +68,7 @@ export interface PlanAccess {
 }
 
 export interface ListedPlan {
+  readonly retention: RetentionStatus;
   readonly planId: string;
   readonly epicGoal: string;
   readonly repository: {
@@ -89,6 +96,7 @@ export class PlanStore {
   constructor(
     private readonly filename: string,
     private readonly migrationsFolder: string,
+    private readonly now: () => Date = () => new Date(),
   ) {
     this.assetStore = new AssetStore(filename);
     this.githubStore = new GitHubStore(filename);
@@ -182,6 +190,7 @@ export class PlanStore {
       throw new PlanError("REQUEST_INVALID", "operationId cannot be empty");
     }
     validatePlan(request.plan);
+    const createdAt = this.now().toISOString();
     const requestDigest = digest(request);
     const contentJson = canonicalJson(request.plan);
     const planDigest = digest(request.plan);
@@ -189,6 +198,20 @@ export class PlanStore {
     return this.run((db) =>
       db.transaction((tx) =>
         Effect.gen(function* () {
+          const deleted = yield* tx
+            .select()
+            .from(deletedPlans)
+            .where(
+              and(
+                eq(deletedPlans.ownerId, ownerId),
+                eq(deletedPlans.planId, request.plan.planId),
+              ),
+            )
+            .limit(1);
+          if (deleted.length > 0)
+            return yield* Effect.fail(
+              new PlanError("PLAN_NOT_FOUND", "Plan is unavailable"),
+            );
           const previousOperations = yield* tx
             .select()
             .from(operations)
@@ -272,6 +295,7 @@ export class PlanStore {
           if (existing === undefined) {
             yield* tx.insert(plans).values({
               ownerId,
+              createdAt,
               id: request.plan.planId,
               repositoryProvider: request.plan.repository.provider,
               repositoryOwner: request.plan.repository.owner,
@@ -293,6 +317,7 @@ export class PlanStore {
                       repositoryName: request.plan.repository.name,
                     }),
                 currentVersion: version,
+                retentionGeneration: sql`${plans.retentionGeneration} + 1`,
                 updatedAt: sql`CURRENT_TIMESTAMP`,
               })
               .where(
@@ -451,6 +476,16 @@ export class PlanStore {
       Effect.gen(function* () {
         const rows = yield* db
           .select({
+            retention: {
+              createdAt: plans.createdAt,
+              everAttached: plans.everAttached,
+              retentionStatus: plans.retentionStatus,
+              retentionReason: plans.retentionReason,
+              retentionCheckedAt: plans.retentionCheckedAt,
+              retentionNextCheckAt: plans.retentionNextCheckAt,
+              inactiveSince: plans.inactiveSince,
+              expiresAt: plans.expiresAt,
+            },
             version: plans.currentVersion,
             contentJson: planRevisions.contentJson,
             repositoryVerified: plans.repositoryVerified,
@@ -483,6 +518,7 @@ export class PlanStore {
             },
           },
           version: current.version,
+          retention: retentionStatus(current.retention),
           access: {
             repositoryVerified: current.repositoryVerified,
             ...(current.repositoryId === null
@@ -513,6 +549,7 @@ export class PlanStore {
           .orderBy(plans.id);
         return rows.map((row) => ({
           planId: row.id,
+          retention: retentionStatus(row),
           epicGoal: row.epicGoal,
           repository: {
             provider: row.repositoryProvider,

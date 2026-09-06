@@ -50,3 +50,14 @@ Live revisions retain pending notes. The panel compares their saved section cont
 Plan text uses a small display format: paragraphs separated by blank lines, lines beginning with `-` or `*` as lists, and `#` through `###` as small headings. The renderer creates React text nodes and never interprets plan text as HTML.
 
 Raster images are owner-authenticated reads. Uploaded SVG and HTML never execute in the parent document. SVG uses a script-disabled iframe. HTML markup uses a script-disabled iframe, while its scripts run in a hardened SES compartment inside a dedicated Worker. The compartment receives only a small virtual document API for text, dataset, timer, and click updates; it receives no navigation, storage, messaging, or network capability. The Worker response also blocks network connections with Content Security Policy. Upload validation rejects external and relative markup dependencies and JavaScript module imports before storage.
+
+## Retention status
+
+The private plan list and open-plan view distinguish retained open work,
+scheduled expiry and unknown GitHub status in plain text. Scheduled expiry shows
+the UTC date and explains that deleted content is lost. Unknown status includes
+the verification failure reason; completed checks show last and next check
+dates. The header occupies its own row above the canvas so status text does not
+cover plan content on narrow screens. Public views omit these owner details. When a live document becomes
+unavailable, the browser removes its cached document from the view and shows the
+unavailable page at the same URL.

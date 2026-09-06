@@ -124,3 +124,40 @@ build, then exports the resolved Node.js binary. The final Debian image contains
 that binary, the built service, and production dependencies. It runs as an
 unprivileged user, has a readiness health check, and stores no credentials in
 its layers.
+
+## Retention and permanent deletion
+
+The server checks due plans on startup and runs another bounded batch of 20
+plans every minute. Each completed check persists its next daily check date in
+SQLite. A restart picks up pending work without relying on an in-memory queue.
+
+A plan with no attached GitHub work expires 30 days after creation. Reading,
+editing and retrying writes do not renew that period. Attached plans remain
+while any linked issue or PR is open, including draft PRs. Once all links are
+inactive, the expiry date is 30 days after the latest verified closure time.
+Reopening cancels expiry, and the next closure starts a new period.
+
+Missing credentials, inaccessible repositories or work, rate limits, network
+failures, changed GitHub identities and missing closure dates retain content.
+Owners see the reason and last/next check dates. GitHub may return 404 for
+inaccessible private resources, so 404 never proves closure. See
+[GitHub's REST troubleshooting guide](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#404-not-found-for-an-existing-resource).
+
+Before deleting an attached plan, the service repeats verification. A concurrent
+accepted attachment or update invalidates the deletion attempt. SQLite commits
+the deleted-ID record, plan/revision/association cleanup and owned asset-byte
+cleanup together. An interrupted transaction rolls back and is retried. Asset
+objects belong to an exact owner and plan; identical bytes uploaded for another
+plan remain stored separately.
+
+Once deleted, content is lost. v1 provides no backup, archive or recovery.
+Deleted plan IDs stay reserved within their owner, so uncertain retries and old
+URLs cannot resolve to replacement content. Small deleted-ID records and write
+receipts remain for this purpose; they contain no plan or asset content. Old
+public URLs report unavailability without private retention details. The service
+never edits the short goal or any other GitHub issue or PR content.
+
+On upgrade, existing linked plans start with unknown retention status until
+verified. Existing never-attached plans retain their original creation date and
+may therefore be immediately due. Stop old server processes before applying the
+migration; old binaries do not enforce deleted-ID reservations.

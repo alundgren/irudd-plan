@@ -27,6 +27,7 @@ export interface GitHubWorkObservation {
   readonly url: string;
   readonly state: string;
   readonly observedAt: string;
+  readonly closedAt?: string;
 }
 
 export interface GitHubReader {
@@ -164,6 +165,9 @@ export class GitHubAppReader implements GitHubReader {
       url: string(value.html_url),
       state: string(value.state),
       observedAt: new Date().toISOString(),
+      ...(typeof value.closed_at === "string"
+        ? { closedAt: value.closed_at }
+        : {}),
     };
   }
 
@@ -183,6 +187,17 @@ export class GitHubAppReader implements GitHubReader {
     });
     if (response.status === 404) {
       throw new PlanError(notFoundCode, "GitHub content is unavailable");
+    }
+    if (
+      response.status === 429 ||
+      (response.status === 403 &&
+        (response.headers.get("x-ratelimit-remaining") === "0" ||
+          response.headers.has("retry-after")))
+    ) {
+      throw new PlanError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub rate limit prevents verification",
+      );
     }
     if (response.status === 401 || response.status === 403) {
       this.tokenCache.delete(installationId);
@@ -255,7 +270,7 @@ export class GitHubAppReader implements GitHubReader {
 
   private async fetch(url: string, init: RequestInit): Promise<Response> {
     try {
-      return await fetch(url, init);
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
     } catch (error) {
       if (error instanceof PlanError) throw error;
       throw new PlanError(

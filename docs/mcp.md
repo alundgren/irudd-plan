@@ -131,3 +131,16 @@ Then call a tool with the same protocol header plus `Mcp-Method: tools/call` and
 ```
 
 The complete write document is in `examples/plan.json`, and `scripts/mcp-example.ts` runs the create and read sequence.
+
+## Retention results
+
+Owner plan lists, plan documents, overview/item/context packets and GitHub
+references include `retention`. Its `status` is `scheduled`, `retained` for open
+GitHub work, or `unknown` when verification cannot establish inactivity. The
+object includes `reason`, `createdAt`, `checkedAt`, `nextCheckAt`, `inactiveSince`
+and `expiresAt`. Dates use UTC; unavailable dates are null. Expiry never changes
+packet digests or GitHub reference text.
+
+Content is permanently lost after expiry. Deleted plans return `PLAN_NOT_FOUND`,
+packet checks return `unavailable`, and removed assets return `ASSET_UNAVAILABLE`.
+A deleted plan ID cannot be reused, including by a retry of its original write.

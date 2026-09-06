@@ -24,6 +24,7 @@ export interface GitHubWorkLinkInput {
   readonly url: string;
   readonly state: string;
   readonly lastObservedAt: string;
+  readonly closedAt?: string;
 }
 
 type Database = Effect.Success<
@@ -112,6 +113,7 @@ export class GitHubStore {
           yield* tx
             .update(plans)
             .set({
+              retentionGeneration: sql`${plans.retentionGeneration} + 1`,
               repositoryOwner: repository.owner,
               repositoryName: repository.name,
               repositoryId: repository.id,
@@ -153,7 +155,10 @@ export class GitHubStore {
           const publishedAt = row.publishedAt ?? new Date().toISOString();
           yield* tx
             .update(plans)
-            .set({ publishedAt })
+            .set({
+              publishedAt,
+              retentionGeneration: sql`${plans.retentionGeneration} + 1`,
+            })
             .where(and(eq(plans.ownerId, ownerId), eq(plans.id, planId)));
           return publishedAt;
         }),
@@ -209,6 +214,21 @@ export class GitHubStore {
             }
           }
           yield* tx
+            .update(plans)
+            .set({
+              retentionGeneration: sql`${plans.retentionGeneration} + 1`,
+              everAttached: true,
+              retentionStatus: link.state === "open" ? "retained" : "unknown",
+              retentionReason:
+                link.state === "open"
+                  ? "Linked GitHub work is open."
+                  : "Linked work needs a complete GitHub status check.",
+              expiresAt: null,
+              inactiveSince: null,
+              retentionNextCheckAt: "1970-01-01T00:00:00.000Z",
+            })
+            .where(and(eq(plans.ownerId, ownerId), eq(plans.id, planId)));
+          yield* tx
             .insert(githubWorkLinks)
             .values({ ownerId, planId, ...link, itemId: link.itemId ?? null })
             .onConflictDoUpdate({
@@ -225,6 +245,7 @@ export class GitHubStore {
                 url: link.url,
                 state: link.state,
                 lastObservedAt: link.lastObservedAt,
+                closedAt: link.closedAt ?? null,
               },
             });
         }),

@@ -4,25 +4,26 @@
 
 The service reads configuration from environment variables. Keep real values in the deployment secret store, not Git.
 
-| Variable                          | Purpose                                                                         |
-| --------------------------------- | ------------------------------------------------------------------------------- |
-| `DATABASE_PATH`                   | SQLite file. Production defaults to `/data/irudd-plan.db`.                      |
-| `MIGRATIONS_DIR`                  | Generated migration history. The image uses `/app/drizzle`.                     |
-| `HOST`, `PORT`                    | HTTP listener.                                                                  |
-| `REQUEST_BODY_LIMIT_BYTES`        | Maximum JSON-RPC request size. Defaults to 12,000,000 bytes.                    |
-| `MAX_ASSET_BYTES`                 | Maximum decoded rendered asset size. Defaults to 5,000,000 bytes.               |
-| `MAX_ASSET_SOURCE_BYTES`          | Maximum decoded source-file size. Defaults to 2,000,000 bytes.                  |
-| `MAX_OWNER_ASSET_STORAGE_BYTES`   | Maximum stored asset and source bytes per owner. Defaults to 100,000,000 bytes. |
-| `CLIENT_ASSETS_DIR`               | Built browser asset directory. Defaults to `dist/client/assets`.                |
-| `CF_ACCESS_ISSUER`                | Exact Access team issuer, without a trailing slash.                             |
-| `CF_ACCESS_AUDIENCE`              | Access application audience.                                                    |
-| `CF_ACCESS_JWKS_URL`              | Team certificate endpoint. Defaults from the issuer.                            |
-| `OWNER_MAPPINGS_JSON`             | Operator-managed mappings from verified claims to internal owners.              |
-| `PUBLIC_BASE_URL`                 | External HTTPS origin used in stable published links.                           |
-| `GITHUB_APP_ID`                   | Numeric ID of the read-only GitHub App.                                         |
-| `GITHUB_APP_PRIVATE_KEY`          | PEM private key supplied by the deployment secret store.                        |
-| `OWNER_GITHUB_INSTALLATIONS_JSON` | Owner-to-installation and repository allowlist described below.                 |
-| `GITHUB_API_URL`                  | Optional GitHub API origin. Defaults to `https://api.github.com`.               |
+| Variable                          | Purpose                                                                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_PATH`                   | SQLite file. Production defaults to `/data/irudd-plan.db`.                                                              |
+| `MIGRATIONS_DIR`                  | Generated migration history. The image uses `/app/drizzle`.                                                             |
+| `HOST`, `PORT`                    | HTTP listener.                                                                                                          |
+| `REQUEST_BODY_LIMIT_BYTES`        | Maximum JSON-RPC request size. Defaults to 12,000,000 bytes.                                                            |
+| `MAX_ASSET_BYTES`                 | Maximum decoded rendered asset size. Defaults to 5,000,000 bytes.                                                       |
+| `MAX_ASSET_SOURCE_BYTES`          | Maximum decoded source-file size. Defaults to 2,000,000 bytes.                                                          |
+| `MAX_OWNER_ASSET_STORAGE_BYTES`   | Maximum stored asset and source bytes per owner. Defaults to 100,000,000 bytes.                                         |
+| `CLIENT_ASSETS_DIR`               | Built browser asset directory. Defaults to `dist/client/assets`.                                                        |
+| `CF_ACCESS_ISSUER`                | Exact Access team issuer, without a trailing slash.                                                                     |
+| `CF_ACCESS_BROWSER_AUDIENCE`      | Audience of the separate browser Access application; defaults to CF_ACCESS_AUDIENCE for an existing shared application. |
+| `CF_ACCESS_AUDIENCE`              | Access application audience.                                                                                            |
+| `CF_ACCESS_JWKS_URL`              | Team certificate endpoint. Defaults from the issuer.                                                                    |
+| `OWNER_MAPPINGS_JSON`             | Operator-managed mappings from verified claims to internal owners.                                                      |
+| `PUBLIC_BASE_URL`                 | External HTTPS origin used in stable published links.                                                                   |
+| `GITHUB_APP_ID`                   | Numeric ID of the read-only GitHub App.                                                                                 |
+| `GITHUB_APP_PRIVATE_KEY`          | PEM private key supplied by the deployment secret store.                                                                |
+| `OWNER_GITHUB_INSTALLATIONS_JSON` | Owner-to-installation and repository allowlist described below.                                                         |
+| `GITHUB_API_URL`                  | Optional GitHub API origin. Defaults to `https://api.github.com`.                                                       |
 
 A service mapping normally uses the token `common_name`. A browser mapping can use `email` or `sub`. Set `kind` explicitly. Several mappings may point to one owner. MCP accepts only `service` mappings, while browser pages, JSON reads, asset reads, and update subscriptions accept only `browser` mappings.
 
@@ -70,6 +71,11 @@ specific Bypass application for `/public/*`; Cloudflare evaluates the more
 specific path before the hostname default. Do not bypass `/api/*`, `/mcp`, `/`,
 or `/plans/*`.
 
+Set `CF_ACCESS_AUDIENCE` to the MCP application audience and
+`CF_ACCESS_BROWSER_AUDIENCE` to the hostname-default browser application audience.
+The public bypass has no trusted identity. Keep both protected applications on
+the same Access team issuer.
+
 The origin repeats the decision. Anonymous requests can read only a published
 plan's current HTML, JSON document, current referenced assets, and update events
 under `/public/plans/{ownerId}/{planId}/*`. An unpublished or private-repository
@@ -112,10 +118,10 @@ Run it with a persistent volume and an environment file held outside the reposit
 
 ```bash
 docker volume create irudd-plan-data
-docker run --rm -p 3000:3000 \
+docker run -d --name irudd-plan --restart unless-stopped -p 127.0.0.1:3000:3000 \
   --env-file /secure/path/irudd-plan.env \
   -v irudd-plan-data:/data \
-  irudd-plan:local
+  irudd-plan:arm64
 ```
 
 The build and dependency stages use the pinned Vite+ image. Vite+ provisions
@@ -161,3 +167,56 @@ On upgrade, existing linked plans start with unknown retention status until
 verified. Existing never-attached plans retain their original creation date and
 may therefore be immediately due. Stop old server processes before applying the
 migration; old binaries do not enforce deleted-ID reservations.
+
+## Pi commissioning commands
+
+Use a 64-bit Pi OS and build on the Pi, or transfer the ARM64 image from a
+buildx-capable host. Confirm the image before starting it:
+
+```sh
+uname -m
+docker image inspect irudd-plan:arm64 --format '{{.Os}}/{{.Architecture}}'
+```
+
+Expected values are `aarch64` and `linux/arm64`. The named `/data` volume stores
+SQLite records, revisions and asset bytes together. A fresh named volume inherits
+the image directory's UID 65534 ownership. For an existing bind mount, arrange
+writable ownership for UID/GID 65534 before startup. Do not mount an empty
+non-writable host directory and assume the image will repair its permissions.
+
+The environment file for `docker --env-file` uses raw `NAME=value` lines, without
+shell quote wrappers. In particular keep OWNER_MAPPINGS_JSON on one raw JSON
+line. `.env.example` is for shell sourcing and its quote wrappers must be removed
+when making the Docker env file. Set HOST=0.0.0.0 and DATABASE_PATH=/data/irudd-plan.db
+inside the container. Encode newlines in GITHUB_APP_PRIVATE_KEY as literal `\n`;
+the service restores them. Keep the file outside the checkout and mode 0600.
+
+Route the chosen hostname through cloudflared to `http://127.0.0.1:3000` when
+cloudflared runs on the host. For a containerized tunnel, use a private Docker
+network and the service container's port instead. Do not publish an unauthenticated
+origin port on the public network. Cloudflare policy examples are descriptive
+dashboard inputs, not an API payload to upload unchanged. Choose Service Auth
+with Include Service Token for the exact token; use Allow with Include Emails
+for the owner and One-time PIN as the identity provider on the browser app. Use
+Bypass with Include Everyone only on `/public/*`.
+
+[Cloudflare service token documentation](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/)
+describes the Service Auth policy and two client headers. The verified service
+token [application claim](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/application-token/)
+`common_name` is the client ID, not the token's display name. The
+[GitHub App permission guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app)
+explains installation permissions; this service needs only read access.
+
+```sh
+curl --fail http://127.0.0.1:3000/readyz
+docker inspect irudd-plan --format '{{.State.Health.Status}}'
+docker exec irudd-plan sh -c 'test -w /data && test -f /data/irudd-plan.db'
+docker restart irudd-plan
+curl --retry 10 --retry-connrefused --retry-delay 1 --fail http://127.0.0.1:3000/readyz
+```
+
+Run the [MCP/browser smoke commands](smoke-tests.md) and install the
+[Codex skill/configuration](../skills/irudd-plan/references/setup.md). Health
+checks do not prove Cloudflare access, asset retrieval, GitHub permissions or
+Codex behavior. Reserve their observed deployment results for the operator
+trial; no live deployment is certified by these instructions.

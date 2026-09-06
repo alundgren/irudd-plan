@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 export const CONTRACT_VERSION = "v1" as const;
+export const SKILL_VERSION = "v1" as const;
 export const MCP_PROTOCOL_VERSION = "2026-07-28" as const;
 
 const Identifier = Schema.String.check(Schema.isPattern(/\S/));

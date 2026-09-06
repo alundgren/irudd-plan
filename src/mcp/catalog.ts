@@ -2,6 +2,23 @@ import { CONTRACT_VERSION } from "../contract/plan.js";
 
 export const tools = [
   {
+    name: "get_contract",
+    description:
+      "Check the supported plan contract, public skill version, protocol and authenticated owner before working on a plan.",
+    inputSchema: {
+      type: "object",
+      required: ["contractVersion"],
+      properties: { contractVersion: { type: "string" } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_plan",
+    description:
+      "Deliberately retrieve the complete current plan and internalRevision for planning or revision. For implementation use get_work_item instead.",
+    inputSchema: planSchema(),
+  },
+  {
     name: "write_plan",
     description:
       "Atomically create or replace one private plan revision. expectedVersion is null only for creation. Reuse operationId to recover an uncertain response.",
@@ -51,7 +68,7 @@ export const tools = [
   {
     name: "get_github_reference",
     description:
-      "Return a short goal, stable human URL, MCP resource URI, and ready-to-paste GitHub text for a plan or work item.",
+      "Return a short goal, stable human URL, MCP resource URI, ready-to-paste GitHub text and persisted associations for a plan or work item.",
     inputSchema: {
       ...planSchema(),
       properties: {

@@ -15,6 +15,7 @@ export interface ServerConfig {
   readonly clientAssetsDirectory: string;
   readonly accessIssuer: string;
   readonly accessAudience: string;
+  readonly browserAccessAudience: string;
   readonly accessJwksUrl: string;
   readonly credentialMappings: ReadonlyArray<CredentialMapping>;
   readonly publicBaseUrl: string;
@@ -79,6 +80,10 @@ export function loadConfig(environment: NodeJS.ProcessEnv): ServerConfig {
     ),
     accessIssuer,
     accessAudience: required(environment, "CF_ACCESS_AUDIENCE"),
+    browserAccessAudience:
+      environment.CF_ACCESS_BROWSER_AUDIENCE === undefined
+        ? required(environment, "CF_ACCESS_AUDIENCE")
+        : required(environment, "CF_ACCESS_BROWSER_AUDIENCE"),
     accessJwksUrl,
     credentialMappings,
     publicBaseUrl: publicBaseUrl.replace(/\/$/, ""),

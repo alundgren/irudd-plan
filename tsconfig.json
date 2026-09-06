@@ -24,6 +24,7 @@
     "vite.config.ts",
     "vite.client.config.ts",
     "playwright.config.ts",
+    "playwright.smoke.config.ts",
     "drizzle.config.ts"
   ]
 }

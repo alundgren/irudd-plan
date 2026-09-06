@@ -1,3 +1,4 @@
+import { createPrivateKey } from "node:crypto";
 import { createServer } from "node:http";
 
 import { exportPKCS8, generateKeyPair } from "jose";
@@ -95,6 +96,9 @@ describe("GitHub verification and publication", () => {
   it("uses an expiring installation token for GitHub reads", async () => {
     const keyPair = await generateKeyPair("RS256", { extractable: true });
     const privateKey = await exportPKCS8(keyPair.privateKey);
+    const pkcs1PrivateKey = createPrivateKey(privateKey)
+      .export({ format: "pem", type: "pkcs1" })
+      .toString();
     let tokenRequests = 0;
     let repositoryRequests = 0;
     const github = createServer((request, response) => {
@@ -227,8 +231,16 @@ describe("GitHub verification and publication", () => {
       await expect(
         reader.repository(101, "example", "invalid-json"),
       ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
-      expect(tokenRequests).toBe(1);
-      expect(repositoryRequests).toBe(3);
+      const pkcs1Reader = new GitHubAppReader(
+        "1234",
+        pkcs1PrivateKey,
+        `http://127.0.0.1:${address.port}`,
+      );
+      await expect(
+        pkcs1Reader.repository(101, "example", "project"),
+      ).resolves.toMatchObject({ id: "42" });
+      expect(tokenRequests).toBe(2);
+      expect(repositoryRequests).toBe(4);
     } finally {
       await new Promise<void>((resolve, reject) =>
         github.close((error) => (error ? reject(error) : resolve())),

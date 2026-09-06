@@ -21,7 +21,7 @@ The service reads configuration from environment variables. Keep real values in 
 | `OWNER_MAPPINGS_JSON`             | Operator-managed mappings from verified claims to internal owners.                                                      |
 | `PUBLIC_BASE_URL`                 | External HTTPS origin used in stable published links.                                                                   |
 | `GITHUB_APP_ID`                   | Numeric ID of the read-only GitHub App.                                                                                 |
-| `GITHUB_APP_PRIVATE_KEY`          | PEM private key supplied by the deployment secret store.                                                                |
+| `GITHUB_APP_PRIVATE_KEY`          | PKCS#1 or PKCS#8 PEM private key supplied by the deployment secret store.                                               |
 | `OWNER_GITHUB_INSTALLATIONS_JSON` | Owner-to-installation and repository allowlist described below.                                                         |
 | `GITHUB_API_URL`                  | Optional GitHub API origin. Defaults to `https://api.github.com`.                                                       |
 

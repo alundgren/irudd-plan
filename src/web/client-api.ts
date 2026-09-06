@@ -1,6 +1,8 @@
+import type { RetentionStatus } from "../domain/retention-status.js";
 import type { Plan } from "../contract/plan.js";
 
 export interface PlanDocument {
+  readonly retention?: RetentionStatus;
   readonly plan: Plan;
   readonly version: number;
   readonly access: {
@@ -13,6 +15,7 @@ export interface PlanDocument {
 }
 
 export interface PlanListEntry {
+  readonly retention?: RetentionStatus;
   readonly planId: string;
   readonly epicGoal: string;
   readonly repository: { readonly owner: string; readonly name: string };
@@ -43,6 +46,8 @@ export async function fetchPlan(
       ? `/api/plans/${encodeURIComponent(planId)}`
       : `/public/plans/${encodeURIComponent(publicOwnerId)}/${encodeURIComponent(planId)}/document`;
   const response = await fetch(path, signal === undefined ? {} : { signal });
+  if (response.status === 404)
+    throw new PlanUnavailableError("Plan is unavailable");
   if (!response.ok) throw new Error(await responseMessage(response));
   return (await response.json()) as PlanDocument;
 }
@@ -56,3 +61,5 @@ async function responseMessage(response: Response): Promise<string> {
     return `Request failed with status ${response.status}`;
   }
 }
+
+export class PlanUnavailableError extends Error {}

@@ -120,6 +120,7 @@ describe("GitHub verification and publication", () => {
         return;
       }
       if (request.url?.startsWith("/repos/example/")) {
+        expect(request.method).toBe("GET");
         if (request.url === "/repos/example/invalid-json") {
           response.end("{");
           return;
@@ -129,6 +130,12 @@ describe("GitHub verification and publication", () => {
         );
         if (workMatch?.[1] !== undefined && workMatch[2] !== undefined) {
           const workNumber = Number(workMatch[2]);
+          if ([401, 403, 404, 429, 500].includes(workNumber)) {
+            if (workNumber === 403)
+              response.setHeader("x-ratelimit-remaining", "0");
+            response.writeHead(workNumber).end("{}");
+            return;
+          }
           const invalidIds: Record<number, unknown> = {
             1: undefined,
             2: null,
@@ -137,11 +144,14 @@ describe("GitHub verification and publication", () => {
             5: Number.MAX_SAFE_INTEGER + 1,
           };
           const body: Record<string, unknown> = {
-            id: invalidIds[workNumber],
+            id: workNumber >= 6 ? workNumber : invalidIds[workNumber],
             node_id: `node-${workNumber}`,
             number: workNumber,
             html_url: `https://github.com/example/project/${workMatch[1]}/${workNumber}`,
-            state: "open",
+            state: workNumber === 6 ? "closed" : "open",
+            closed_at: workNumber === 6 ? "2026-01-01T00:00:00Z" : null,
+            merged: workNumber === 6,
+            draft: workNumber === 7,
           };
           response.end(JSON.stringify(body));
           return;
@@ -191,6 +201,22 @@ describe("GitHub verification and publication", () => {
             reader.work(101, repository, type, workNumber),
           ).rejects.toMatchObject({ code: "GITHUB_UNAVAILABLE" });
         }
+      }
+      await expect(
+        reader.work(101, repository, "pull_request", 6),
+      ).resolves.toMatchObject({
+        state: "closed",
+        closedAt: "2026-01-01T00:00:00Z",
+      });
+      await expect(
+        reader.work(101, repository, "pull_request", 7),
+      ).resolves.toMatchObject({ state: "open" });
+      for (const status of [403, 404, 429, 500]) {
+        await expect(
+          reader.work(101, repository, "issue", status),
+        ).rejects.toMatchObject({
+          code: status === 404 ? "GITHUB_WORK_NOT_FOUND" : "GITHUB_UNAVAILABLE",
+        });
       }
       await expect(
         reader.repository(500, "example", "project"),

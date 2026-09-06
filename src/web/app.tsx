@@ -13,6 +13,7 @@ import {
   type PlanDocument,
   type PlanListEntry,
 } from "./client-api.js";
+import { RetentionNotice } from "./retention-notice.js";
 import { FeedbackPanel } from "./feedback-panel.js";
 import { type FeedbackTarget, newFeedbackItem } from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
@@ -141,6 +142,9 @@ function PlanWorkspace({
         connection={connection}
         isPublic={isPublic}
         publicationStatus={publicationStatus}
+        {...(isPublic || document.retention === undefined
+          ? {}
+          : { retention: document.retention })}
         feedbackCount={feedbackState.items.length}
         onShowPlans={onShowPlans}
         onOpenFeedback={() => setFeedbackOpen(true)}
@@ -235,6 +239,9 @@ function PlanList({
                 {plan.repository.owner}/{plan.repository.name}
               </span>
               <h2>{plan.epicGoal}</h2>
+              {plan.retention !== undefined ? (
+                <RetentionNotice retention={plan.retention} />
+              ) : null}
               <span>
                 Revision {plan.version} · {publicationLabel(plan)}
               </span>
@@ -265,6 +272,7 @@ function ReviewHeader({
   connection,
   isPublic,
   publicationStatus,
+  retention,
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
@@ -274,6 +282,7 @@ function ReviewHeader({
   readonly connection: ConnectionState;
   readonly isPublic: boolean;
   readonly publicationStatus: string;
+  readonly retention?: PlanDocument["retention"];
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
@@ -310,6 +319,9 @@ function ReviewHeader({
           Feedback{feedbackCount === 0 ? "" : ` ${feedbackCount}`}
         </Button>
       </div>
+      {retention === undefined ? null : (
+        <RetentionNotice retention={retention} />
+      )}
     </header>
   );
 }

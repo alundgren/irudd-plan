@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Plan } from "../contract/plan.js";
-import { fetchPlan, type PlanDocument } from "./client-api.js";
+import {
+  fetchPlan,
+  PlanUnavailableError,
+  type PlanDocument,
+} from "./client-api.js";
 import { collectRequiredContent } from "./required-content.js";
 
 export type ConnectionState = "connecting" | "live" | "reconnecting";
@@ -58,6 +62,7 @@ export function useLivePlan(
         if (sequence !== requestSequence.current || isAbortError(caught)) {
           return "superseded";
         }
+        if (caught instanceof PlanUnavailableError) setDocument(undefined);
         setError(errorMessage(caught));
         return "failed";
       }
@@ -103,7 +108,10 @@ export function useLivePlan(
     };
     source.addEventListener("ready", (event) => void synchronize(event));
     source.addEventListener("plan-update", (event) => void synchronize(event));
-    source.onerror = () => setConnection("reconnecting");
+    source.onerror = () => {
+      setConnection("reconnecting");
+      void load(planId);
+    };
     return () => source.close();
   }, [connectionEpoch, load, planId, publicOwnerId]);
 

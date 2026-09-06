@@ -134,7 +134,9 @@ async function handlePublicRequest(
       response,
       200,
       {
-        ...stored,
+        plan: stored.plan,
+        version: stored.version,
+        access: stored.access,
         feedbackScope: feedbackScope(`public:${route.ownerId}`),
       },
       "public, no-cache",

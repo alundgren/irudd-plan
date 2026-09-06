@@ -41,17 +41,18 @@ summary {
 }
 
 .review-app {
+  display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
 .review-header {
-  position: absolute;
+  position: relative;
+  flex: none;
+  margin: 16px;
   z-index: 40;
-  top: 16px;
-  left: 16px;
-  right: 16px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -807,9 +808,7 @@ summary {
 
 @media (max-width: 640px) {
   .review-header {
-    top: 8px;
-    left: 8px;
-    right: 8px;
+    margin: 8px;
     grid-template-columns: auto minmax(0, 1fr);
     min-height: 58px;
   }
@@ -889,4 +888,20 @@ summary {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.retention-notice {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+.retention-notice p {
+  margin: 0;
+}
+.retention-notice small {
+  display: block;
+}
+
+.review-app > .react-flow {
+  flex: 1;
+  min-height: 0;
 }

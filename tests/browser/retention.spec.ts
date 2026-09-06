@@ -92,3 +92,61 @@ test("stale selection and opened feedback remain below the narrow retention head
   await panel.getByRole("button", { name: /close/i }).click();
   await expect(panel).toHaveCount(0);
 });
+
+for (const publicView of [false, true]) {
+  test(`unavailable ${publicView ? "public" : "owner"} plans stop stream and document retries`, async ({
+    page,
+  }) => {
+    const root = publicView
+      ? "/public/plans/owner-a/browser-plan"
+      : "/plans/browser-plan";
+    const documentPath = publicView
+      ? `${root}/document`
+      : "/api/plans/browser-plan";
+    const eventsPath = publicView
+      ? `${root}/events`
+      : "/api/plans/browser-plan/events";
+    await page.goto(root);
+    await expect(page.locator(".review-app")).toBeVisible();
+    let documents = 0;
+    let streams = 0;
+    await page.route(`**${documentPath}`, (route) => {
+      documents += 1;
+      return route.fulfill({
+        status: 404,
+        json: { error: "Plan is unavailable" },
+      });
+    });
+    await page.route(`**${eventsPath}`, (route) => {
+      streams += 1;
+      return route.fulfill({
+        contentType: "text/event-stream",
+        body: "retry: 100\n\n",
+      });
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(
+      page.getByRole("heading", { name: "Plan unavailable" }),
+    ).toBeVisible();
+    expect(documents).toBeGreaterThan(0);
+    expect(streams).toBeGreaterThan(0);
+    const stopped = { documents, streams };
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("offline"));
+      window.dispatchEvent(new Event("online"));
+    });
+    // Observe several of the server's 100ms reconnect intervals.
+    await page.waitForTimeout(700);
+    expect({ documents, streams }).toEqual(stopped);
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect.poll(() => documents).toBe(stopped.documents + 1);
+    await page.waitForTimeout(300);
+    expect(streams).toBe(stopped.streams);
+    expect(documents).toBe(stopped.documents + 1);
+    await page.unroute(`**${documentPath}`);
+    await page.unroute(`**${eventsPath}`);
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.locator(".review-app")).toBeVisible();
+    await expect(page.getByText(/^Live · r/)).toBeVisible();
+  });
+}

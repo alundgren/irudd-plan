@@ -152,39 +152,41 @@ function PlanWorkspace({
       {selectionDeleted ? (
         <DeletedNotice onOpenOverview={() => onSelect()} />
       ) : null}
-      <PlanCanvas
-        plan={document.plan}
-        {...(selectionDeleted || itemId === undefined
-          ? {}
-          : { selectedItemId: itemId })}
-        changedSections={changedSections}
-        feedbackItems={feedbackState.items}
-        pinningCanvas={pinningCanvas}
-        onSelect={onSelect}
-        onAddFeedback={addFeedback}
-        onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
-        onOpenFeedback={() => setFeedbackOpen(true)}
-      />
-      {feedbackOpen ? (
-        <FeedbackPanel
+      <div className="review-content">
+        <PlanCanvas
           plan={document.plan}
-          version={document.version}
-          items={feedbackState.items}
-          {...(storageError === undefined ? {} : { storageError })}
-          pinningCanvas={pinningCanvas}
-          {...(feedbackState.trialAssessment === undefined
+          {...(selectionDeleted || itemId === undefined
             ? {}
-            : { trialAssessment: feedbackState.trialAssessment })}
-          onClose={() => {
-            setFeedbackOpen(false);
-            setPinningCanvas(false);
-          }}
-          onStartCanvasPin={() => setPinningCanvas((value) => !value)}
-          onUpdate={update}
-          onRemove={remove}
-          onAssessTrial={assessTrial}
+            : { selectedItemId: itemId })}
+          changedSections={changedSections}
+          feedbackItems={feedbackState.items}
+          pinningCanvas={pinningCanvas}
+          onSelect={onSelect}
+          onAddFeedback={addFeedback}
+          onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
+          onOpenFeedback={() => setFeedbackOpen(true)}
         />
-      ) : null}
+        {feedbackOpen ? (
+          <FeedbackPanel
+            plan={document.plan}
+            version={document.version}
+            items={feedbackState.items}
+            {...(storageError === undefined ? {} : { storageError })}
+            pinningCanvas={pinningCanvas}
+            {...(feedbackState.trialAssessment === undefined
+              ? {}
+              : { trialAssessment: feedbackState.trialAssessment })}
+            onClose={() => {
+              setFeedbackOpen(false);
+              setPinningCanvas(false);
+            }}
+            onStartCanvasPin={() => setPinningCanvas((value) => !value)}
+            onUpdate={update}
+            onRemove={remove}
+            onAssessTrial={assessTrial}
+          />
+        ) : null}
+      </div>
     </main>
   );
 }

@@ -64,3 +64,31 @@ test("an expired live plan replaces cached content with the unavailable state", 
   await expect(page.locator(".review-app")).toHaveCount(0);
   expect(page.url()).toContain("/plans/browser-plan");
 });
+
+test("stale selection and opened feedback remain below the narrow retention header", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/plans/browser-plan/items/missing-item");
+  const header = page.locator(".review-header");
+  const notice = page.locator(".deleted-notice");
+  await expect(notice).toContainText("This work item was deleted");
+  const headerBounds = await header.boundingBox();
+  const noticeBounds = await notice.boundingBox();
+  expect(noticeBounds!.y).toBeGreaterThanOrEqual(
+    headerBounds!.y + headerBounds!.height,
+  );
+  await notice.getByRole("button", { name: "Open overview" }).click();
+  await expect(page).toHaveURL(/\/plans\/browser-plan$/);
+  await expect(notice).toHaveCount(0);
+  await page.getByRole("button", { name: /^Feedback/ }).click();
+  const panel = page.locator(".feedback-panel");
+  await expect(panel).toBeVisible();
+  const panelBounds = await panel.boundingBox();
+  expect(panelBounds!.y).toBeGreaterThanOrEqual(
+    headerBounds!.y + headerBounds!.height,
+  );
+  expect(panelBounds!.y + panelBounds!.height).toBeLessThanOrEqual(844);
+  await panel.getByRole("button", { name: /close/i }).click();
+  await expect(panel).toHaveCount(0);
+});

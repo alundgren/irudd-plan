@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900" role="img" aria-labelledby="title description">
+  <title id="title">From planning session to implementation</title>
+  <desc id="description">You and a planning agent draft a versioned plan containing the repository, epic goal, work items, shared context, decisions and visual assets. The browser displays saved revisions; copied feedback returns to the planning agent. An implementation agent follows a stable item link, retrieves one item and its required context and visuals, writes and validates code, then checks the packet. Changed requirements are retrieved and reconciled before completion.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#3D5D71" stroke-width="1.5"/></marker>
+  </defs>
+  <style>
+    text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #604939; font-size: 18px; }
+    .title { font-size: 38px; font-weight: 600; letter-spacing: -0.6px; }
+    .name { font-size: 23px; font-weight: 600; }
+    .small { font-size: 16px; fill: #66574D; }
+    .route { fill: #3D5D71; font-size: 17px; }
+    .wire { fill: none; stroke: #3D5D71; stroke-width: 2; stroke-linejoin: round; marker-end: url(#arrow); }
+  </style>
+  <rect width="1280" height="900" fill="#F2EADE"/>
+  <text x="48" y="78" class="title">From planning session to implementation</text>
+<rect x="48" y="163" width="270" height="126" rx="18" fill="#EADFCD"/>
+<text x="72" y="201" class="name">Planning session</text>
+<text x="72" y="235">You + planning agent</text>
+<text x="72" y="265" class="small">Discuss goals and choices</text>
+<path d="M 318 225 H 414" class="wire"/>
+<text x="365" y="207" class="small" text-anchor="middle">Save</text>
+<rect x="414" y="151" width="410" height="410" rx="18" fill="#EADFCD"/>
+<text x="440" y="192" class="name">Plan</text>
+<text x="440" y="222" class="small">Versioned document for a repository</text>
+<text x="440" y="269">Epic goal</text>
+<path d="M 440 288 H 798" stroke="#C1AF9A"/>
+<text x="440" y="321" class="name">Work items</text>
+<text x="440" y="352" class="small">Goals · requirements · checks</text>
+<text x="440" y="393">Shared context + decisions</text>
+<text x="440" y="427">Visual references</text>
+<rect x="440" y="468" width="110" height="57" rx="18" fill="#E0D2BD"/>
+<text x="495" y="503" text-anchor="middle">Item A</text>
+<rect x="563" y="468" width="110" height="57" rx="18" fill="#3D5D71"/>
+<text x="618" y="503" text-anchor="middle" style="fill:#F2EADE">Item B</text>
+<rect x="686" y="468" width="110" height="57" rx="18" fill="#E0D2BD"/>
+<text x="741" y="503" text-anchor="middle">Item C</text>
+<rect x="48" y="387" width="270" height="132" rx="18" fill="#EADFCD"/>
+<text x="72" y="426" class="name">Browser review</text>
+<text x="72" y="460">See saved revisions</text>
+<text x="72" y="491" class="small">Copy feedback to the agent</text>
+<path d="M 414 451 H 318" class="wire"/>
+<path d="M 183 387 V 289" class="wire"/>
+<text x="198" y="343" class="small">Revise</text>
+<path d="M 824 321 H 930" class="wire"/>
+<text x="877" y="295" class="small" text-anchor="middle">Select</text>
+<rect x="930" y="211" width="302" height="310" rx="18" fill="#EADFCD"/>
+<text x="954" y="252" class="name">One item packet</text>
+<text x="954" y="286" class="route">Stable item link</text>
+<text x="954" y="313" class="small">From an issue or direct request</text>
+<path d="M 954 333 H 1208" stroke="#C1AF9A"/>
+<text x="954" y="368">Selected work item</text>
+<text x="954" y="402">Required context + decisions</text>
+<text x="954" y="436">Required visuals</text>
+<text x="954" y="488" class="small">Retrieved through MCP</text>
+<path d="M 1081 521 V 650" class="wire"/>
+<rect x="930" y="650" width="302" height="131" rx="18" fill="#E0D2BD"/>
+<text x="954" y="691" class="name">Coding agent</text>
+<text x="954" y="725">Read the packet + visuals</text>
+<text x="954" y="756" class="small">Write code and run checks</text>
+<path d="M 930 718 H 797" class="wire"/>
+<rect x="519" y="650" width="278" height="131" rx="18" fill="#EADFCD"/>
+<text x="543" y="691" class="name">Check for changes</text>
+<text x="543" y="725">Compare packet version</text>
+<text x="543" y="756" class="small">Before finishing</text>
+<path d="M 519 718 H 368" class="wire"/>
+<text x="442" y="698" class="small" text-anchor="middle">Unchanged</text>
+<rect x="90" y="650" width="278" height="131" rx="18" fill="#EADFCD"/>
+<text x="114" y="695" class="name">Complete</text>
+<text x="114" y="735">Code + passing checks</text>
+<path d="M 658 781 V 839 H 1260 V 462 H 1232" class="wire"/>
+<text x="954" y="830" class="small" text-anchor="middle">Changed → reload and reconcile</text>
+</svg>

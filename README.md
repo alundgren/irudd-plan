@@ -4,6 +4,10 @@
 
 The current release implements contract `v1` over MCP `2026-07-28`. Plan data stays in SQLite under the owner resolved from a verified Cloudflare Access identity.
 
+[![How irudd-plan fits together](docs/diagrams/infrastructure.svg)](docs/diagrams/infrastructure.svg)
+
+[![From planning session to implementation](docs/diagrams/planning-to-implementation.svg)](docs/diagrams/planning-to-implementation.svg)
+
 ## Use with Codex
 
 Install the self-contained [irudd-plan skill](skills/irudd-plan/SKILL.md) with

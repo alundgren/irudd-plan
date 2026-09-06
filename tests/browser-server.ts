@@ -12,6 +12,18 @@ const running = await startTestServer(undefined, 4173, async (service) => {
     expectedVersion: null,
     plan: makeBrowserPlan(assets),
   });
+  for (const ownerId of ["owner-a", "owner-b"] as const) {
+    const feedbackAssets = await Promise.all(
+      browserAssetUploads("feedback-plan").map((request) =>
+        service.uploadAsset(ownerId, request),
+      ),
+    );
+    await service.write(ownerId, {
+      operationId: `feedback-create-${ownerId}`,
+      expectedVersion: null,
+      plan: makeBrowserPlan(feedbackAssets, "feedback-plan"),
+    });
+  }
 });
 
 console.log(`browser test server listening at ${running.url}`);

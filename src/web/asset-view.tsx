@@ -1,3 +1,4 @@
+import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { AssetDescriptor } from "../contract/plan.js";
@@ -7,12 +8,19 @@ import { Badge } from "./ui/badge.js";
 interface AssetViewProps {
   readonly planId: string;
   readonly asset: AssetDescriptor;
+  readonly feedbackCount: number;
+  readonly onAddFeedback: () => void;
 }
 
 const svgCsp =
   "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'none'; connect-src 'none'; form-action 'none'";
 
-export function AssetView({ planId, asset }: AssetViewProps) {
+export function AssetView({
+  planId,
+  asset,
+  feedbackCount,
+  onAddFeedback,
+}: AssetViewProps) {
   const source = `/api/plans/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`;
   const isolated =
     asset.mediaType === "text/html" || asset.mediaType === "image/svg+xml";
@@ -66,7 +74,20 @@ export function AssetView({ planId, asset }: AssetViewProps) {
         )}
       </div>
       <figcaption>
-        {asset.caption} <Badge>{asset.role}</Badge>
+        <span>{asset.caption}</span>
+        <span className="asset-actions">
+          <Badge>{asset.role}</Badge>
+          <button
+            type="button"
+            className="feedback-target-control"
+            aria-label={`Add feedback to visual ${asset.caption}`}
+            title={`Add feedback to visual ${asset.caption}`}
+            onClick={onAddFeedback}
+          >
+            <MessageSquarePlus aria-hidden="true" size={14} />
+            {feedbackCount > 0 ? <span>{feedbackCount}</span> : null}
+          </button>
+        </span>
       </figcaption>
     </figure>
   );

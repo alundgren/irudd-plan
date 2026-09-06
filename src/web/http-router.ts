@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
@@ -94,10 +95,19 @@ export async function handleBrowserRequest(
     if (stored === undefined) {
       throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
     }
-    sendJson(response, 200, stored);
+    sendJson(response, 200, {
+      ...stored,
+      feedbackScope: feedbackScope(ownerId),
+    });
     return true;
   }
   return false;
+}
+
+function feedbackScope(ownerId: string): string {
+  return createHash("sha256")
+    .update(`irudd-plan-browser-feedback\0${ownerId}`)
+    .digest("base64url");
 }
 
 async function subscribe(

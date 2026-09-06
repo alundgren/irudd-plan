@@ -76,8 +76,11 @@ export function browserAssetUploads(planId: string): UploadAssetRequest[] {
   ];
 }
 
-export function makeBrowserPlan(assets: ReadonlyArray<AssetDescriptor>) {
-  const base = tenItemPlan("browser-plan");
+export function makeBrowserPlan(
+  assets: ReadonlyArray<AssetDescriptor>,
+  planId = "browser-plan",
+) {
+  const base = tenItemPlan(planId);
   return {
     ...base,
     epicGoal:

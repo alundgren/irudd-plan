@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title description">
+  <title id="title">How irudd-plan fits together</title>
+  <desc id="description">External agents use service-token authentication through Cloudflare Access to reach MCP. People sign in through Cloudflare Access to review private plans. Anonymous visitors bypass Access only on public routes, which check publication. One Node.js service verifies private identities, maps them to owners, serves all three interfaces, and stores plans, revisions and assets in owner-scoped SQLite.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#3D5D71" stroke-width="1.5"/></marker>
+  </defs>
+  <style>
+    text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #604939; font-size: 18px; }
+    .title { font-size: 38px; font-weight: 600; letter-spacing: -0.6px; }
+    .name { font-size: 23px; font-weight: 600; }
+    .small { font-size: 16px; fill: #66574D; }
+    .route { fill: #3D5D71; font-size: 17px; }
+    .wire { fill: none; stroke: #3D5D71; stroke-width: 2; stroke-linejoin: round; marker-end: url(#arrow); }
+  </style>
+  <rect width="1280" height="820" fill="#F2EADE"/>
+  <text x="48" y="78" class="title">How irudd-plan fits together</text>
+<rect x="552" y="145" width="680" height="612" rx="18" fill="none" stroke="#C1AF9A" stroke-width="1.5"/>
+<text x="580" y="185" class="name">irudd-plan</text>
+<text x="1202" y="183" class="small" text-anchor="end">One Node.js service</text>
+<rect x="280" y="222" width="220" height="302" rx="18" fill="#EADFCD"/>
+<text x="302" y="257">Cloudflare Access</text>
+<text x="302" y="314">Service token</text>
+<text x="302" y="341" class="small">Agent credentials</text>
+<text x="302" y="449">Browser sign-in</text>
+<text x="302" y="476" class="small">Human identity</text>
+<text x="48" y="314" class="name">Agents</text>
+<text x="48" y="344" class="small">Plan and implement</text>
+<text x="48" y="449" class="name">You</text>
+<text x="48" y="479" class="small">Review in browser</text>
+<text x="48" y="627" class="name">Anyone</text>
+<text x="48" y="657" class="small">Open a public link</text>
+<path d="M 223 322 H 280" class="wire"/>
+<path d="M 500 322 H 592" class="wire"/>
+<path d="M 223 457 H 280" class="wire"/>
+<path d="M 500 457 H 592" class="wire"/>
+<path d="M 223 635 H 592" class="wire"/>
+<text x="320" y="619" class="small">Access bypass</text>
+<rect x="592" y="280" width="252" height="112" rx="18" fill="#EADFCD"/>
+<text x="612" y="311" class="name">MCP</text>
+<text x="612" y="339" class="route">/mcp</text>
+<text x="612" y="368" class="small">Verify JWT → owner</text>
+<rect x="592" y="415" width="252" height="112" rx="18" fill="#EADFCD"/>
+<text x="612" y="446" class="name">Private website</text>
+<text x="612" y="474" class="route">/plans/* · read-only</text>
+<text x="612" y="503" class="small">Verify JWT → owner</text>
+<rect x="592" y="582" width="252" height="112" rx="18" fill="#EADFCD"/>
+<text x="612" y="613" class="name">Public website</text>
+<text x="612" y="641" class="route">/public/* · read-only</text>
+<text x="612" y="670" class="small">Published public repos only</text>
+<rect x="950" y="350" width="242" height="149" rx="18" fill="#E0D2BD"/>
+<text x="974" y="389" class="name">Plan backend</text>
+<text x="974" y="425">Validate + version</text>
+<text x="974" y="456">Read + write plans</text>
+<path d="M 844 322 H 888 V 389 H 950" class="wire"/>
+<path d="M 844 457 H 950" class="wire"/>
+<path d="M 844 635 H 888 V 478 H 950" class="wire"/>
+<path d="M 1071 499 V 582" class="wire"/>
+<rect x="950" y="582" width="242" height="112" rx="18" fill="#EADFCD"/>
+<text x="974" y="615" class="name">SQLite</text>
+<text x="974" y="646" class="small">Plans, revisions, assets</text>
+<text x="974" y="674" class="small">Isolated by owner</text>
+</svg>

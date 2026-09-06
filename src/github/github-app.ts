@@ -1,3 +1,5 @@
+import { createPrivateKey } from "node:crypto";
+
 import { importPKCS8, SignJWT } from "jose";
 
 import { PlanError } from "../contract/errors.js";
@@ -219,7 +221,7 @@ export class GitHubAppReader implements GitHubReader {
     const cached = this.tokenCache.get(installationId);
     if (cached !== undefined && cached.expiresAt > Date.now() + 60_000)
       return cached.token;
-    const key = await importPKCS8(this.privateKey, "RS256");
+    const key = await this.signingKey();
     const now = Math.floor(Date.now() / 1000);
     const jwt = await new SignJWT({})
       .setProtectedHeader({ alg: "RS256" })
@@ -266,6 +268,20 @@ export class GitHubAppReader implements GitHubReader {
     }
     this.tokenCache.set(installationId, { token, expiresAt });
     return token;
+  }
+
+  private async signingKey() {
+    try {
+      const pkcs8 = createPrivateKey(this.privateKey)
+        .export({ format: "pem", type: "pkcs8" })
+        .toString();
+      return await importPKCS8(pkcs8, "RS256");
+    } catch {
+      throw new PlanError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub signing key is unavailable",
+      );
+    }
   }
 
   private async fetch(url: string, init: RequestInit): Promise<Response> {

@@ -4,6 +4,16 @@
 
 The current release implements contract `v1` over MCP `2026-07-28`. Plan data stays in SQLite under the owner resolved from a verified Cloudflare Access identity.
 
+## Use with Codex
+
+Install the self-contained [irudd-plan skill](skills/irudd-plan/SKILL.md) with
+`bash scripts/install-skill.sh`. Follow its [Codex setup](skills/irudd-plan/references/setup.md),
+then run the [client and browser smoke checks](docs/smoke-tests.md). The required
+MCP integration stops work on unavailable requirements or assets.
+
+See [development](docs/development.md) for exact dependency constraints and the
+runnable Effect 4/Drizzle example.
+
 ## Run it locally
 
 Install Vite+ and the project dependencies:
@@ -30,7 +40,9 @@ vp run dev
 
 Production startup requires a valid issuer, audience, JWKS URL, and at least one service identity mapping. There is no environment flag that disables authentication. Tests inject a verifier in process and never change production startup behavior.
 
-Create the example plan and retrieve its first item with an Access application token:
+This direct JWT development example uses an Access application token; the supported Codex setup uses the two Cloudflare service-token headers described in [Codex setup](skills/irudd-plan/references/setup.md).
+
+Create the example plan and retrieve its first item:
 
 ```sh
 IRUDD_MCP_URL=http://127.0.0.1:3000/mcp \

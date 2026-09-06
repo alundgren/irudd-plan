@@ -29,7 +29,15 @@ const verifier = new CloudflareAccessVerifier(
   config.accessJwksUrl,
 );
 const serviceAuthenticator = new Authenticator(verifier, store, "service");
-const browserAuthenticator = new Authenticator(verifier, store, "browser");
+const browserAuthenticator = new Authenticator(
+  new CloudflareAccessVerifier(
+    config.accessIssuer,
+    config.browserAccessAudience,
+    config.accessJwksUrl,
+  ),
+  store,
+  "browser",
+);
 const github =
   config.github === undefined
     ? undefined

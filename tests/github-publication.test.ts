@@ -604,6 +604,11 @@ describe("GitHub verification and publication", () => {
       "irudd-plan://plans/mcp-publication/items/item-1",
     );
     expect(reference.structuredContent.githubText).toContain("Complete task 1");
+    expect(reference.structuredContent).toMatchObject({
+      associatedWork: [
+        expect.objectContaining({ itemId: "item-1", type: "issue", number: 8 }),
+      ],
+    });
     expect(reference.structuredContent.githubText).not.toContain(
       "Sibling specification",
     );

@@ -10,19 +10,21 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 
 ## Tools
 
-| Tool                       | Result                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `write_plan`               | Creates or replaces a complete plan revision atomically.                                          |
-| `get_work_item`            | Returns one item, required shared records and assets, a compact epic index, and a packet version. |
-| `get_related_context`      | Retrieves one deliberately selected shared context and its required records.                      |
-| `check_packet`             | Returns `unchanged`, `changed`, `deleted`, or `unavailable`.                                      |
-| `list_plans`               | Lists plans for the authenticated owner only.                                                     |
-| `upload_asset`             | Stores immutable self-contained visual bytes and optional editable source.                        |
-| `get_asset`                | Returns exact rendered or source bytes as base64 for digest verification.                         |
-| `verify_github_repository` | Verifies and records the plan's canonical repository through its configured installation.         |
-| `associate_github_work`    | Links an issue or pull request to the plan and optional work item after a fresh GitHub read.      |
-| `publish_plan`             | Publishes a verified public-repository plan through stable anonymous URLs.                        |
-| `get_github_reference`     | Returns the short goal, human URL, MCP URI, and text for an issue or PR body.                     |
+| Tool                       | Result                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `get_contract`             | Returns supported contract/skill/protocol versions and the authenticated owner.                        |
+| `get_plan`                 | Explicitly returns the complete plan and internalRevision for planning or revision.                    |
+| `write_plan`               | Creates or replaces a complete plan revision atomically.                                               |
+| `get_work_item`            | Returns one item, required shared records and assets, a compact epic index, and a packet version.      |
+| `get_related_context`      | Retrieves one deliberately selected shared context and its required records.                           |
+| `check_packet`             | Returns `unchanged`, `changed`, `deleted`, or `unavailable`.                                           |
+| `list_plans`               | Lists plans for the authenticated owner only.                                                          |
+| `upload_asset`             | Stores immutable self-contained visual bytes and optional editable source.                             |
+| `get_asset`                | Returns exact rendered or source bytes as base64 for digest verification.                              |
+| `verify_github_repository` | Verifies and records the plan's canonical repository through its configured installation.              |
+| `associate_github_work`    | Links an issue or pull request to the plan and optional work item after a fresh GitHub read.           |
+| `publish_plan`             | Publishes a verified public-repository plan through stable anonymous URLs.                             |
+| `get_github_reference`     | Returns the short goal, human URL, MCP URI, body text and persisted associatedWork for an issue or PR. |
 
 `write_plan` takes `operationId`, `expectedVersion`, and the complete `plan`. Use `expectedVersion: null` only when creating a plan. A retry with the same operation ID and identical request returns the first result. Reusing the ID with different input returns `OPERATION_MISMATCH`.
 

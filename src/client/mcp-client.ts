@@ -18,9 +18,18 @@ export class IruddMcpClient {
   );
   private readonly transport: StreamableHTTPClientTransport;
 
-  constructor(endpoint: URL, accessToken: string) {
+  constructor(
+    endpoint: URL,
+    credentials: string | Readonly<Record<string, string>>,
+  ) {
     this.transport = new StreamableHTTPClientTransport(endpoint, {
-      requestInit: { headers: { authorization: `Bearer ${accessToken}` } },
+      requestInit: {
+        redirect: "error",
+        headers:
+          typeof credentials === "string"
+            ? { authorization: `Bearer ${credentials}` }
+            : credentials,
+      },
     });
   }
 

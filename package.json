@@ -15,7 +15,13 @@
     "start": "node dist/main.js",
     "test": "vp test",
     "test:browser": "playwright test",
-    "test:browser:server": "tsx tests/browser-server.ts"
+    "test:browser:server": "tsx tests/browser-server.ts",
+    "preflight:mcp": "tsx scripts/mcp-preflight.ts",
+    "example:database": "tsx scripts/effect-drizzle-example.ts",
+    "skill:install": "bash scripts/install-skill.sh",
+    "smoke:browser": "playwright test --config playwright.smoke.config.ts",
+    "trial:codex": "tsx scripts/codex-trial.ts",
+    "smoke:mcp": "tsx scripts/mcp-auth-smoke.ts"
   },
   "dependencies": {
     "@effect/sql-sqlite-node": "4.0.0-rc.112",

@@ -344,10 +344,14 @@ export class PlanService {
         ? planResourceUri(request.planId)
         : itemResourceUri(request.planId, item.id);
     const shortGoal = item?.shortGoal ?? stored.plan.epicGoal;
+    const associatedWork = (
+      await this.store.listGitHubWork(ownerId, request.planId)
+    ).filter((link) => item === undefined || link.itemId === item.id);
     return {
       planId: request.planId,
       ...(item === undefined ? {} : { itemId: item.id }),
       shortGoal,
+      associatedWork,
       humanUrl,
       resourceUri,
       githubText: `${shortGoal}\n\nPlan: ${humanUrl}\nMCP: ${resourceUri}`,

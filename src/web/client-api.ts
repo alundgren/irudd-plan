@@ -9,6 +9,7 @@ export interface PlanDocument {
     readonly published: boolean;
     readonly publishedAt?: string;
   };
+  readonly feedbackScope: string;
 }
 
 export interface PlanListEntry {

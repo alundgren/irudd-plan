@@ -415,10 +415,21 @@ describe("GitHub verification and publication", () => {
     const first = await fetch(`${publicRoot}/document`);
     expect(first.status).toBe(200);
     expect(first.headers.get("cache-control")).toBe("public, no-cache");
-    await expect(first.json()).resolves.toMatchObject({
+    const publicDocument = (await first.json()) as {
+      feedbackScope: string;
+    };
+    expect(publicDocument).toMatchObject({
       version: 1,
       access: { published: true, repositoryVisibility: "public" },
     });
+    const privateDocument = (await (
+      await fetch(`${running.url}/api/plans/${plan.planId}`, {
+        headers: { authorization: "Bearer browser-a" },
+      })
+    ).json()) as { feedbackScope: string };
+    expect(publicDocument.feedbackScope).not.toBe(
+      privateDocument.feedbackScope,
+    );
     const asset = await fetch(
       `${publicRoot}/assets/asset-contract?digest=${encodeURIComponent(plan.assets[0]!.digest)}`,
     );

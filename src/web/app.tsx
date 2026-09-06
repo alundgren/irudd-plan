@@ -1,12 +1,25 @@
-import { AlertTriangle, CircleDot, ListTree, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  CircleDot,
+  ListTree,
+  MessageSquareText,
+  RefreshCw,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import type { Plan } from "../contract/plan.js";
-import { fetchPlans, type PlanListEntry } from "./client-api.js";
+import {
+  fetchPlans,
+  type PlanDocument,
+  type PlanListEntry,
+} from "./client-api.js";
+import { FeedbackPanel } from "./feedback-panel.js";
+import { type FeedbackTarget, newFeedbackItem } from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
 import { Badge } from "./ui/badge.js";
 import { Button } from "./ui/button.js";
 import { type ConnectionState, useLivePlan } from "./use-live-plan.js";
+import { useLocalFeedback } from "./use-local-feedback.js";
 
 export function App() {
   const [route, setRoute] = useState(readRoute);
@@ -61,41 +74,130 @@ export function App() {
   }
   if (document === undefined) return <LoadingState />;
 
+  return (
+    <PlanWorkspace
+      document={document}
+      connection={connection}
+      changedSections={changedSections}
+      isPublic={route.publicOwnerId !== undefined}
+      publicationStatus={accessLabel(document.access)}
+      {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
+      onSelect={navigate}
+      onShowPlans={() =>
+        window.location.assign(
+          route.publicOwnerId === undefined ? "/" : planPath(route),
+        )
+      }
+    />
+  );
+}
+
+function PlanWorkspace({
+  document,
+  connection,
+  changedSections,
+  isPublic,
+  publicationStatus,
+  itemId,
+  onSelect,
+  onShowPlans,
+}: {
+  readonly document: PlanDocument;
+  readonly connection: ConnectionState;
+  readonly changedSections: ReadonlySet<string>;
+  readonly isPublic: boolean;
+  readonly publicationStatus: string;
+  readonly itemId?: string;
+  readonly onSelect: (itemId?: string) => void;
+  readonly onShowPlans: () => void;
+}) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [pinningCanvas, setPinningCanvas] = useState(false);
+  const {
+    state: feedbackState,
+    storageError,
+    add,
+    update,
+    remove,
+    assessTrial,
+  } = useLocalFeedback(document.feedbackScope, document.plan.planId);
+  const addFeedback = useCallback(
+    (target: FeedbackTarget) => {
+      add(newFeedbackItem(document.plan.planId, document.version, target));
+      setFeedbackOpen(true);
+      setPinningCanvas(false);
+    },
+    [add, document.plan.planId, document.version],
+  );
   const selectionDeleted =
-    route.itemId !== undefined &&
-    !document.plan.items.some((item) => item.id === route.itemId);
+    itemId !== undefined &&
+    !document.plan.items.some((item) => item.id === itemId);
+
   return (
     <main className="review-app">
       <ReviewHeader
         plan={document.plan}
         version={document.version}
         connection={connection}
-        isPublic={route.publicOwnerId !== undefined}
-        publicationStatus={accessLabel(document.access)}
-        onShowPlans={() =>
-          window.location.assign(
-            route.publicOwnerId === undefined ? "/" : planPath(route),
-          )
-        }
+        isPublic={isPublic}
+        publicationStatus={publicationStatus}
+        feedbackCount={feedbackState.items.length}
+        onShowPlans={onShowPlans}
+        onOpenFeedback={() => setFeedbackOpen(true)}
       />
       {selectionDeleted ? (
-        <div className="deleted-notice" role="status">
-          <AlertTriangle aria-hidden="true" size={18} />
-          This work item was deleted from the current plan.
-          <Button size="sm" variant="outline" onClick={() => navigate()}>
-            Open overview
-          </Button>
-        </div>
+        <DeletedNotice onOpenOverview={() => onSelect()} />
       ) : null}
       <PlanCanvas
         plan={document.plan}
-        {...(selectionDeleted || route.itemId === undefined
+        {...(selectionDeleted || itemId === undefined
           ? {}
-          : { selectedItemId: route.itemId })}
+          : { selectedItemId: itemId })}
         changedSections={changedSections}
-        onSelect={navigate}
+        feedbackItems={feedbackState.items}
+        pinningCanvas={pinningCanvas}
+        onSelect={onSelect}
+        onAddFeedback={addFeedback}
+        onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
+        onOpenFeedback={() => setFeedbackOpen(true)}
       />
+      {feedbackOpen ? (
+        <FeedbackPanel
+          plan={document.plan}
+          version={document.version}
+          items={feedbackState.items}
+          {...(storageError === undefined ? {} : { storageError })}
+          pinningCanvas={pinningCanvas}
+          {...(feedbackState.trialAssessment === undefined
+            ? {}
+            : { trialAssessment: feedbackState.trialAssessment })}
+          onClose={() => {
+            setFeedbackOpen(false);
+            setPinningCanvas(false);
+          }}
+          onStartCanvasPin={() => setPinningCanvas((value) => !value)}
+          onUpdate={update}
+          onRemove={remove}
+          onAssessTrial={assessTrial}
+        />
+      ) : null}
     </main>
+  );
+}
+
+function DeletedNotice({
+  onOpenOverview,
+}: {
+  readonly onOpenOverview: () => void;
+}) {
+  return (
+    <div className="deleted-notice" role="status">
+      <AlertTriangle aria-hidden="true" size={18} />
+      This work item was deleted from the current plan.
+      <Button size="sm" variant="outline" onClick={onOpenOverview}>
+        Open overview
+      </Button>
+    </div>
   );
 }
 
@@ -163,14 +265,18 @@ function ReviewHeader({
   connection,
   isPublic,
   publicationStatus,
+  feedbackCount,
   onShowPlans,
+  onOpenFeedback,
 }: {
   readonly plan: Plan;
   readonly version: number;
   readonly connection: ConnectionState;
   readonly isPublic: boolean;
   readonly publicationStatus: string;
+  readonly feedbackCount: number;
   readonly onShowPlans: () => void;
+  readonly onOpenFeedback: () => void;
 }) {
   return (
     <header className="review-header">
@@ -184,7 +290,7 @@ function ReviewHeader({
         </p>
         <h1>{plan.epicGoal}</h1>
       </div>
-      <div className="header-status">
+      <div className="review-header-actions">
         <Badge className={`connection ${connection}`}>
           {connection === "live" ? (
             <CircleDot aria-hidden="true" size={12} />
@@ -194,6 +300,15 @@ function ReviewHeader({
           {connection === "live" ? `Live · r${version}` : connection}
         </Badge>
         <Badge>{publicationStatus}</Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          className="feedback-open-button"
+          onClick={onOpenFeedback}
+        >
+          <MessageSquareText aria-hidden="true" size={15} />
+          Feedback{feedbackCount === 0 ? "" : ` ${feedbackCount}`}
+        </Button>
       </div>
     </header>
   );

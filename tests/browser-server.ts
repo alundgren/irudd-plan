@@ -61,6 +61,18 @@ const running = await startTestServer(
       contractVersion: "v1",
       planId: "browser-plan",
     });
+    for (const ownerId of ["owner-a", "owner-b"] as const) {
+      const feedbackAssets = await Promise.all(
+        browserAssetUploads("feedback-plan").map((request) =>
+          service.uploadAsset(ownerId, request),
+        ),
+      );
+      await service.write(ownerId, {
+        operationId: `feedback-create-${ownerId}`,
+        expectedVersion: null,
+        plan: makeBrowserPlan(feedbackAssets, "feedback-plan"),
+      });
+    }
   },
   github,
 );

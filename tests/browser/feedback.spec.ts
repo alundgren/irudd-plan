@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { panTo } from "./canvas.js";
 
 import { IruddMcpClient } from "../../src/client/mcp-client.js";
 import type { Plan } from "../../src/contract/plan.js";
@@ -8,6 +9,7 @@ test.describe.serial("local plan feedback", () => {
     context,
     page,
   }) => {
+    test.setTimeout(40_000);
     const privateText = "SENTINEL feedback must stay browser local";
     const observedRequests: string[] = [];
     page.on("request", (request) => {
@@ -20,6 +22,10 @@ test.describe.serial("local plan feedback", () => {
 
     const requirement = selected.getByText(
       "Keep the current committed requirements readable and selectable.",
+    );
+    await panTo(
+      page,
+      selected.getByRole("button", { name: "Add feedback to Requirements" }),
     );
     await requirement.evaluate((element) => {
       const range = document.createRange();
@@ -36,6 +42,12 @@ test.describe.serial("local plan feedback", () => {
       .fill(privateText);
     await page.getByRole("button", { name: "Close feedback" }).click();
 
+    await panTo(
+      page,
+      selected.getByRole("button", {
+        name: "Add feedback to visual A small reference image",
+      }),
+    );
     await selected
       .getByRole("button", {
         name: "Add feedback to visual A small reference image",

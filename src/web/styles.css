@@ -124,14 +124,14 @@ summary {
 }
 
 .react-flow__node-sheet {
-  width: 470px;
+  width: 600px;
   cursor: default;
 }
 
 .plan-sheet {
-  overflow: hidden;
-  width: 470px;
-  height: 610px;
+  width: 600px;
+  padding: 40px;
+  overflow-wrap: anywhere;
   border: 1px solid #d9e0e2;
   border-radius: 8px;
   color: #1b2537;
@@ -141,6 +141,7 @@ summary {
     border-color 180ms ease,
     box-shadow 180ms ease;
   user-select: text;
+  touch-action: none;
 }
 
 .plan-sheet.selected {
@@ -155,7 +156,7 @@ summary {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 26px 18px;
+  padding: 0 0 24px;
   border-bottom: 1px solid #edf0ef;
   background: linear-gradient(180deg, #fff 0%, #fffefb 100%);
 }
@@ -166,6 +167,10 @@ summary {
   font-size: 1.55rem;
   font-weight: 500;
   line-height: 1.15;
+}
+
+.sheet-header-actions {
+  flex: none;
 }
 
 .section-title-row {
@@ -209,11 +214,7 @@ summary {
   background: #effbf9;
 }
 
-.sheet-scroll {
-  overflow: auto;
-  max-height: 515px;
-  padding: 10px 26px 28px;
-  overscroll-behavior: contain;
+.sheet-content {
   cursor: text;
 }
 
@@ -230,8 +231,6 @@ summary {
 }
 
 .plan-sheet section.changed {
-  margin: 6px -14px;
-  padding: 12px 14px;
   border-radius: 8px;
 }
 
@@ -249,10 +248,6 @@ summary {
 
 .sheet-header.changed {
   box-shadow: inset 0 -3px #e5b84f;
-}
-
-.technical-details.changed {
-  border-color: #e5b84f;
 }
 
 .overview-index.changed {
@@ -327,42 +322,6 @@ summary {
   margin: 7px 0 0;
   color: #7c5a34;
   font-size: 0.78rem;
-}
-
-.technical-details {
-  position: relative;
-  margin: 16px 0;
-  padding: 11px 13px;
-  border: 1px solid #dfe5e6;
-  border-radius: 8px;
-  background: #f9fbfb;
-}
-
-.technical-details > .feedback-target-control {
-  position: absolute;
-  top: 7px;
-  right: 8px;
-}
-
-.technical-details summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.related-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 18px;
-}
-
-.overview-sheet {
-  padding-bottom: 18px;
-}
-
-.overview-sheet > section,
-.overview-index {
-  margin: 0 26px;
 }
 
 .overview-index h3 {
@@ -840,21 +799,8 @@ summary {
     width: min(440px, calc(100vw - 24px));
   }
 
-  .plan-sheet.selected {
-    max-height: calc(100vh - 132px);
-  }
-
-  .plan-sheet.selected .sheet-scroll {
-    max-height: calc(100vh - 235px);
-  }
-
-  .sheet-header {
-    padding: 18px;
-  }
-
-  .sheet-scroll {
-    padding-right: 18px;
-    padding-left: 18px;
+  .plan-sheet {
+    padding: 24px;
   }
 
   .feedback-panel {

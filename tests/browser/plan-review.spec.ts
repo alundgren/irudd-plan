@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { panTo } from "./canvas.js";
 
 import { IruddMcpClient } from "../../src/client/mcp-client.js";
 import type { AssetDescriptor } from "../../src/contract/plan.js";
@@ -21,6 +22,8 @@ test.describe.serial("plan review canvas", () => {
 
     const viewport = page.locator(".react-flow__viewport");
     await page.waitForTimeout(450);
+    await panTo(page, selected.locator('[data-section="item-1:requirements"]'));
+    const heightBefore = await selected.evaluate((sheet) => sheet.clientHeight);
     const viewportBefore = await viewport.getAttribute("style");
     await selected
       .getByText("Keep the current committed requirements")
@@ -70,6 +73,11 @@ test.describe.serial("plan review canvas", () => {
               requirements: [
                 ...item.requirements,
                 "This requirement arrived through a live MCP revision.",
+                ...Array.from(
+                  { length: 20 },
+                  (_, index) =>
+                    `Additional requirement ${index}: preserve the full document as its content grows across a live revision.`,
+                ),
               ],
             }
           : item,
@@ -91,7 +99,16 @@ test.describe.serial("plan review canvas", () => {
       selected.locator('[data-section="item-1:visuals"]'),
     ).toHaveClass(/changed/);
     await expect(selected.locator("figure.asset-view")).toHaveCount(3);
-    await selected.getByText("Technical detail").click();
+    expect(
+      await selected.evaluate((sheet) => sheet.clientHeight),
+    ).toBeGreaterThan(heightBefore + 500);
+    const nextSheet = await page
+      .locator('.item-sheet[aria-label="Work item 2"]')
+      .boundingBox();
+    const currentSheet = await selected.boundingBox();
+    expect(nextSheet!.x - currentSheet!.x - currentSheet!.width).toBe(72);
+    expect(nextSheet!.y).toBe(currentSheet!.y);
+    await expect(selected.locator("details")).toHaveCount(0);
     await expect(selected.getByText("Authentication rules")).toBeVisible();
     await expect(selected.getByText("Service boundary")).toBeVisible();
     expect(await viewport.getAttribute("style")).toBe(viewportBefore);
@@ -100,7 +117,10 @@ test.describe.serial("plan review canvas", () => {
       path: "docs/captures/plan-canvas-desktop.png",
       fullPage: true,
     });
-    await selected.getByRole("button", { name: "Overview" }).click();
+    await page
+      .locator(".canvas-navigation")
+      .getByRole("button", { name: "Overview" })
+      .click();
     await expect(page).toHaveURL(/\/plans\/browser-plan$/);
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
     await page.goBack();
@@ -111,6 +131,8 @@ test.describe.serial("plan review canvas", () => {
     await page.goForward();
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
 
+    await panTo(page, page.locator(".overview-index"));
+    const overviewReadingPosition = await viewport.getAttribute("style");
     await context.setOffline(true);
     await expect(page.getByText("reconnecting")).toBeVisible();
     const revisionThree = {
@@ -133,11 +155,14 @@ test.describe.serial("plan review canvas", () => {
     });
     await context.setOffline(false);
     await expect(page.getByText("Live · r4")).toBeVisible();
+    expect(await viewport.getAttribute("style")).toBe(overviewReadingPosition);
     await expect(
-      page.getByRole("heading", { name: revisionFour.epicGoal }),
+      page
+        .locator(".overview-sheet")
+        .getByRole("heading", { name: revisionFour.epicGoal }),
     ).toBeVisible();
     await expect(page.locator(".react-flow__node-sheet")).toHaveCount(11);
-    await expect(page.locator(".react-flow__edge")).toHaveCount(11);
+    await expect(page.locator(".react-flow__edge")).toHaveCount(10);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/plans/browser-plan/items/item-1");
@@ -217,6 +242,10 @@ test.describe.serial("plan review canvas", () => {
         timerStorage: "blocked",
         timerNetwork: "blocked",
       });
+    await panTo(
+      page,
+      page.locator('iframe[title="Interactive review control"]'),
+    );
     const viewport = await page
       .locator(".react-flow__viewport")
       .getAttribute("style");
@@ -310,7 +339,9 @@ test.describe.serial("plan review canvas", () => {
     });
     await expect(page.getByText("Live · r7")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Current revision seven" }),
+      page
+        .locator(".overview-sheet")
+        .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await page.waitForTimeout(600);
     await expect(page.getByText("Live · r7")).toBeVisible();
@@ -328,7 +359,9 @@ test.describe.serial("plan review canvas", () => {
     await expect(page.getByText("reconnecting")).toBeVisible();
     await expect(page.getByText("Live · r8")).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Current revision seven" }),
+      page
+        .locator(".overview-sheet")
+        .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await client.close();
   });

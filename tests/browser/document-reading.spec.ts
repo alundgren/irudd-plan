@@ -1,0 +1,245 @@
+import { expect, test, type Page } from "@playwright/test";
+import type { Plan } from "../../src/contract/plan.js";
+import { panTo } from "./canvas.js";
+
+async function expectReadingTop(page: Page) {
+  const sheet = page.locator(".plan-sheet.selected");
+  await expect
+    .poll(async () => {
+      const bounds = await sheet.boundingBox();
+      const canvas = await page.locator(".react-flow").boundingBox();
+      return bounds === null || canvas === null ? 0 : bounds.y - canvas.y;
+    })
+    .toBeCloseTo(58, 0);
+  const bounds = await sheet.boundingBox();
+  const width = await sheet.evaluate((element) => element.clientWidth + 2);
+  expect(bounds?.width).toBeCloseTo(width, 0);
+}
+
+for (const width of [1280, 390]) {
+  test(`reads a continuous long document at ${width}px and restores its top through history`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await useLongDocument(page);
+    await page.goto("/plans/browser-plan/items/item-1");
+    await expectReadingTop(page);
+    const selected = page.locator(".plan-sheet.selected");
+    expect((await selected.boundingBox())?.height).toBeGreaterThan(3000);
+    const scrollContainers = await selected.evaluate(
+      (sheet) =>
+        [sheet, ...sheet.querySelectorAll("*")].filter((element) => {
+          const style = getComputedStyle(element);
+          return (
+            ["auto", "scroll"].includes(style.overflowY) &&
+            element.scrollHeight > element.clientHeight
+          );
+        }).length,
+    );
+    expect(scrollContainers).toBe(0);
+    await expect(selected.locator("details, .related-items")).toHaveCount(0);
+    await expect(page.locator(".react-flow__edge")).toHaveCount(10);
+    expect(
+      await page
+        .locator(".react-flow__edge-path")
+        .evaluateAll((paths) =>
+          paths.every(
+            (path) =>
+              getComputedStyle(path).strokeDasharray === "none" &&
+              path.hasAttribute("marker-end"),
+          ),
+        ),
+    ).toBe(true);
+    if (width === 1280) {
+      expect(
+        await selected.evaluate((sheet) => getComputedStyle(sheet).padding),
+      ).toBe("40px");
+      const sheets = await page
+        .locator(".plan-sheet")
+        .evaluateAll((elements) =>
+          elements
+            .map((el) => el.getBoundingClientRect().toJSON())
+            .sort((a, b) => a.x - b.x),
+        );
+      for (let index = 1; index < sheets.length; index += 1) {
+        expect(sheets[index]!.x - sheets[index - 1]!.right).toBe(72);
+        expect(sheets[index]!.y).toBe(sheets[0]!.y);
+      }
+    }
+
+    const goal = selected
+      .locator('[data-section="item-1:goal"] .rich-text p')
+      .first();
+    await panTo(page, goal);
+    const viewport = page.locator(".react-flow__viewport");
+    const beforeSelection = await viewport.getAttribute("style");
+    const bounds = await goal.boundingBox();
+    if (bounds === null) throw new Error("Missing goal");
+    await page.mouse.move(bounds.x + 2, bounds.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(
+      bounds.x + Math.min(220, bounds.width - 4),
+      bounds.y + 10,
+      { steps: 10 },
+    );
+    await page.mouse.up();
+    expect(
+      await page.evaluate(() => window.getSelection()?.toString().length),
+    ).toBeGreaterThan(5);
+    expect(await viewport.getAttribute("style")).toBe(beforeSelection);
+    await expect(page.locator(".feedback-panel")).toHaveCount(0);
+
+    const completion = selected.getByText(
+      "Completion marker at the end of the long document.",
+    );
+    await panTo(page, completion);
+    await expect(completion).toBeInViewport();
+    const beforeControl = await viewport.getAttribute("style");
+    await page.getByRole("button", { name: "Feedback", exact: true }).click();
+    await expect(page.locator(".feedback-panel")).toBeVisible();
+    expect(await viewport.getAttribute("style")).toBe(beforeControl);
+    await page.getByRole("button", { name: "Close feedback" }).click();
+    await page
+      .locator(".canvas-navigation")
+      .getByRole("button", { name: "Overview" })
+      .click();
+    await expectReadingTop(page);
+    await expect(page.locator(".overview-sheet h2")).toHaveText(
+      "Review a complete delivery plan without losing the current conversation or reading position.",
+    );
+    await page.getByRole("button", { name: "Fit all", exact: true }).click();
+    await page.goBack();
+    await expectReadingTop(page);
+    await expect(selected).toHaveAttribute("aria-label", "Work item 1");
+    await page.goForward();
+    await expectReadingTop(page);
+    await expect(selected).toHaveAttribute("aria-label", "Epic overview");
+  });
+}
+
+async function useLongDocument(page: Page) {
+  await page.route("**/api/plans/browser-plan", async (route) => {
+    const response = await route.fetch();
+    const document = (await response.json()) as { plan: Plan };
+    await route.fulfill({
+      json: {
+        ...document,
+        plan: {
+          ...document.plan,
+          items: document.plan.items.map((item, index) =>
+            index === 0
+              ? {
+                  ...item,
+                  requirements: Array.from(
+                    { length: 30 },
+                    (_, i) =>
+                      `Requirement ${i + 1}: Keep every part of this deliberately long document readable, including its existing prior art and completion information.`,
+                  ),
+                  completionExpectation:
+                    "Completion marker at the end of the long document.",
+                }
+              : item,
+          ),
+        },
+      },
+    });
+  });
+}
+
+test("touch swipes move a phone document without adding feedback", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const session = await context.newCDPSession(page);
+  await session.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await page.goto("/plans/browser-plan/items/item-1");
+  await expectReadingTop(page);
+  const sheet = page.locator(".plan-sheet.selected");
+  const before = await sheet.boundingBox();
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 180, y: 650 }],
+  });
+  for (const y of [600, 550, 500, 450, 400]) {
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 180, y }],
+    });
+  }
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect
+    .poll(async () => (await sheet.boundingBox())?.y)
+    .toBeCloseTo(before!.y - 250, 0);
+  await expect(page.locator(".feedback-panel")).toHaveCount(0);
+  const beforeTap = await page
+    .locator(".react-flow__viewport")
+    .getAttribute("style");
+  const button = await page
+    .getByRole("button", { name: "Feedback", exact: true })
+    .boundingBox();
+  if (button === null) throw new Error("Missing feedback control");
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: button.x + 10, y: button.y + 10 }],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect(page.locator(".feedback-panel")).toBeVisible();
+  expect(
+    await page.locator(".react-flow__viewport").getAttribute("style"),
+  ).toBe(beforeTap);
+});
+
+test("keeps the selected reading position when other items move and the viewport narrows", async ({
+  page,
+}) => {
+  let reordered = false;
+  await page.route("**/api/plans/browser-plan", async (route) => {
+    const response = await route.fetch();
+    const document = (await response.json()) as { plan: Plan; version: number };
+    await route.fulfill({
+      json: reordered
+        ? {
+            ...document,
+            version: document.version + 1,
+            plan: {
+              ...document.plan,
+              items: [...document.plan.items].reverse(),
+            },
+          }
+        : document,
+    });
+  });
+  await page.goto("/plans/browser-plan/items/item-1");
+  await expectReadingTop(page);
+  const selected = page.locator(".plan-sheet.selected");
+  await panTo(
+    page,
+    selected.getByRole("heading", { name: "Requirements", exact: true }),
+  );
+  const before = await selected.boundingBox();
+  reordered = true;
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("offline"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.getByText("Live · r2")).toBeVisible();
+  await expect
+    .poll(async () => (await selected.boundingBox())?.x)
+    .toBe(before!.x);
+  expect((await selected.boundingBox())?.y).toBe(before!.y);
+  const canvasBefore = await page.locator(".react-flow").boundingBox();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await selected.boundingBox())?.x).toBe(12);
+  const canvasAfter = await page.locator(".react-flow").boundingBox();
+  expect((await selected.boundingBox())!.y - canvasAfter!.y).toBeCloseTo(
+    before!.y - canvasBefore!.y,
+    0,
+  );
+});

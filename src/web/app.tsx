@@ -14,7 +14,12 @@ import {
 } from "./client-api.js";
 import { RetentionNotice } from "./retention-notice.js";
 import { FeedbackPanel } from "./feedback-panel.js";
-import { type FeedbackTarget, newFeedbackItem } from "./feedback.js";
+import {
+  type FeedbackTarget,
+  type FeedbackItem,
+  newFeedbackItem,
+  targetStatus,
+} from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
 import { Button } from "./ui/button.js";
 import { type ConnectionState, useLivePlan } from "./use-live-plan.js";
@@ -112,6 +117,9 @@ function PlanWorkspace({
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [pinningCanvas, setPinningCanvas] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<
+    FeedbackItem | undefined
+  >();
   const {
     state: feedbackState,
     storageError,
@@ -122,7 +130,13 @@ function PlanWorkspace({
   } = useLocalFeedback(document.feedbackScope, document.plan.planId);
   const addFeedback = useCallback(
     (target: FeedbackTarget) => {
-      add(newFeedbackItem(document.plan.planId, document.version, target));
+      const item = newFeedbackItem(
+        document.plan.planId,
+        document.version,
+        target,
+      );
+      add(item);
+      setSelectedFeedback(item);
       setFeedbackOpen(true);
       setPinningCanvas(false);
     },
@@ -145,12 +159,18 @@ function PlanWorkspace({
           : { retention: document.retention })}
         feedbackCount={feedbackState.items.length}
         onShowPlans={onShowPlans}
-        onOpenFeedback={() => setFeedbackOpen(true)}
+        feedbackOpen={feedbackOpen}
+        onOpenFeedback={() => {
+          setFeedbackOpen(!feedbackOpen);
+          setPinningCanvas(false);
+        }}
       />
       {selectionDeleted ? (
         <DeletedNotice onOpenOverview={() => onSelect()} />
       ) : null}
-      <div className="review-content">
+      <div
+        className={`review-content ${feedbackOpen ? "feedback-visible" : ""}`}
+      >
         <PlanCanvas
           plan={document.plan}
           {...(selectionDeleted || itemId === undefined
@@ -162,7 +182,13 @@ function PlanWorkspace({
           onSelect={onSelect}
           onAddFeedback={addFeedback}
           onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
-          onOpenFeedback={() => setFeedbackOpen(true)}
+          {...(selectedFeedback === undefined
+            ? {}
+            : { focusedFeedback: selectedFeedback })}
+          onSelectFeedback={(item) => {
+            setSelectedFeedback({ ...item });
+            setFeedbackOpen(true);
+          }}
         />
         {feedbackOpen ? (
           <FeedbackPanel
@@ -179,6 +205,17 @@ function PlanWorkspace({
               setPinningCanvas(false);
             }}
             onStartCanvasPin={() => setPinningCanvas((value) => !value)}
+            {...(selectedFeedback === undefined
+              ? {}
+              : { selectedItem: selectedFeedback })}
+            onSelect={(item) => {
+              setSelectedFeedback({ ...item });
+              if (
+                targetStatus(item, document.plan) !== "missing" &&
+                item.target.kind !== "canvas"
+              )
+                onSelect(item.target.itemId);
+            }}
             onUpdate={update}
             onRemove={remove}
             onAssessTrial={assessTrial}
@@ -276,6 +313,7 @@ function ReviewHeader({
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
+  feedbackOpen,
 }: {
   readonly plan: Plan;
   readonly version: number;
@@ -286,6 +324,7 @@ function ReviewHeader({
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
+  readonly feedbackOpen: boolean;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   return (
@@ -326,6 +365,7 @@ function ReviewHeader({
         variant="outline"
         size="sm"
         className="feedback-open-button"
+        aria-expanded={feedbackOpen}
         onClick={onOpenFeedback}
       >
         <MessageSquareText aria-hidden="true" size={15} />

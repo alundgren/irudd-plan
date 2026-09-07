@@ -8,7 +8,7 @@ The local implementation moves required visuals into separately titled sheets be
 - `vp run check:ci`: passed formatting, lint and type checks.
 - `vp run test`: 57 tests passed across 12 files.
 - `vp run build`: server and browser builds passed.
-- `vp run test:browser`: the full 29-test suite passed before review. After the history and update-marker fixes, all 12 affected reference-sheet and document-reading tests passed, including the new Back-navigation regression.
+- `vp run test:browser`: all 36 tests passed after integrating the docked feedback column from main. The shared-reference regression checks that selecting each note opens the correct item and asset and scrolls its figure into view.
 
 `CanvasContents` keeps reference selection and viewport compensation together because they share the same state owner. Its length warning remains. The longer browser test exercises one complete reading path through several media types; its sequential steps remain together. Other advisory warnings predate this change.
 
@@ -25,12 +25,12 @@ The implementation captures use Chromium, browser zoom 100%, device scale 1 and 
 | Separate title, caption, role and large drawing | Pass. The reference identifies its work item, keeps the exact caption above the drawing and displays the role in plain text.                                                        |
 | Prototype spacing and readable focus            | Pass. Desktop sheets retain 600px width, 40px padding and 72px gaps. The drawing extends into the inner margins. Links restore reading zoom and the return action reaches the item. |
 | Uncropped proportions and no overlap            | Pass. Tall and wide drawings preserve their ratios; long captions stay above the drawing. All sheets remain horizontally separated after updates.                                   |
-| Feedback open and closed                        | Pass. Existing feedback controls remain available. The panel uses the application's existing overlay, rather than the prototype's sidebar column.                                   |
+| Feedback open and closed                        | Pass. Existing feedback controls remain available. The desktop feedback column leaves the reference visible beside it; phone feedback uses an overlay.                              |
 | Shared asset feedback                           | Pass. Each association keeps its own item ID; replacement and removal preserve the original digest in copied notes and mark changed or missing targets.                             |
 | Interactive HTML and isolation                  | Pass. Existing credential, navigation, storage and network isolation checks pass. HTML scrolls within its document when needed and otherwise forwards wheel movement to the canvas. |
 | Recovery states                                 | Pass. Missing, failed and unsupported previews retain their caption, feedback control and return action.                                                                            |
 
-Material differences from the prototype are intentional: existing plan navigation replaces its left sidebar, titles name the originating item because assets have no separate title field, and the existing feedback panel overlays the canvas. Tall drawings extend below the viewport and remain reachable by panning. Direct comment pins and Comment/Pan modes remain deferred.
+Material differences from the prototype are intentional: existing plan navigation replaces its left sidebar, titles name the originating item because assets have no separate title field, and phone feedback overlays the canvas. Desktop feedback is docked beside the canvas. Tall drawings extend below the viewport and remain reachable by panning. Direct comment pins and Comment/Pan modes remain deferred.
 
 Captures: [desktop reference](captures/reference-sheet-1440.png), [phone reference](captures/reference-sheet-390.png), [feedback open](captures/reference-sheet-feedback.png), [item document](captures/plan-canvas-desktop.png).
 

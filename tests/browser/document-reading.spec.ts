@@ -97,7 +97,11 @@ for (const width of [1280, 390]) {
     const beforeControl = await viewport.getAttribute("style");
     await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-panel")).toBeVisible();
-    expect(await viewport.getAttribute("style")).toBe(beforeControl);
+    await expect(completion).toBeInViewport();
+    const afterControl = await viewport.getAttribute("style");
+    expect(afterControl?.split(",").slice(1).join(",")).toBe(
+      beforeControl?.split(",").slice(1).join(","),
+    );
     await page.getByRole("button", { name: "Close feedback" }).click();
     await page
       .locator(".canvas-navigation")

@@ -171,6 +171,32 @@ test("shared visual feedback retains each item and original digest across replac
       .fill(`Review guide for item ${item}.`);
     await page.getByRole("button", { name: "Close feedback" }).click();
   }
+  await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
+  for (const item of [1, 2]) {
+    await page
+      .getByRole("button", {
+        name: `${item}. Work item ${item} · Decision guide`,
+        exact: true,
+      })
+      .click();
+    const reference = page.locator(".reference-sheet.selected");
+    await expect(reference).toHaveAttribute("data-item-id", `item-${item}`);
+    await expect(reference).toHaveAttribute("data-asset-id", "guide");
+    await expect
+      .poll(
+        async () =>
+          (await reference.locator("figure").boundingBox())!.y -
+          (await page.locator(".react-flow").boundingBox())!.y,
+      )
+      .toBeCloseTo(100, 0);
+  }
+  await page.getByRole("button", { name: "Close feedback" }).click();
+  await expect
+    .poll(
+      async () =>
+        (await page.locator(".reference-sheet.selected").boundingBox())!.x,
+    )
+    .toBe(420);
   const viewport = await page
     .locator(".react-flow__viewport")
     .getAttribute("style");
@@ -193,10 +219,12 @@ test("shared visual feedback retains each item and original digest across replac
     await page.locator(".react-flow__viewport").getAttribute("style"),
   ).toBe(viewport);
   await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
-  await expect(page.getByText(/Target changed since revision \d+/)).toHaveCount(
-    2,
-  );
-  await page.getByRole("button", { name: "Copy agent prompt (2)" }).click();
+  await expect(
+    page.getByText(
+      "This location has changed since you commented. The copied feedback keeps your original reference.",
+    ),
+  ).toHaveCount(2);
+  await page.getByRole("button", { name: "Copy feedback (2)" }).click();
   const prompt = await page.evaluate(() => navigator.clipboard.readText());
   for (const item of [1, 2])
     expect(prompt).toContain(`work item item-${item}, asset guide`);
@@ -204,11 +232,15 @@ test("shared visual feedback retains each item and original digest across replac
   expect(prompt).not.toContain(replacementDigest);
   await fixture.update(true);
   await expect(
-    page.getByText(/Target disappeared after revision \d+/),
+    page.getByText(
+      "This location is no longer in the plan. The copied feedback keeps your original reference.",
+    ),
   ).toHaveCount(1);
-  await expect(page.getByText(/Target changed since revision \d+/)).toHaveCount(
-    1,
-  );
+  await expect(
+    page.getByText(
+      "This location has changed since you commented. The copied feedback keeps your original reference.",
+    ),
+  ).toHaveCount(1);
   await expect(
     page.locator(
       '.reference-sheet[data-item-id="item-1"][data-asset-id="guide"]',

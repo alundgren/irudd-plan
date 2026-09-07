@@ -51,7 +51,11 @@ not a browser control.
 
 Each text section and visual reference has a small feedback control outside the plan content. Selecting text alone does nothing. The reader can use the control to save the selected excerpt, or the complete section when nothing is selected. A separate mode adds a numbered pin to a blank canvas location.
 
-The pending-feedback panel edits and removes browser-local notes, then copies described notes as one self-contained MCP revision prompt. It records the plan, work item and section or asset digest, canvas location, original reference and observed internal revision. Copying the prompt is not submission, approval or agreement. The application never sends feedback text to the server.
+The Feedback control toggles a 330px right-hand column below the header on desktop. The canvas uses the remaining width, including for Fit all. The column follows the pinned prototype: Next refinement, Pending feedback with a count, readable locations and comment text, and Edit/Remove actions. Its heading and Copy feedback footer stay visible while the list scrolls. Existing comments remain text until Edit is chosen; new empty drafts open an inline editor. Each keystroke updates the local draft, so Done, closing the panel, or selecting another note does not discard edits.
+
+At widths up to 760px, the column becomes a toggleable 330px panel over the canvas, bounded by the available width and positioned below the actual header. Close feedback remains available in its heading. This follows the prototype phone panel while keeping the existing two-row phone header and plan navigation.
+
+Selecting a listed location or canvas pin selects its note and reveals its target. A missing target leaves the canvas position unchanged and explains the missing location. The ordinary list hides internal IDs, revision numbers, coordinate values and asset digests. Changed/missing warnings retain the original-reference explanation. The panel copies described notes as one self-contained MCP revision prompt. It records the plan, work item and section or asset digest, canvas location, original reference and observed internal revision. Copying the prompt is not submission, approval or agreement. The application never sends feedback text to the server.
 
 Feedback storage is partitioned by an opaque scope derived from the authenticated application owner and by plan ID. A different private owner cannot see the first owner's pending notes in the same browser profile. Public views use a separate browser-local scope from the authenticated owner view.
 

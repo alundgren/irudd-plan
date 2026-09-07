@@ -61,7 +61,7 @@ export function AssetView({
       asset.mediaType,
     );
   return (
-    <figure className="asset-view nodrag nopan">
+    <figure className="asset-view nodrag nopan" data-feedback-asset={asset.id}>
       <figcaption>{asset.caption}</figcaption>
       <div className="asset-frame">
         {!asset.available || failed ? (

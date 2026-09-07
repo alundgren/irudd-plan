@@ -78,20 +78,23 @@ test.describe.serial("local plan feedback", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Feedback 3", exact: true }).click();
     await expect(page.locator(".feedback-editor")).toHaveCount(3);
-    await page.getByRole("button", { name: "Copy agent prompt (3)" }).click();
+    await page.getByRole("button", { name: "Copy feedback (3)" }).click();
     await expect(
-      page.getByRole("button", { name: "Prompt copied" }),
+      page.getByRole("button", { name: "Feedback copied" }),
     ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Edit feedback 1", exact: true })
+      .click();
     await page
       .getByRole("textbox", { name: "Requested change for feedback 1" })
       .fill(`${privateText}, with the subject named.`);
     await expect(
-      page.getByRole("button", { name: "Copy agent prompt (3)" }),
+      page.getByRole("button", { name: "Copy feedback (3)" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Remove feedback 3" }).click();
-    await page.getByRole("button", { name: "Copy agent prompt (2)" }).click();
+    await page.getByRole("button", { name: "Copy feedback (2)" }).click();
     await expect(
-      page.getByRole("button", { name: "Prompt copied" }),
+      page.getByRole("button", { name: "Feedback copied" }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Feedback 2", exact: true }),
@@ -135,16 +138,16 @@ test.describe.serial("local plan feedback", () => {
     await expect(page.getByText("Live · r2")).toBeVisible({ timeout: 2_000 });
     await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Copy agent prompt (2)" }),
+      page.getByRole("button", { name: "Copy feedback (2)" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Target changed since revision 1"),
+      page.getByText("This location has changed since you commented."),
     ).toBeVisible();
     await expect(
-      page.getByText("Target disappeared after revision 1"),
+      page.getByText("This location is no longer in the plan."),
     ).toBeVisible();
     await page.getByLabel("It helped").check();
-    await page.getByRole("button", { name: "Copy agent prompt (2)" }).click();
+    await page.getByRole("button", { name: "Copy feedback (2)" }).click();
     const prompt = await page.evaluate(() => navigator.clipboard.readText());
     expect(prompt).toContain(privateText);
     expect(prompt).toContain("Observed internal revision: 1");
@@ -209,7 +212,7 @@ test.describe.serial("local plan feedback", () => {
     await page
       .getByRole("textbox", { name: "Requested change for feedback 1" })
       .fill("Clarify the recovery path.");
-    await page.getByRole("button", { name: "Copy agent prompt (1)" }).click();
+    await page.getByRole("button", { name: "Copy feedback (1)" }).click();
     const manual = page.getByRole("textbox", {
       name: "Agent prompt for manual copy",
     });

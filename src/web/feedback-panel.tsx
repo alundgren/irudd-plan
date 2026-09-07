@@ -1,17 +1,9 @@
-import {
-  Check,
-  Clipboard,
-  MapPin,
-  MessageSquareText,
-  Trash2,
-  X,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, Clipboard, MapPin, MessageSquareText, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Plan } from "../contract/plan.js";
 import {
   buildRevisionPrompt,
-  describeTarget,
   type FeedbackItem,
   targetStatus,
   type TrialAssessment,
@@ -23,6 +15,8 @@ interface FeedbackPanelProps {
   readonly version: number;
   readonly items: ReadonlyArray<FeedbackItem>;
   readonly storageError?: string;
+  readonly selectedItem?: FeedbackItem;
+  readonly onSelect: (item: FeedbackItem) => void;
   readonly pinningCanvas: boolean;
   readonly trialAssessment?: TrialAssessment;
   readonly onClose: () => void;
@@ -37,6 +31,8 @@ export function FeedbackPanel({
   version,
   items,
   storageError,
+  selectedItem,
+  onSelect,
   pinningCanvas,
   trialAssessment,
   onClose,
@@ -54,51 +50,58 @@ export function FeedbackPanel({
       className="feedback-panel nodrag nopan nowheel"
       aria-label="Pending feedback"
     >
-      <PanelHeader onClose={onClose} />
-
-      <p className="feedback-explanation">
-        Nothing is submitted. Copy a prompt when these notes are ready for an
-        agent.
-      </p>
-      {storageError === undefined ? null : (
-        <p className="feedback-warning" role="alert">
-          {storageError}
-        </p>
-      )}
-
-      <Button
-        variant="outline"
-        className={pinningCanvas ? "pinning" : ""}
-        onClick={onStartCanvasPin}
-      >
-        <MapPin aria-hidden="true" size={15} />
-        {pinningCanvas ? "Click a blank canvas area" : "Pin a canvas area"}
-      </Button>
-
-      <FeedbackList
-        items={items}
-        plan={plan}
-        onUpdate={onUpdate}
-        onRemove={onRemove}
-      />
-
-      {hasChangedTarget ? (
-        <TrialQuestion
-          {...(trialAssessment === undefined ? {} : { trialAssessment })}
-          onAssess={onAssessTrial}
+      <PanelHeader count={items.length} onClose={onClose} />
+      <div className="feedback-list">
+        <Button
+          variant="outline"
+          className={pinningCanvas ? "pinning" : ""}
+          onClick={onStartCanvasPin}
+        >
+          <MapPin aria-hidden="true" size={15} />
+          {pinningCanvas ? "Click a blank canvas area" : "Pin a canvas area"}
+        </Button>
+        <FeedbackList
+          items={items}
+          plan={plan}
+          onUpdate={onUpdate}
+          onRemove={onRemove}
+          {...(selectedItem === undefined ? {} : { selectedItem })}
+          onSelect={onSelect}
         />
-      ) : null}
-      <CopyPromptSection plan={plan} version={version} items={items} />
+        {hasChangedTarget ? (
+          <TrialQuestion
+            {...(trialAssessment === undefined ? {} : { trialAssessment })}
+            onAssess={onAssessTrial}
+          />
+        ) : null}
+      </div>
+      <CopyPromptSection
+        plan={plan}
+        version={version}
+        items={items}
+        {...(storageError === undefined ? {} : { storageError })}
+      />
     </aside>
   );
 }
 
-function PanelHeader({ onClose }: { readonly onClose: () => void }) {
+function PanelHeader({
+  count,
+  onClose,
+}: {
+  readonly count: number;
+  readonly onClose: () => void;
+}) {
   return (
-    <header>
+    <header className="feedback-heading">
       <div>
-        <p className="eyebrow">Browser-local draft</p>
-        <h2>Pending feedback</h2>
+        <p className="eyebrow">Next refinement</p>
+        <h2>
+          Pending feedback <span>{count}</span>
+        </h2>
+        <p className="feedback-explanation">
+          Gather your comments, then paste them into the agent chat together.
+        </p>
       </div>
       <Button
         variant="ghost"
@@ -117,9 +120,14 @@ function FeedbackList({
   plan,
   onUpdate,
   onRemove,
-}: Pick<FeedbackPanelProps, "items" | "plan" | "onUpdate" | "onRemove">) {
+  selectedItem,
+  onSelect,
+}: Pick<
+  FeedbackPanelProps,
+  "items" | "plan" | "onUpdate" | "onRemove" | "selectedItem" | "onSelect"
+>) {
   return (
-    <div className="feedback-list">
+    <div>
       {items.length === 0 ? (
         <div className="feedback-empty">
           <MessageSquareText aria-hidden="true" size={20} />
@@ -134,6 +142,10 @@ function FeedbackList({
             plan={plan}
             onUpdate={onUpdate}
             onRemove={onRemove}
+            {...(selectedItem?.id === item.id
+              ? { selected: selectedItem }
+              : {})}
+            onSelect={onSelect}
           />
         ))
       )}
@@ -177,7 +189,8 @@ function CopyPromptSection({
   plan,
   version,
   items,
-}: Pick<FeedbackPanelProps, "plan" | "version" | "items">) {
+  storageError,
+}: Pick<FeedbackPanelProps, "plan" | "version" | "items" | "storageError">) {
   const [copiedPrompt, setCopiedPrompt] = useState<string | undefined>();
   const [manualCopy, setManualCopy] = useState(false);
   const prompt = useMemo(
@@ -199,7 +212,14 @@ function CopyPromptSection({
     }
   };
   return (
-    <div className="feedback-copy">
+    <footer className="feedback-copy">
+      {storageError === undefined ? (
+        <p>Comments stay in this browser. Nothing is sent automatically.</p>
+      ) : (
+        <p className="feedback-warning" role="alert">
+          {storageError} Nothing is sent automatically.
+        </p>
+      )}
       <Button disabled={describedCount === 0} onClick={() => void copy()}>
         {isCopied ? (
           <Check aria-hidden="true" size={15} />
@@ -207,8 +227,8 @@ function CopyPromptSection({
           <Clipboard aria-hidden="true" size={15} />
         )}
         {isCopied
-          ? "Prompt copied"
-          : `Copy agent prompt${describedCount === 0 ? "" : ` (${describedCount})`}`}
+          ? "Feedback copied"
+          : `Copy feedback${describedCount === 0 ? "" : ` (${describedCount})`}`}
       </Button>
       {manualCopy ? (
         <div className="manual-copy" role="alert">
@@ -221,7 +241,7 @@ function CopyPromptSection({
           />
         </div>
       ) : null}
-    </div>
+    </footer>
   );
 }
 
@@ -231,55 +251,94 @@ function FeedbackEditor({
   plan,
   onUpdate,
   onRemove,
+  selected,
+  onSelect,
 }: {
   readonly item: FeedbackItem;
   readonly number: number;
   readonly plan: Plan;
   readonly onUpdate: (id: string, requestedChange: string) => void;
   readonly onRemove: (id: string) => void;
+  readonly selected?: FeedbackItem;
+  readonly onSelect: (item: FeedbackItem) => void;
 }) {
   const status = targetStatus(item, plan);
+  const [editing, setEditing] = useState(item.requestedChange === "");
+  const row = useRef<HTMLElement>(null);
+  const editor = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (editing) editor.current?.focus({ preventScroll: true });
+  }, [editing]);
+  useEffect(() => {
+    if (!selected || row.current === null) return;
+    const list = row.current.closest(".feedback-list");
+    if (list === null) return;
+    list.scrollTop +=
+      row.current.getBoundingClientRect().top -
+      list.getBoundingClientRect().top;
+  }, [selected]);
   return (
-    <article className="feedback-editor">
-      <header>
-        <div>
-          <span className="feedback-number">{number}</span>
-          <strong>{describeTarget(item.target)}</strong>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
+    <article
+      ref={row}
+      className={`feedback-editor ${selected ? "selected" : ""}`}
+    >
+      <button
+        type="button"
+        className="feedback-location"
+        aria-pressed={selected !== undefined}
+        onClick={() => onSelect(item)}
+      >
+        <span className="feedback-number">{number}.</span>{" "}
+        {readableLocation(item, plan)}
+      </button>
+      {status === "current" ? null : (
+        <p className={`target-status ${status}`} role="status">
+          {status === "changed"
+            ? "This location has changed since you commented. The copied feedback keeps your original reference."
+            : "This location is no longer in the plan. The copied feedback keeps your original reference."}
+        </p>
+      )}
+      {editing ? (
+        <label>
+          Your feedback
+          <textarea
+            ref={editor}
+            aria-label={`Requested change for feedback ${number}`}
+            value={item.requestedChange}
+            onChange={(event) => onUpdate(item.id, event.currentTarget.value)}
+            placeholder="Describe what the agent should revise"
+          />
+        </label>
+      ) : (
+        <p className="feedback-body">{item.requestedChange || "Empty draft"}</p>
+      )}
+      <div className="feedback-actions">
+        <button
+          type="button"
+          aria-label={`${editing ? "Done editing" : "Edit"} feedback ${number}`}
+          onClick={() => setEditing(!editing)}
+        >
+          {editing ? "Done" : "Edit"}
+        </button>
+        <button
+          type="button"
           aria-label={`Remove feedback ${number}`}
           onClick={() => onRemove(item.id)}
         >
-          <Trash2 aria-hidden="true" size={15} />
-        </Button>
-      </header>
-      <p className={`target-status ${status}`}>
-        {status === "current"
-          ? `Reviewed at revision ${item.observedVersion}`
-          : status === "changed"
-            ? `Target changed since revision ${item.observedVersion}`
-            : `Target disappeared after revision ${item.observedVersion}`}
-      </p>
-      <p className="original-reference">{originalReference(item)}</p>
-      <label>
-        Requested change
-        <textarea
-          aria-label={`Requested change for feedback ${number}`}
-          value={item.requestedChange}
-          onChange={(event) => onUpdate(item.id, event.currentTarget.value)}
-          placeholder="Describe what the agent should revise"
-        />
-      </label>
+          Remove
+        </button>
+      </div>
     </article>
   );
 }
 
-function originalReference(item: FeedbackItem): string {
-  if (item.target.kind === "section") return item.target.originalExcerpt;
-  if (item.target.kind === "asset") {
-    return `${item.target.caption} · ${item.target.assetDigest}`;
-  }
-  return `Canvas coordinates ${Math.round(item.target.x)}, ${Math.round(item.target.y)}`;
+function readableLocation(item: FeedbackItem, plan: Plan): string {
+  const target = item.target;
+  if (target.kind === "canvas") return "Canvas area";
+  const title =
+    target.itemId === undefined
+      ? "Plan overview"
+      : (plan.items.find((candidate) => candidate.id === target.itemId)
+          ?.title ?? "Removed work item");
+  return `${title} · ${target.kind === "asset" ? target.caption : target.label}`;
 }

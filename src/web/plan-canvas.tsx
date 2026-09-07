@@ -21,7 +21,11 @@ import { Compass } from "lucide-react";
 import { Button } from "./ui/button.js";
 
 import type { Plan, WorkItem } from "../contract/plan.js";
-import type { FeedbackItem, FeedbackTarget } from "./feedback.js";
+import {
+  type FeedbackItem,
+  type FeedbackTarget,
+  targetStatus,
+} from "./feedback.js";
 import { PlanSheet } from "./plan-sheet.js";
 
 interface PlanCanvasProps {
@@ -36,7 +40,8 @@ interface PlanCanvasProps {
     readonly x: number;
     readonly y: number;
   }) => void;
-  readonly onOpenFeedback: () => void;
+  readonly focusedFeedback?: FeedbackItem;
+  readonly onSelectFeedback: (item: FeedbackItem) => void;
 }
 
 interface SheetNodeData extends Record<string, unknown> {
@@ -70,7 +75,8 @@ function CanvasContents({
   onSelect,
   onAddFeedback,
   onCanvasPin,
-  onOpenFeedback,
+  focusedFeedback,
+  onSelectFeedback,
 }: PlanCanvasProps) {
   const flow = useReactFlow<SheetNode, Edge>();
   const selectedNodeId = selectedItemId ?? "overview";
@@ -171,7 +177,12 @@ function CanvasContents({
         position="bottom-right"
       />
       <CanvasNavigation selectedNodeId={selectedNodeId} onSelect={onSelect} />
-      <CanvasPins items={feedbackItems} onOpen={onOpenFeedback} />
+      <CanvasPins items={feedbackItems} onOpen={onSelectFeedback} />
+      <FeedbackFocus
+        plan={plan}
+        selectedNodeId={selectedNodeId}
+        {...(focusedFeedback === undefined ? {} : { item: focusedFeedback })}
+      />
     </ReactFlow>
   );
 }
@@ -221,7 +232,7 @@ function CanvasPins({
   onOpen,
 }: {
   readonly items: ReadonlyArray<FeedbackItem>;
-  readonly onOpen: () => void;
+  readonly onOpen: (item: FeedbackItem) => void;
 }) {
   const canvasItems = items
     .map((item, index) => ({ item, number: index + 1 }))
@@ -246,13 +257,84 @@ function CanvasPins({
           }}
           aria-label={`Open canvas feedback ${number}`}
           key={item.id}
-          onClick={onOpen}
+          onClick={() => onOpen(item)}
         >
           {number}
         </button>
       ))}
     </ViewportPortal>
   );
+}
+
+function FeedbackFocus({
+  plan,
+  selectedNodeId,
+  item,
+}: {
+  readonly plan: Plan;
+  readonly selectedNodeId: string;
+  readonly item?: FeedbackItem;
+}) {
+  const flow = useReactFlow();
+  const width = useStore((state) => state.width);
+  const height = useStore((state) => state.height);
+  const applied = useRef<FeedbackItem | undefined>(undefined);
+  useEffect(() => {
+    if (item === undefined || applied.current === item || width === 0) return;
+    if (targetStatus(item, plan) === "missing") {
+      applied.current = item;
+      return;
+    }
+    const target = item.target;
+    if (
+      target.kind !== "canvas" &&
+      selectedNodeId !== (target.itemId ?? "overview")
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      const viewport = flow.getViewport();
+      if (target.kind === "canvas") {
+        void flow.setViewport({
+          ...viewport,
+          x: width / 2 - target.x * viewport.zoom,
+          y: Math.min(200, height / 2) - target.y * viewport.zoom,
+        });
+      } else {
+        const sheet = document.querySelector<HTMLElement>(
+          ".plan-sheet.selected",
+        );
+        const attribute =
+          target.kind === "asset" ? "data-feedback-asset" : "data-section";
+        const value =
+          target.kind === "asset"
+            ? target.assetId
+            : target.sectionId === "header" || target.itemId === undefined
+              ? target.sectionId
+              : `${target.itemId}:${target.sectionId}`;
+        const element = Array.from(
+          sheet?.querySelectorAll<HTMLElement>(`[${attribute}]`) ?? [],
+        ).find((candidate) => candidate.getAttribute(attribute) === value);
+        if (element === undefined || sheet === null) return;
+        const zoom = Math.min(1, (width - 24) / sheet.offsetWidth);
+        const bounds = element.getBoundingClientRect();
+        const point = flow.screenToFlowPosition({
+          x: bounds.left,
+          y: bounds.top,
+        });
+        void flow.setViewport({
+          ...viewport,
+          x:
+            (width - (bounds.width / viewport.zoom) * zoom) / 2 -
+            point.x * zoom,
+          y: 100 - point.y * zoom,
+          zoom,
+        });
+      }
+      applied.current = item;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [flow, height, item, plan, selectedNodeId, width]);
+  return null;
 }
 
 function SheetNodeView({ data }: NodeProps<SheetNode>) {

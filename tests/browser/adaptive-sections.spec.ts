@@ -279,3 +279,49 @@ test("zooms into the nearest visible item and keeps explicit section selection",
     "item-2",
   );
 });
+
+test("item index opens and closes without starting feedback", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan");
+  const disclosure = page.locator("summary", { hasText: "Work item index" });
+  for (const open of [true, false]) {
+    await disclosure.click();
+    await expect(disclosure.locator("..")).toHaveJSProperty("open", open);
+    // Comment capture waits 300 ms to distinguish clicks from selection.
+    await page.waitForTimeout(400);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+});
+
+test("keyboard heading feedback retains the original item target", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan/items/item-1");
+  const action = page.locator(".frame-heading").getByRole("button", {
+    name: "Add feedback to Work item heading",
+    exact: true,
+  });
+  await action.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("textbox", { name: "About", exact: true }),
+  ).toHaveValue("Work item 1 · Work item heading");
+  await page
+    .getByRole("textbox", { name: "Your feedback", exact: true })
+    .fill("Clarify this heading");
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  const target = await page.evaluate(() => {
+    const key = Object.keys(localStorage).find((entry) =>
+      entry.endsWith(":browser-plan"),
+    )!;
+    return JSON.parse(localStorage.getItem(key)!).items[0].target;
+  });
+  expect(target).toMatchObject({
+    kind: "section",
+    itemId: "item-1",
+    sectionId: "header",
+    originalText: "Work item 1",
+    originalExcerpt: "Work item 1",
+  });
+});

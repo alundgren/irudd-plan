@@ -30,7 +30,7 @@ export function ItemFrame(
       data-frame-item={item.id}
       aria-label={`Section: ${item.title}`}
     >
-      <div className="frame-heading">
+      <div className="frame-heading" data-feedback-container>
         <button
           type="button"
           className="item-title-bar"

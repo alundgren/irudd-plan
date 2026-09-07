@@ -16,7 +16,7 @@ export function useCanvasTouch(viewport: RefObject<HTMLDivElement | null>) {
         event.touches.length === 1 &&
         point !== undefined &&
         !(event.target as Element).closest(
-          "button, a, input, textarea, select, iframe, [contenteditable]",
+          "button, a, input, textarea, select, summary, iframe, [contenteditable]",
         )
           ? {
               x: point.clientX,

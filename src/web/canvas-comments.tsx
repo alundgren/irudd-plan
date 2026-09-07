@@ -19,7 +19,7 @@ import {
 export type CanvasTool = "comment" | "pan";
 export const CanvasToolContext = createContext<CanvasTool>("comment");
 const controls =
-  "button, a, input, textarea, select, dialog, [contenteditable], [role=button]";
+  "button, a, input, textarea, select, summary, dialog, [contenteditable], [role=button]";
 
 export function relativePosition(
   element: Element,
@@ -109,7 +109,7 @@ export function CanvasComments({
         event.altKey ||
         !(event.target instanceof Element) ||
         event.target.closest(
-          "input, textarea, select, dialog, [contenteditable]",
+          "input, textarea, select, summary, dialog, [contenteditable]",
         )
       )
         return;

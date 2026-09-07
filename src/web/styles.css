@@ -257,10 +257,6 @@ summary {
   background: var(--panel);
 }
 
-.sheet-content {
-  cursor: text;
-}
-
 .plan-sheet section {
   position: relative;
   padding: 16px 0;
@@ -969,11 +965,12 @@ summary {
 }
 
 .comment-mode .react-flow__pane,
+.comment-mode .react-flow__node-sheet,
 .comment-mode .visual-comment-overlay {
   cursor: crosshair;
 }
 
-.pan-mode .plan-sheet,
+.pan-mode .react-flow__node-sheet,
 .pan-mode .react-flow__pane {
   cursor: grab;
 }

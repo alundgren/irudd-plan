@@ -128,7 +128,7 @@ function CanvasContents({
       aria-label="Plan canvas"
       className={pinningCanvas ? "pinning-feedback" : ""}
     >
-      <Background color="#cbd5e1" gap={24} size={1} />
+      <Background color="var(--line)" gap={20} size={1.6} />
       <Controls showInteractive={false} position="bottom-right" />
       <CanvasPins items={feedbackItems} onOpen={onOpenFeedback} />
     </ReactFlow>
@@ -244,7 +244,7 @@ function makeEdges(plan: Plan): Edge[] {
     target: item.id,
     type: "smoothstep",
     markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+    style: { stroke: "#C1AF9A", strokeWidth: 1.5 },
   }));
   const relatedEdges = plan.items.flatMap((item) =>
     item.relatedItemIds.map((target) => ({
@@ -252,7 +252,7 @@ function makeEdges(plan: Plan): Edge[] {
       source: item.id,
       target,
       type: "smoothstep",
-      style: { stroke: "#22a5a1", strokeDasharray: "5 5" },
+      style: { stroke: "#3D5D71", strokeDasharray: "5 5" },
     })),
   );
   return [...overviewEdges, ...relatedEdges];

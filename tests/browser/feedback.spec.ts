@@ -152,9 +152,9 @@ test.describe.serial("local plan feedback", () => {
     await page.setExtraHTTPHeaders({ authorization: "Bearer browser-b" });
     await page.reload();
     await expect(
-      page.getByRole("button", { name: "Feedback", exact: true }),
+      page.getByRole("button", { name: "Feedback 0", exact: true }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Feedback", exact: true }).click();
+    await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-editor")).toHaveCount(0);
     await page.setExtraHTTPHeaders({ authorization: "Bearer browser-a" });
     await page.reload();

@@ -1,5 +1,6 @@
+import { CanvasToolContext } from "./canvas-comments.js";
 import { MessageSquarePlus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import type { AssetDescriptor } from "../contract/plan.js";
 import { InteractiveDocument } from "./interactive-document.js";
@@ -20,6 +21,7 @@ export function AssetView({
   feedbackCount,
   onAddFeedback,
 }: AssetViewProps) {
+  const tool = useContext(CanvasToolContext);
   const publicRoute = window.location.pathname.match(
     /^\/public\/plans\/([^/]+)\/([^/]+)/,
   );
@@ -87,17 +89,20 @@ export function AssetView({
             onError={() => setFailed(true)}
           />
         )}
+        {tool === "comment" ? (
+          <div className="visual-comment-overlay" aria-hidden="true" />
+        ) : null}
+        <button
+          type="button"
+          className="feedback-target-control asset-feedback"
+          aria-label={`Add feedback to visual ${asset.caption}`}
+          title={`Add feedback to visual ${asset.caption}`}
+          onClick={onAddFeedback}
+        >
+          <MessageSquarePlus aria-hidden="true" size={14} />
+          Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
+        </button>
       </div>
-      <button
-        type="button"
-        className="feedback-target-control asset-feedback"
-        aria-label={`Add feedback to visual ${asset.caption}`}
-        title={`Add feedback to visual ${asset.caption}`}
-        onClick={onAddFeedback}
-      >
-        <MessageSquarePlus aria-hidden="true" size={14} />
-        Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
-      </button>
     </figure>
   );
 }

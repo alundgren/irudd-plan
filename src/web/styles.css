@@ -461,9 +461,8 @@ summary {
 }
 
 .asset-feedback {
-  margin-top: 24px;
-  height: auto;
-  padding: 8px 12px;
+  top: 0;
+  right: 0;
 }
 
 .svg-document {
@@ -486,12 +485,13 @@ summary {
 }
 
 .canvas-feedback-pin {
+  pointer-events: auto;
   position: absolute;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 2px solid var(--field);
-  border-radius: 50%;
+  border-radius: 50% 50% 50% 3px;
   color: var(--field);
   background: var(--accent);
   box-shadow: 0 4px 16px #60493912;
@@ -959,5 +959,181 @@ summary {
     bottom: 0;
     width: min(330px, 100%);
     box-shadow: -8px 0 24px #60493915;
+  }
+}
+
+.canvas-comments {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.comment-mode .react-flow__pane,
+.comment-mode .visual-comment-overlay {
+  cursor: crosshair;
+}
+
+.pan-mode .plan-sheet,
+.pan-mode .react-flow__pane {
+  cursor: grab;
+}
+
+.asset-frame,
+[data-feedback-container] {
+  position: relative;
+}
+
+.visual-comment-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.feedback-target-control,
+.keyboard-comment {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.feedback-target-control:focus-visible,
+.keyboard-comment:focus-visible {
+  position: absolute;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  padding: 8px 12px;
+  z-index: 30;
+  background: var(--field);
+}
+
+.feedback-target-control:focus-visible {
+  right: 0;
+  top: 0;
+}
+
+.keyboard-comment:focus-visible {
+  bottom: 100%;
+  left: 0;
+}
+
+.canvas-feedback-pin {
+  z-index: 20;
+  transform-origin: 0 0;
+}
+
+.canvas-feedback-pin:hover,
+.canvas-feedback-pin.selected {
+  background: var(--link);
+}
+
+.react-flow__panel.canvas-tools {
+  bottom: 24px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--bg);
+  box-shadow: 0 4px 16px #60493912;
+  white-space: nowrap;
+}
+
+.canvas-tools button {
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  font-size: 13.5px;
+}
+
+.canvas-tools button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--field);
+}
+
+.canvas-tools kbd {
+  margin-left: 5px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.tool-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: var(--line);
+}
+
+.canvas-hint {
+  color: var(--muted);
+  font-size: 13.5px;
+  pointer-events: none;
+  max-width: calc(100% - 130px);
+  text-align: right;
+}
+
+.feedback-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.feedback-dialog::backdrop {
+  background: #60493955;
+}
+
+.feedback-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.feedback-dialog label {
+  font-size: 13.5px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.feedback-dialog input,
+.feedback-dialog textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field);
+  color: var(--text);
+  font:
+    16px/1.6 system-ui,
+    sans-serif;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 440px) {
+  .react-flow__panel.canvas-tools {
+    bottom: 18px;
+  }
+  .canvas-tools button {
+    padding: 8px;
+  }
+  .canvas-tools kbd {
+    display: none;
   }
 }

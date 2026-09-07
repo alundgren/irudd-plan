@@ -1,3 +1,4 @@
+import { FeedbackDialog } from "./feedback-dialog.js";
 import {
   AlertTriangle,
   ListTree,
@@ -18,7 +19,7 @@ import {
   type FeedbackTarget,
   type FeedbackItem,
   newFeedbackItem,
-  targetStatus,
+  feedbackSubject,
 } from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
 import { Button } from "./ui/button.js";
@@ -116,10 +117,20 @@ function PlanWorkspace({
   readonly onShowPlans: () => void;
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [pinningCanvas, setPinningCanvas] = useState(false);
+  const [composer, setComposer] = useState<{
+    item: FeedbackItem;
+    editing: boolean;
+  }>();
   const [selectedFeedback, setSelectedFeedback] = useState<
     FeedbackItem | undefined
   >();
+  const [feedbackToReveal, setFeedbackToReveal] = useState<FeedbackItem>();
+  const selectFeedback = (item: FeedbackItem) => {
+    const selection = { ...item };
+    setSelectedFeedback(selection);
+    setFeedbackToReveal(selection);
+    setFeedbackOpen(true);
+  };
   const {
     state: feedbackState,
     storageError,
@@ -135,12 +146,12 @@ function PlanWorkspace({
         document.version,
         target,
       );
-      add(item);
-      setSelectedFeedback(item);
-      setFeedbackOpen(true);
-      setPinningCanvas(false);
+      setComposer({
+        item: { ...item, subject: feedbackSubject(target, document.plan) },
+        editing: false,
+      });
     },
-    [add, document.plan.planId, document.version],
+    [document.plan, document.version],
   );
   const selectionDeleted =
     itemId !== undefined &&
@@ -162,7 +173,6 @@ function PlanWorkspace({
         feedbackOpen={feedbackOpen}
         onOpenFeedback={() => {
           setFeedbackOpen(!feedbackOpen);
-          setPinningCanvas(false);
         }}
       />
       {selectionDeleted ? (
@@ -178,17 +188,15 @@ function PlanWorkspace({
             : { selectedItemId: itemId })}
           changedSections={changedSections}
           feedbackItems={feedbackState.items}
-          pinningCanvas={pinningCanvas}
           onSelect={onSelect}
           onAddFeedback={addFeedback}
-          onCanvasPin={({ x, y }) => addFeedback({ kind: "canvas", x, y })}
+          {...(feedbackToReveal === undefined
+            ? {}
+            : { focusedFeedback: feedbackToReveal })}
           {...(selectedFeedback === undefined
             ? {}
-            : { focusedFeedback: selectedFeedback })}
-          onSelectFeedback={(item) => {
-            setSelectedFeedback({ ...item });
-            setFeedbackOpen(true);
-          }}
+            : { selectedFeedbackId: selectedFeedback.id })}
+          onSelectFeedback={selectFeedback}
         />
         {feedbackOpen ? (
           <FeedbackPanel
@@ -196,32 +204,48 @@ function PlanWorkspace({
             version={document.version}
             items={feedbackState.items}
             {...(storageError === undefined ? {} : { storageError })}
-            pinningCanvas={pinningCanvas}
             {...(feedbackState.trialAssessment === undefined
               ? {}
               : { trialAssessment: feedbackState.trialAssessment })}
             onClose={() => {
               setFeedbackOpen(false);
-              setPinningCanvas(false);
             }}
-            onStartCanvasPin={() => setPinningCanvas((value) => !value)}
             {...(selectedFeedback === undefined
               ? {}
               : { selectedItem: selectedFeedback })}
-            onSelect={(item) => {
-              setSelectedFeedback({ ...item });
-              if (
-                targetStatus(item, document.plan) !== "missing" &&
-                item.target.kind !== "canvas"
-              )
-                onSelect(item.target.itemId);
-            }}
-            onUpdate={update}
+            onSelect={selectFeedback}
+            onEdit={(item) =>
+              setComposer({
+                item: {
+                  ...item,
+                  subject:
+                    item.subject ?? feedbackSubject(item.target, document.plan),
+                },
+                editing: true,
+              })
+            }
             onRemove={remove}
             onAssessTrial={assessTrial}
           />
         ) : null}
       </div>
+      {composer === undefined ? null : (
+        <FeedbackDialog
+          key={composer.item.id}
+          item={composer.item}
+          editing={composer.editing}
+          onClose={() => setComposer(undefined)}
+          onSave={(item) => {
+            if (composer.editing)
+              update(item.id, item.requestedChange, item.subject ?? "");
+            else add(item);
+            setComposer(undefined);
+            setSelectedFeedback(item);
+            setFeedbackToReveal(undefined);
+            setFeedbackOpen(true);
+          }}
+        />
+      )}
     </main>
   );
 }

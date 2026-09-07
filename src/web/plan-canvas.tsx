@@ -1,15 +1,15 @@
+import { CanvasComments, type CanvasTool } from "./canvas-comments.js";
+import { CanvasTools } from "./canvas-tools.js";
+import { feedbackElement, FeedbackPins } from "./feedback-pins.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
-  Controls,
   Handle,
-  getViewportForBounds,
   MarkerType,
   Position,
   Panel,
   ReactFlow,
   ReactFlowProvider,
-  ViewportPortal,
   type Edge,
   type Node,
   type NodeProps,
@@ -35,14 +35,10 @@ interface PlanCanvasProps {
   readonly selectedItemId?: string;
   readonly changedSections: ReadonlySet<string>;
   readonly feedbackItems: ReadonlyArray<FeedbackItem>;
-  readonly pinningCanvas: boolean;
   readonly onSelect: (itemId?: string) => void;
   readonly onAddFeedback: (target: FeedbackTarget) => void;
-  readonly onCanvasPin: (location: {
-    readonly x: number;
-    readonly y: number;
-  }) => void;
   readonly focusedFeedback?: FeedbackItem;
+  readonly selectedFeedbackId?: string;
   readonly onSelectFeedback: (item: FeedbackItem) => void;
 }
 
@@ -75,14 +71,14 @@ function CanvasContents({
   selectedItemId,
   changedSections,
   feedbackItems,
-  pinningCanvas,
   onSelect,
   onAddFeedback,
-  onCanvasPin,
   focusedFeedback,
+  selectedFeedbackId,
   onSelectFeedback,
 }: PlanCanvasProps) {
   const flow = useReactFlow<SheetNode, Edge>();
+  const [tool, setTool] = useState<CanvasTool>("comment");
   const [focusRequest, setFocusRequest] = useState(0);
   const [reference, setReference] = useState<{
     itemId: string;
@@ -198,46 +194,56 @@ function CanvasContents({
   }, [canvasWidth, flow, sheetWidth, sheetX, selectedNodeId, focusRequest]);
 
   return (
-    <ReactFlow<SheetNode, Edge>
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      elementsSelectable
-      minZoom={0.02}
-      maxZoom={1.4}
-      panOnScroll
-      zoomOnDoubleClick={false}
-      preventScrolling
-      panOnDrag={!pinningCanvas}
-      onPaneClick={(event) => {
-        if (!pinningCanvas) return;
-        onCanvasPin(
-          flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
-        );
-      }}
-      proOptions={{ hideAttribution: true }}
-      aria-label="Plan canvas"
-      className={pinningCanvas ? "pinning-feedback" : ""}
+    <CanvasComments
+      plan={plan}
+      tool={tool}
+      onTool={setTool}
+      onAdd={onAddFeedback}
     >
-      <Background color="var(--line)" gap={20} size={1.6} />
-      <Controls
-        showInteractive={false}
-        showFitView={false}
-        position="bottom-right"
-      />
-      <CanvasNavigation selectedNodeId={selectedNodeId} onSelect={selectItem} />
-      <CanvasPins items={feedbackItems} onOpen={onSelectFeedback} />
-      <FeedbackFocus
-        plan={plan}
-        selectedNodeId={selectedNodeId}
-        {...(sheetWidth === undefined ? {} : { sheetWidth })}
-        onSelect={selectItem}
-        onReference={selectReference}
-        {...(focusedFeedback === undefined ? {} : { item: focusedFeedback })}
-      />
-    </ReactFlow>
+      <ReactFlow<SheetNode, Edge>
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
+        minZoom={0.02}
+        maxZoom={1.4}
+        panOnScroll
+        zoomOnDoubleClick={false}
+        preventScrolling
+        panOnDrag={false}
+        proOptions={{ hideAttribution: true }}
+        aria-label="Plan canvas"
+      >
+        <Background color="var(--line)" gap={20} size={1.6} />
+        <CanvasNavigation
+          selectedNodeId={selectedNodeId}
+          onSelect={selectItem}
+        />
+        <CanvasTools
+          tool={tool}
+          onTool={setTool}
+          onAddCanvas={(point) => onAddFeedback({ kind: "canvas", ...point })}
+        />
+        <FeedbackPins
+          plan={plan}
+          items={feedbackItems}
+          {...(selectedFeedbackId === undefined
+            ? {}
+            : { selectedId: selectedFeedbackId })}
+          onOpen={onSelectFeedback}
+        />
+        <FeedbackFocus
+          plan={plan}
+          selectedNodeId={selectedNodeId}
+          {...(sheetWidth === undefined ? {} : { sheetWidth })}
+          onSelect={selectItem}
+          onReference={selectReference}
+          {...(focusedFeedback === undefined ? {} : { item: focusedFeedback })}
+        />
+      </ReactFlow>
+    </CanvasComments>
   );
 }
 
@@ -248,75 +254,12 @@ function CanvasNavigation({
   readonly selectedNodeId: string;
   readonly onSelect: (itemId?: string) => void;
 }) {
-  const flow = useReactFlow();
-  const canvasWidth = useStore((state) => state.width);
-  const canvasHeight = useStore((state) => state.height);
-  return (
+  return selectedNodeId === sheetNodeId() ? null : (
     <Panel position="top-left" className="canvas-navigation">
-      {selectedNodeId === sheetNodeId() ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            void flow.setViewport(
-              getViewportForBounds(
-                flow.getNodesBounds(flow.getNodes().map((node) => node.id)),
-                canvasWidth,
-                canvasHeight,
-                0.02,
-                1,
-                0.12,
-              ),
-            )
-          }
-        >
-          Fit all
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" onClick={() => onSelect()}>
-          <Compass aria-hidden="true" size={14} /> Overview
-        </Button>
-      )}
+      <Button variant="outline" size="sm" onClick={() => onSelect()}>
+        <Compass aria-hidden="true" size={14} /> Overview
+      </Button>
     </Panel>
-  );
-}
-
-function CanvasPins({
-  items,
-  onOpen,
-}: {
-  readonly items: ReadonlyArray<FeedbackItem>;
-  readonly onOpen: (item: FeedbackItem) => void;
-}) {
-  const canvasItems = items
-    .map((item, index) => ({ item, number: index + 1 }))
-    .filter(
-      (
-        entry,
-      ): entry is {
-        item: FeedbackItem & {
-          target: { kind: "canvas"; x: number; y: number };
-        };
-        number: number;
-      } => entry.item.target.kind === "canvas",
-    );
-  return (
-    <ViewportPortal>
-      {canvasItems.map(({ item, number }) => (
-        <button
-          type="button"
-          className="canvas-feedback-pin nodrag nopan"
-          style={{
-            transform: `translate(${item.target.x}px, ${item.target.y}px)`,
-          }}
-          aria-label={`Open canvas feedback ${number}`}
-          key={item.id}
-          onClick={() => onOpen(item)}
-        >
-          {number}
-        </button>
-      ))}
-    </ViewportPortal>
   );
 }
 
@@ -341,7 +284,7 @@ function FeedbackFocus({
   const applied = useRef<FeedbackItem | undefined>(undefined);
   useEffect(() => {
     if (item === undefined || applied.current === item || width === 0) return;
-    if (targetStatus(item, plan) === "missing") {
+    if (targetStatus(item, plan) !== "current") {
       applied.current = item;
       return;
     }
@@ -372,28 +315,20 @@ function FeedbackFocus({
         const sheet = document.querySelector<HTMLElement>(
           ".plan-sheet.selected",
         );
-        const attribute =
-          target.kind === "asset" ? "data-feedback-asset" : "data-section";
-        const value =
-          target.kind === "asset"
-            ? target.assetId
-            : target.sectionId === "header" || target.itemId === undefined
-              ? target.sectionId
-              : `${target.itemId}:${target.sectionId}`;
-        const element = Array.from(
-          sheet?.querySelectorAll<HTMLElement>(`[${attribute}]`) ?? [],
-        ).find((candidate) => candidate.getAttribute(attribute) === value);
+        const element = feedbackElement(target);
         if (element === undefined || sheet === null) return;
         const zoom = Math.min(1, (width - 24) / sheet.offsetWidth);
         const bounds = element.getBoundingClientRect();
         const point = flow.screenToFlowPosition({
-          x: bounds.left,
-          y: bounds.top,
+          x: bounds.left + bounds.width * (target.position?.x ?? 0),
+          y: bounds.top + bounds.height * (target.position?.y ?? 0),
         });
         void flow.setViewport({
           ...viewport,
           x:
-            (width - (bounds.width / viewport.zoom) * zoom) / 2 -
+            (target.position === undefined
+              ? (width - (bounds.width / viewport.zoom) * zoom) / 2
+              : width / 2) -
             point.x * zoom,
           y: 100 - point.y * zoom,
           zoom,
@@ -417,70 +352,8 @@ function FeedbackFocus({
 }
 
 function SheetNodeView({ data }: NodeProps<SheetNode>) {
-  const flow = useReactFlow();
-  const container = useRef<HTMLDivElement>(null);
-  const touch = useRef<
-    | { x: number; y: number; viewport: ReturnType<typeof flow.getViewport> }
-    | undefined
-  >(undefined);
-  useEffect(() => {
-    const sheet = container.current?.querySelector<HTMLElement>(".plan-sheet");
-    const stopPanning = () => {
-      touch.current = undefined;
-    };
-    const pan = (event: TouchEvent) => {
-      const start = touch.current;
-      const point = event.touches[0];
-      if (
-        event.touches.length !== 1 ||
-        window.getSelection()?.isCollapsed === false
-      )
-        touch.current = undefined;
-      if (
-        touch.current === undefined ||
-        start === undefined ||
-        point === undefined
-      )
-        return;
-      event.preventDefault();
-      void flow.setViewport({
-        ...start.viewport,
-        x: start.viewport.x + point.clientX - start.x,
-        y: start.viewport.y + point.clientY - start.y,
-      });
-    };
-    sheet?.addEventListener("selectstart", stopPanning);
-    sheet?.addEventListener("touchmove", pan, { passive: false });
-    return () => {
-      sheet?.removeEventListener("selectstart", stopPanning);
-      sheet?.removeEventListener("touchmove", pan);
-    };
-  }, [flow]);
   return (
-    <div
-      ref={container}
-      onTouchStart={(event) => {
-        const point = event.touches[0];
-        touch.current =
-          event.touches.length === 1 &&
-          point !== undefined &&
-          !(event.target as Element).closest(
-            "button, a, input, textarea, select, iframe",
-          )
-            ? {
-                x: point.clientX,
-                y: point.clientY,
-                viewport: flow.getViewport(),
-              }
-            : undefined;
-      }}
-      onTouchEnd={() => {
-        touch.current = undefined;
-      }}
-      onTouchCancel={() => {
-        touch.current = undefined;
-      }}
-    >
+    <div>
       <Handle
         type="target"
         position={Position.Left}

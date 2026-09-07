@@ -74,11 +74,11 @@ export function useLocalFeedback(
     [save, state],
   );
   const update = useCallback(
-    (id: string, requestedChange: string) =>
+    (id: string, requestedChange: string, subject: string) =>
       save({
         ...state,
         items: state.items.map((item) =>
-          item.id === id ? { ...item, requestedChange } : item,
+          item.id === id ? { ...item, requestedChange, subject } : item,
         ),
       }),
     [save, state],

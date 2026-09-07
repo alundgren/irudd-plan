@@ -167,6 +167,38 @@ describe("browser-local feedback", () => {
       ),
     ).toEqual({ items: [] });
   });
+
+  it("loads old notes with positioned notes and copies subjects without changing references", () => {
+    const old = sectionFeedback("Original section");
+    if (old.target.kind !== "section")
+      throw new Error("Expected section fixture");
+    const positioned: FeedbackItem = {
+      ...old,
+      id: "positioned",
+      subject: "Clarify the next step",
+      target: { ...old.target, position: { x: 0.25, y: 0.75 } },
+    };
+    const loaded = parseFeedbackState(
+      JSON.stringify({ items: [old, positioned] }),
+    );
+    expect(loaded.items).toEqual([old, positioned]);
+    const prompt = buildRevisionPrompt(
+      tenItemPlan("feedback-plan"),
+      2,
+      loaded.items,
+    );
+    expect(prompt).toContain('About: "Clarify the next step"');
+    expect(prompt).toContain("Pin: 25.0% from left, 75.0% from top of section");
+    expect(prompt).toContain("Original excerpt occurrence 1");
+    expect(prompt).toContain("Observed internal revision: 1");
+    const invalid = {
+      ...positioned,
+      target: { ...old.target, position: { x: -1, y: 0.5 } },
+    };
+    expect(
+      parseFeedbackState(JSON.stringify({ items: [old, invalid] })).items,
+    ).toEqual([old]);
+  });
 });
 
 function sectionFeedback(originalText: string): FeedbackItem {

@@ -3,7 +3,13 @@ import { collectRequiredContent } from "./required-content.js";
 
 export type FeedbackTarget = SectionTarget | AssetTarget | CanvasTarget;
 
+export interface FeedbackPosition {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface SectionTarget {
+  readonly position?: FeedbackPosition;
   readonly kind: "section";
   readonly itemId?: string;
   readonly sectionId: string;
@@ -14,6 +20,7 @@ export interface SectionTarget {
 }
 
 export interface AssetTarget {
+  readonly position?: FeedbackPosition;
   readonly kind: "asset";
   readonly itemId: string;
   readonly sectionId: string;
@@ -35,6 +42,7 @@ export interface FeedbackItem {
   readonly createdAt: string;
   readonly target: FeedbackTarget;
   readonly requestedChange: string;
+  readonly subject?: string;
 }
 
 export type TrialAssessment = "helpful" | "hindered";
@@ -189,6 +197,14 @@ export function buildRevisionPrompt(
           : `Original location: x=${item.target.x.toFixed(1)}, y=${item.target.y.toFixed(1)}`;
     return [
       `${index + 1}. Target: ${describeTarget(item.target)}`,
+      ...(item.subject === undefined
+        ? []
+        : [`   About: ${JSON.stringify(item.subject)}`]),
+      ...(item.target.kind === "canvas" || item.target.position === undefined
+        ? []
+        : [
+            `   Pin: ${(item.target.position.x * 100).toFixed(1)}% from left, ${(item.target.position.y * 100).toFixed(1)}% from top of ${item.target.kind === "asset" ? "visual" : "section"}`,
+          ]),
       `   Observed internal revision: ${item.observedVersion}`,
       `   Current target status: ${status}`,
       `   ${reference}`,
@@ -230,6 +246,7 @@ function isFeedbackItem(value: unknown): value is FeedbackItem {
     typeof value.observedVersion === "number" &&
     typeof value.createdAt === "string" &&
     typeof value.requestedChange === "string" &&
+    (value.subject === undefined || typeof value.subject === "string") &&
     isFeedbackTarget(value.target)
   );
 }
@@ -237,8 +254,9 @@ function isFeedbackItem(value: unknown): value is FeedbackItem {
 function isFeedbackTarget(value: unknown): value is FeedbackTarget {
   if (!isRecord(value)) return false;
   if (value.kind === "canvas") {
-    return typeof value.x === "number" && typeof value.y === "number";
+    return Number.isFinite(value.x) && Number.isFinite(value.y);
   }
+  if (value.position !== undefined && !isPosition(value.position)) return false;
   if (value.kind === "asset") {
     return [
       value.itemId,
@@ -261,4 +279,30 @@ function isFeedbackTarget(value: unknown): value is FeedbackTarget {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isPosition(value: unknown): value is FeedbackPosition {
+  return (
+    isRecord(value) &&
+    [value.x, value.y].every(
+      (coordinate) =>
+        typeof coordinate === "number" &&
+        Number.isFinite(coordinate) &&
+        coordinate >= 0 &&
+        coordinate <= 1,
+    )
+  );
+}
+
+export function feedbackSubject(target: FeedbackTarget, plan: Plan): string {
+  if (target.kind === "canvas") return "Canvas area";
+  const title =
+    target.itemId === undefined
+      ? "Plan overview"
+      : (plan.items.find((item) => item.id === target.itemId)?.title ??
+        "Removed work item");
+  return `${title} · ${target.kind === "asset" ? target.caption : target.label}`.slice(
+    0,
+    300,
+  );
 }

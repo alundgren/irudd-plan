@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  CircleDot,
   ListTree,
   MessageSquareText,
   RefreshCw,
@@ -17,7 +16,6 @@ import { RetentionNotice } from "./retention-notice.js";
 import { FeedbackPanel } from "./feedback-panel.js";
 import { type FeedbackTarget, newFeedbackItem } from "./feedback.js";
 import { PlanCanvas } from "./plan-canvas.js";
-import { Badge } from "./ui/badge.js";
 import { Button } from "./ui/button.js";
 import { type ConnectionState, useLivePlan } from "./use-live-plan.js";
 import { useLocalFeedback } from "./use-local-feedback.js";
@@ -289,41 +287,60 @@ function ReviewHeader({
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   return (
     <header className="review-header">
       <Button variant="ghost" size="sm" onClick={onShowPlans}>
         <ListTree aria-hidden="true" size={16} />
         {isPublic ? "Overview" : "Plans"}
       </Button>
-      <div>
-        <p className="eyebrow">
-          {plan.repository.owner}/{plan.repository.name}
-        </p>
-        <h1>{plan.epicGoal}</h1>
-      </div>
-      <div className="review-header-actions">
-        <Badge className={`connection ${connection}`}>
+      <h1 title={plan.epicGoal}>{plan.epicGoal}</h1>
+      <div className="review-header-status" role="status">
+        <span className={`connection ${connection}`}>
           {connection === "live" ? (
-            <CircleDot aria-hidden="true" size={12} />
+            `Live · r${version}`
           ) : (
-            <RefreshCw aria-hidden="true" size={12} />
+            <>
+              <RefreshCw aria-hidden="true" size={12} />
+              {connection} · r{version}
+            </>
           )}
-          {connection === "live" ? `Live · r${version}` : connection}
-        </Badge>
-        <Badge>{publicationStatus}</Badge>
-        <Button
-          variant="outline"
-          size="sm"
-          className="feedback-open-button"
-          onClick={onOpenFeedback}
-        >
-          <MessageSquareText aria-hidden="true" size={15} />
-          Feedback{feedbackCount === 0 ? "" : ` ${feedbackCount}`}
-        </Button>
+        </span>
+        {retention?.status === "scheduled" ? (
+          <span>Scheduled expiry</span>
+        ) : null}
+        {retention?.status === "unknown" ? (
+          <span>Retention unknown</span>
+        ) : null}
       </div>
-      {retention === undefined ? null : (
-        <RetentionNotice retention={retention} />
-      )}
+      <button
+        type="button"
+        className="plan-details-toggle"
+        aria-expanded={detailsOpen}
+        aria-controls="plan-details"
+        onClick={() => setDetailsOpen((open) => !open)}
+      >
+        Plan details
+      </button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="feedback-open-button"
+        onClick={onOpenFeedback}
+      >
+        <MessageSquareText aria-hidden="true" size={15} />
+        Feedback {feedbackCount}
+      </Button>
+      {detailsOpen ? (
+        <div className="plan-details-content" id="plan-details">
+          <p>
+            {plan.repository.owner}/{plan.repository.name} · {publicationStatus}
+          </p>
+          {retention === undefined ? null : (
+            <RetentionNotice retention={retention} />
+          )}
+        </div>
+      ) : null}
     </header>
   );
 }

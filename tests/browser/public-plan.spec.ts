@@ -14,7 +14,11 @@ test("renders a selected published item without private browser credentials", as
         name: "Work item 1",
       }),
     ).toBeVisible();
-    await expect(page.getByText("Published", { exact: true })).toBeVisible();
+    await page.locator(".plan-details-toggle").click();
+    await expect(page.locator(".plan-details-content")).toContainText(
+      "Published",
+    );
+    await expect(page.locator(".retention-notice")).toHaveCount(0);
     await expect(page.locator("figure.asset-view")).toHaveCount(3);
     await expect(
       page

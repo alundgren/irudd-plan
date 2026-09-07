@@ -263,13 +263,38 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
     | undefined
   >(undefined);
   useEffect(() => {
-    const sheet = container.current?.querySelector(".plan-sheet");
+    const sheet = container.current?.querySelector<HTMLElement>(".plan-sheet");
     const stopPanning = () => {
       touch.current = undefined;
     };
+    const pan = (event: TouchEvent) => {
+      const start = touch.current;
+      const point = event.touches[0];
+      if (
+        event.touches.length !== 1 ||
+        window.getSelection()?.isCollapsed === false
+      )
+        touch.current = undefined;
+      if (
+        touch.current === undefined ||
+        start === undefined ||
+        point === undefined
+      )
+        return;
+      event.preventDefault();
+      void flow.setViewport({
+        ...start.viewport,
+        x: start.viewport.x + point.clientX - start.x,
+        y: start.viewport.y + point.clientY - start.y,
+      });
+    };
     sheet?.addEventListener("selectstart", stopPanning);
-    return () => sheet?.removeEventListener("selectstart", stopPanning);
-  }, []);
+    sheet?.addEventListener("touchmove", pan, { passive: false });
+    return () => {
+      sheet?.removeEventListener("selectstart", stopPanning);
+      sheet?.removeEventListener("touchmove", pan);
+    };
+  }, [flow]);
   return (
     <div
       ref={container}
@@ -287,26 +312,6 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
                 viewport: flow.getViewport(),
               }
             : undefined;
-      }}
-      onTouchMove={(event) => {
-        const start = touch.current;
-        const point = event.touches[0];
-        if (
-          event.touches.length !== 1 ||
-          window.getSelection()?.isCollapsed === false
-        )
-          touch.current = undefined;
-        if (
-          touch.current === undefined ||
-          start === undefined ||
-          point === undefined
-        )
-          return;
-        void flow.setViewport({
-          ...start.viewport,
-          x: start.viewport.x + point.clientX - start.x,
-          y: start.viewport.y + point.clientY - start.y,
-        });
       }}
       onTouchEnd={() => {
         touch.current = undefined;

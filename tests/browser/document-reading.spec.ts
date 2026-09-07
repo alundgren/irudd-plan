@@ -146,56 +146,45 @@ async function useLongDocument(page: Page) {
   });
 }
 
-test("touch swipes move a phone document without adding feedback", async ({
-  page,
-  context,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const session = await context.newCDPSession(page);
-  await session.send("Emulation.setTouchEmulationEnabled", { enabled: true });
-  await page.goto("/plans/browser-plan/items/item-1");
-  await expectReadingTop(page);
-  const sheet = page.locator(".plan-sheet.selected");
-  const before = await sheet.boundingBox();
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x: 180, y: 650 }],
-  });
-  for (const y of [600, 550, 500, 450, 400]) {
+test.describe("phone touch navigation", () => {
+  test.use({ hasTouch: true });
+  test("touch swipes move a phone document without adding feedback", async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const session = await context.newCDPSession(page);
+    await page.goto("/plans/browser-plan/items/item-1");
+    await expectReadingTop(page);
+    const sheet = page.locator(".plan-sheet.selected");
+    const before = await sheet.boundingBox();
     await session.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ x: 180, y }],
+      type: "touchStart",
+      touchPoints: [{ x: 180, y: 650 }],
     });
-  }
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
+    for (const y of [600, 550, 500, 450, 400]) {
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: 180, y }],
+      });
+    }
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect
+      .poll(async () => (await sheet.boundingBox())?.y)
+      .toBeCloseTo(before!.y - 250, 0);
+    await expect(page.locator(".feedback-panel")).toHaveCount(0);
+    const beforeTap = await page
+      .locator(".react-flow__viewport")
+      .getAttribute("style");
+    await page.getByRole("button", { name: "Feedback 0", exact: true }).tap();
+    await expect(page.locator(".feedback-panel")).toBeVisible();
+    expect(
+      await page.locator(".react-flow__viewport").getAttribute("style"),
+    ).toBe(beforeTap);
   });
-  await expect
-    .poll(async () => (await sheet.boundingBox())?.y)
-    .toBeCloseTo(before!.y - 250, 0);
-  await expect(page.locator(".feedback-panel")).toHaveCount(0);
-  const beforeTap = await page
-    .locator(".react-flow__viewport")
-    .getAttribute("style");
-  const button = await page
-    .getByRole("button", { name: "Feedback 0", exact: true })
-    .boundingBox();
-  if (button === null) throw new Error("Missing feedback control");
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [
-      { x: button.x + button.width / 2, y: button.y + button.height / 2 },
-    ],
-  });
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
-  await expect(page.locator(".feedback-panel")).toBeVisible();
-  expect(
-    await page.locator(".react-flow__viewport").getAttribute("style"),
-  ).toBe(beforeTap);
 });
 
 test("keeps the selected reading position when other items move and the viewport narrows", async ({

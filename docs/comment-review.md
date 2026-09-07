@@ -9,16 +9,16 @@ viewport of 1440 × 1000 and a phone viewport of 390 × 844. Desktop reading zoo
 is 100%; the phone blank-note capture uses 83% canvas zoom. The fixture is
 `browser-plan`, internal revision 1. Prototype content is not stored in the app.
 
-| Acceptance point          | Local result and evidence                                                                                                                                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Comment/Pan toolbar       | Pass. Bottom-centred tools, selected mode, hint, C/V, zoom buttons, 100% reset and Fit. Existing navigation stays available.                                                                                                  |
-| Click → dialog            | Pass. Text, isolated visual overlay and blank-canvas clicks open About and focused Your feedback. Cancel/Escape leave saved notes untouched and return focus.                                                                 |
-| Dialog → pin/list         | Pass. Add saves one note and opens the dock without moving the reading position vertically. Numbered pins select their listed note.                                                                                           |
-| Edit/remove/copy          | Pass. Edit uses the same dialog, preserves its original target and saves wording explicitly. Remove deletes only the chosen note. Copy retains notes and includes the subject, position and existing MCP context.             |
-| Keyboard and gestures     | Pass. Focus-only section/visual actions capture excerpts, including repeated text. Dragging and double-click selection do not add notes. Touch movement stops when selection starts. Pan permits isolated mockup interaction. |
-| Zoom and relayout         | Pass. Section pins stay at normalized coordinates under zoom and target resizing; markers remain 32px at every canvas zoom. Blank pins use canvas coordinates. Fit uses the canvas beside the desktop dock.                   |
-| Persistence and revisions | Pass. Old unpositioned notes and new notes reload together. Changed/missing text and asset targets retain their original references and warnings. Pins do not attach to replacement content.                                  |
-| Failures and isolation    | Pass. Blocked/full storage retains in-memory feedback. Clipboard failure exposes manual copy. Owner/public separation and iframe/Worker restrictions remain covered. Feedback text is absent from observed requests.          |
+| Acceptance point          | Local result and evidence                                                                                                                                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comment/Pan toolbar       | Pass. Bottom-centred tools, selected mode, hint, C/V, zoom buttons, 100% reset and Fit. Existing navigation stays available.                                                                                                                                |
+| Click → dialog            | Pass. Text, isolated visual overlay and blank-canvas clicks open About and focused Your feedback. Cancel/Escape leave saved notes untouched and return focus. Dirty dialogs warn before reload or tab close; clean dialogs do not.                          |
+| Dialog → pin/list         | Pass. Add saves one note and opens the dock without moving the reading position vertically. Numbered pins select their listed note.                                                                                                                         |
+| Edit/remove/copy          | Pass. Edit uses the same dialog, preserves its original target and saves wording explicitly. Remove deletes only the chosen note. Copy retains notes and includes the subject, position and existing MCP context.                                           |
+| Keyboard and gestures     | Pass. Focus-only section/visual actions stay beside their targets and capture excerpts, including repeated text. Dragging and double-click selection do not add notes. Touch movement stops when selection starts. Pan permits isolated mockup interaction. |
+| Zoom and relayout         | Pass. Section pins stay at normalized coordinates under zoom and target resizing; markers remain 32px at every canvas zoom. Blank pins use canvas coordinates. Fit uses the canvas beside the desktop dock.                                                 |
+| Persistence and revisions | Pass. Old unpositioned notes and new notes reload together. Changed/missing text and asset targets retain their original references and warnings. Pins do not attach to replacement content.                                                                |
+| Failures and isolation    | Pass. Blocked/full storage retains in-memory feedback. Clipboard failure exposes manual copy. Owner/public separation and iframe/Worker restrictions remain covered. Feedback text is absent from observed requests.                                        |
 
 [Desktop comment](captures/comment-desktop.png),
 [comment dialog](captures/comment-dialog.png), and
@@ -35,7 +35,9 @@ Validation: `vp run check`, `vp run check:ci`, `vp exec tsc --noEmit`,
 `vp run test`, `vp run build`, and the feedback, canvas-comment, feedback-column,
 document-reading, reference-sheet and plan-review browser suites. The unit and
 integration suite has 58 passing tests; the combined relevant browser run has
-29 passing tests. Function-length advisories remain in the workspace/canvas
+29 passing tests. After review fixes, all 12 canvas-comment and reference-sheet
+tests passed, including dirty-dialog reload protection and focused visual-action
+placement. Function-length advisories remain in the workspace/canvas
 components. Their event state and UI wiring stay together; touch handling,
 rendered pins, the toolbar and the modal have separate responsibilities.
 

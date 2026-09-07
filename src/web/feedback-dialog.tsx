@@ -18,6 +18,17 @@ export function FeedbackDialog({
   const feedback = useRef<HTMLTextAreaElement>(null);
   const [subject, setSubject] = useState(item.subject ?? "Canvas area");
   const [text, setText] = useState(item.requestedChange);
+  const dirty = editing
+    ? text !== item.requestedChange ||
+      subject !== (item.subject ?? "Canvas area")
+    : text.trim() !== "";
+  useEffect(() => {
+    if (!dirty) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) =>
+      event.preventDefault();
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [dirty]);
   useEffect(() => {
     const previous = document.activeElement;
     dialog.current?.showModal();

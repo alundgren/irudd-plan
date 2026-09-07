@@ -92,17 +92,17 @@ export function AssetView({
         {tool === "comment" ? (
           <div className="visual-comment-overlay" aria-hidden="true" />
         ) : null}
+        <button
+          type="button"
+          className="feedback-target-control asset-feedback"
+          aria-label={`Add feedback to visual ${asset.caption}`}
+          title={`Add feedback to visual ${asset.caption}`}
+          onClick={onAddFeedback}
+        >
+          <MessageSquarePlus aria-hidden="true" size={14} />
+          Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
+        </button>
       </div>
-      <button
-        type="button"
-        className="feedback-target-control asset-feedback"
-        aria-label={`Add feedback to visual ${asset.caption}`}
-        title={`Add feedback to visual ${asset.caption}`}
-        onClick={onAddFeedback}
-      >
-        <MessageSquarePlus aria-hidden="true" size={14} />
-        Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
-      </button>
     </figure>
   );
 }

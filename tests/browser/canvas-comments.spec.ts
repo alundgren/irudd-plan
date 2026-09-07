@@ -142,6 +142,25 @@ test("tools distinguish dragging, text selection, controls and visual interactio
   await page.getByRole("button", { name: "Close feedback" }).click();
   await page.getByRole("button", { name: "Pan", exact: true }).click();
   await expect(page.locator(".visual-comment-overlay")).toHaveCount(0);
+  const reference = page.locator(".reference-sheet.selected");
+  const action = reference.getByRole("button", {
+    name: "Add feedback to visual Interactive review control",
+    exact: true,
+  });
+  await page.keyboard.press("Tab");
+  await action.focus();
+  await expect(action).toHaveCSS("clip-path", "none");
+  const actionBounds = (await action.boundingBox())!;
+  const frameBounds = (await reference.locator(".asset-frame").boundingBox())!;
+  expect(actionBounds.x).toBeGreaterThanOrEqual(frameBounds.x);
+  expect(actionBounds.y).toBeGreaterThanOrEqual(frameBounds.y);
+  expect(actionBounds.x + actionBounds.width).toBeLessThanOrEqual(
+    frameBounds.x + frameBounds.width,
+  );
+  expect(actionBounds.y + actionBounds.height).toBeLessThanOrEqual(
+    frameBounds.y + frameBounds.height,
+  );
+
   const mockup = page
     .locator(".reference-sheet.selected")
     .frameLocator("iframe");
@@ -309,4 +328,65 @@ test("blank canvas coordinates and subjects survive mixed old/new storage and ma
   );
   await page.getByRole("button", { name: "Remove feedback 1" }).click();
   expect((await notes(page))[0].id).toBe("legacy-note");
+});
+
+test("warns on leaving dirty dialogs and removes the warning after save or cancel", async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  let warnings = 0;
+  page.on("dialog", async (dialog) => {
+    expect(dialog.type()).toBe("beforeunload");
+    warnings += 1;
+    await dialog.dismiss();
+  });
+  const openNew = async () => {
+    await page
+      .locator('.item-sheet.selected [data-section="item-1:goal"] .rich-text')
+      .first()
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  };
+  const openEdit = async () => {
+    await page.getByRole("button", { name: "Feedback 1", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Edit feedback 1", exact: true })
+      .click();
+  };
+  await page.goto("/plans/browser-plan/items/item-1");
+  await openNew();
+  await page.reload();
+  expect(warnings).toBe(0);
+  await openNew();
+  await page
+    .getByRole("textbox", { name: "Your feedback", exact: true })
+    .fill("A draft worth keeping");
+  await page.evaluate(() => window.location.reload());
+  expect(warnings).toBe(1);
+  await expect(
+    page.getByRole("textbox", { name: "Your feedback", exact: true }),
+  ).toHaveValue("A draft worth keeping");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.reload();
+  expect(warnings).toBe(1);
+  expect(await notes(page)).toEqual([]);
+  await openNew();
+  await saveComment(page, "A saved comment");
+  await page.reload();
+  await openEdit();
+  await page.reload();
+  expect(warnings).toBe(1);
+  await openEdit();
+  await page
+    .getByRole("textbox", { name: "About", exact: true })
+    .fill("Unsaved subject edit");
+  await page.evaluate(() => window.location.reload());
+  expect(warnings).toBe(2);
+  await expect(
+    page.getByRole("textbox", { name: "About", exact: true }),
+  ).toHaveValue("Unsaved subject edit");
+  await page.keyboard.press("Escape");
+  await page.reload();
+  expect(warnings).toBe(2);
+  expect((await notes(page))[0].subject).toBe("Work item 1 · Goal");
 });

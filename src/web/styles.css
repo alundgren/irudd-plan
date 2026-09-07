@@ -461,9 +461,8 @@ summary {
 }
 
 .asset-feedback {
-  margin-top: 24px;
-  height: auto;
-  padding: 8px 12px;
+  top: 0;
+  right: 0;
 }
 
 .svg-document {

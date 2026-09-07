@@ -24,7 +24,17 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
       await route.fulfill({ response, json: body });
     });
     await page.goto("/plans/browser-plan");
+    const summary = page.locator(".plan-details-toggle");
     const notice = page.locator(".retention-notice");
+    await expect(notice).not.toBeVisible();
+    if (state !== "retained") {
+      await expect(page.locator(".review-header-status")).toContainText(
+        state === "scheduled" ? "Scheduled expiry" : "Retention unknown",
+      );
+    }
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(summary).toHaveAttribute("aria-expanded", "true");
     await expect(notice).toContainText(
       state === "retained"
         ? "Retained for open GitHub work"
@@ -38,13 +48,20 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
     if (state === "unknown")
       await expect(notice).toContainText("installation access was denied");
     for (const width of [1440, 390]) {
-      await page.setViewportSize({ width, height: 900 });
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
       const bounds = await notice.boundingBox();
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
       await expect(notice).toBeVisible();
       const canvas = await page.locator(".react-flow").boundingBox();
       expect(canvas!.y).toBeGreaterThanOrEqual(bounds!.y + bounds!.height);
+      await summary.focus();
+      await page.keyboard.press("Space");
+      await expect(notice).not.toBeVisible();
+      const header = await page.locator(".review-header").boundingBox();
+      expect(header!.height).toBe(width === 1440 ? 68 : 95);
+      await page.keyboard.press("Enter");
+      await expect(notice).toBeVisible();
     }
   });
 }

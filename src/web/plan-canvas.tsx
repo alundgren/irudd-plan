@@ -164,7 +164,7 @@ function CanvasContents({
       aria-label="Plan canvas"
       className={pinningCanvas ? "pinning-feedback" : ""}
     >
-      <Background color="#cbd5e1" gap={24} size={1} />
+      <Background color="var(--line)" gap={20} size={1.6} />
       <Controls
         showInteractive={false}
         showFitView={false}
@@ -378,7 +378,7 @@ function makeEdges(plan: Plan): Edge[] {
     target: item.id,
     type: "smoothstep",
     markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+    style: { stroke: "#C1AF9A", strokeWidth: 1.5 },
   }));
   return overviewEdges;
 }

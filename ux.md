@@ -25,11 +25,11 @@ At 390px width, documents reflow to the viewport with 24px inner padding and ret
 
 An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated documents.
 
-Existing sheets retain their stable React Flow node IDs. A refresh retains the viewport when the selected ID is unchanged. If other items are reordered or removed, the viewport compensates for the selected sheet's new horizontal position. Resizing the window keeps its horizontal reading offset and vertical canvas position. Unchanged text stays mounted so selection can survive the update. Update highlighting does not alter section spacing. Changed sections use a short yellow "Updated" treatment that clears after five seconds.
+Existing sheets retain their stable React Flow node IDs. A refresh retains the viewport when the selected ID is unchanged. If other items are reordered or removed, the viewport compensates for the selected sheet's new horizontal position. Resizing the window keeps its horizontal reading offset and vertical canvas position. Unchanged text stays mounted so selection can survive the update. Update highlighting does not alter section spacing. Changed sections use a short warm paper "Updated" treatment that clears after five seconds.
 
-The status badge shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
+The header status shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
-A second status badge says `Private` or `Published`. The signed-in plan list also
+Plan details shows `Private` or `Published` and repository verification status. The signed-in plan list also
 shows whether the repository still needs verification or cannot be published
 because it is private. Published routes omit the private plan list and return to
 the published overview. Publication remains an explicit authenticated MCP action,
@@ -54,10 +54,46 @@ Raster images are owner-authenticated reads. Uploaded SVG and HTML never execute
 ## Retention status
 
 The private plan list and open-plan view distinguish retained open work,
-scheduled expiry and unknown GitHub status in plain text. Scheduled expiry shows
-the UTC date and explains that deleted content is lost. Unknown status includes
+scheduled expiry and unknown GitHub status in plain text. In the open-plan header,
+"Scheduled expiry" and "Retention unknown" remain visible beside the connection
+status. One Plan details disclosure holds retention, repository verification
+and check timestamps. It opens with Enter or Space and pushes the canvas down.
+Scheduled expiry inside the disclosure shows the UTC date and explains that deleted content is lost. Unknown status includes
 the verification failure reason; completed checks show last and next check
 dates. The header occupies its own row above the canvas so status text does not
 cover plan content on narrow screens. Public views omit these owner details. When a live document becomes
 unavailable, the browser removes its cached document from the view and shows the
 unavailable page at the same URL.
+
+## Visual reference and compact header
+
+The binding reference is `docs/plan-feedback-canvas` in `alundgren/irudd-skills`
+at commit `754f9f4a08d8b6ba26ebde77531d028d30bed14e`. Its `canvas.html`,
+`canvas.css`, `canvas.js` and `ux.md` govern colours, typography and header
+presentation. The previous serif titles, cool cards and floating header no
+longer govern these properties.
+
+Use the prototype's warm paper CSS values: background `#F2EADE`, canvas/panel
+`#EADFCD`, raised controls `#E0D2BD`, borders/grid `#C1AF9A`, sheets/fields
+`#F9F6F0`, text `#604939`, secondary text `#66574D`, accent `#784F26`, links
+`#3D5D71` and errors `#8F3A2D`. Text uses `system-ui, sans-serif` with weights
+400, 500 and 600. Sheets have 10px corners and the prototype's light
+`0 4px 16px #60493912` shadow. The canvas is flat with a 20px dotted grid and 0.8px dot radius at 100% canvas
+zoom. Spacing and dots scale with the canvas, as in the prototype.
+Existing section labels, order and organization remain in place. Sheet sizing,
+navigation and relationship lines follow the layout rules above.
+
+The full-width desktop header is 68px high when Plan details is closed. It shows
+`plan.epicGoal` on one ellipsized line, the revision and connection status, Plan
+details, and Feedback with its count including zero. The complete goal remains
+in the overview; the header also exposes it as a native title tooltip. Existing
+private Plans and public Overview navigation remain available. Connection
+failures stay visible in the error colour even with details closed. Normal live
+status uses secondary text. Public routes omit owner retention details.
+
+At widths up to 640px the header deliberately uses two rows totalling 95px,
+instead of the prototype's 58px phone bar. This keeps the title, navigation,
+connection/retention status, details and Feedback reachable without overlap.
+Opening details grows the header in document flow, capped at 60% of the viewport
+with scrolling for long reasons. The canvas and feedback panel remain below it.
+There is no auto-hide or fullscreen behavior and no prototype sidebar.

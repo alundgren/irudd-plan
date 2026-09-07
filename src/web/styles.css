@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  color: #172033;
-  background: #edf2f3;
+  color-scheme: light;
+  --bg: #f2eade;
+  --panel: #eadfcd;
+  --raised: #e0d2bd;
+  --line: #c1af9a;
+  --field: #f9f6f0;
+  --text: #604939;
+  --muted: #66574d;
+  --accent: #784f26;
+  --link: #3d5d71;
+  --danger: #8f3a2d;
+  font-family: system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -23,6 +27,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 button,
@@ -33,9 +39,9 @@ summary {
 
 .eyebrow {
   margin: 0 0 0.35rem;
-  color: #0f7774;
+  color: var(--accent);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -44,43 +50,89 @@ summary {
   display: flex;
   flex-direction: column;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 .review-header {
   position: relative;
   flex: none;
-  margin: 16px;
   z-index: 40;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: 67px;
   align-items: center;
-  gap: 18px;
-  min-height: 66px;
-  padding: 10px 12px;
-  border: 1px solid rgb(255 255 255 / 80%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 92%);
-  box-shadow: 0 12px 35px rgb(26 49 60 / 12%);
-  backdrop-filter: blur(16px);
+  gap: 0 24px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  max-height: 60dvh;
+  overflow: auto;
 }
 
 .review-header h1 {
   overflow: hidden;
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.05rem, 2vw, 1.45rem);
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.connection {
-  gap: 5px;
+.review-header-status {
+  display: flex;
+  flex-direction: column;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
-.review-header-actions,
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.connection.connecting,
+.connection.reconnecting {
+  color: var(--danger);
+}
+
+.plan-details-toggle {
+  cursor: pointer;
+  font-size: 13.5px;
+  white-space: nowrap;
+  border-radius: 7px;
+  padding: 8px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plan-details-toggle:hover {
+  background: var(--raised);
+}
+
+.plan-details-content {
+  grid-column: 1 / -1;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+}
+
+.plan-details-content > p {
+  margin: 0 0 8px;
+}
+
+.feedback-open-button {
+  background: var(--panel);
+  border-color: transparent;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+
 .sheet-header-actions,
 .asset-actions {
   display: flex;
@@ -88,17 +140,9 @@ summary {
   gap: 8px;
 }
 
-.connection.live {
-  border-color: #a7dad4;
-  color: #126e6b;
-  background: #effbf9;
-}
-
-.connection.connecting,
-.connection.reconnecting {
-  border-color: #f2cb7d;
-  color: #82510d;
-  background: #fff9e9;
+:focus-visible {
+  outline: 3px solid var(--link);
+  outline-offset: 2px;
 }
 
 .connection svg,
@@ -117,10 +161,11 @@ summary {
 }
 
 .react-flow {
-  background:
-    radial-gradient(circle at 10% 15%, rgb(29 154 148 / 10%), transparent 32%),
-    radial-gradient(circle at 80% 85%, rgb(221 149 81 / 10%), transparent 30%),
-    #edf2f3;
+  background-color: var(--panel);
+  --xy-controls-button-background-color: var(--bg);
+  --xy-controls-button-background-color-hover: var(--raised);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--line);
 }
 
 .react-flow__node-sheet {
@@ -132,11 +177,11 @@ summary {
   width: 600px;
   padding: 40px;
   overflow-wrap: anywhere;
-  border: 1px solid #d9e0e2;
-  border-radius: 8px;
-  color: #1b2537;
-  background: #fffefb;
-  box-shadow: 0 14px 45px rgb(30 48 55 / 12%);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--field);
+  box-shadow: 0 4px 16px #60493912;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
@@ -145,10 +190,8 @@ summary {
 }
 
 .plan-sheet.selected {
-  border-color: #178e89;
-  box-shadow:
-    0 0 0 4px rgb(23 142 137 / 12%),
-    0 22px 70px rgb(30 48 55 / 20%);
+  border-color: var(--line);
+  box-shadow: 0 4px 16px #60493912;
 }
 
 .sheet-header {
@@ -157,15 +200,15 @@ summary {
   justify-content: space-between;
   gap: 16px;
   padding: 0 0 24px;
-  border-bottom: 1px solid #edf0ef;
-  background: linear-gradient(180deg, #fff 0%, #fffefb 100%);
+  border-bottom: 1px solid var(--panel);
+  background: var(--field);
 }
 
 .sheet-header h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: system-ui, sans-serif;
   font-size: 1.55rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.15;
 }
 
@@ -189,17 +232,17 @@ summary {
   justify-content: center;
   gap: 3px;
   padding: 0 6px;
-  border: 1px solid #a7dad4;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  color: #126e6b;
-  background: #effbf9;
+  color: var(--accent);
+  background: var(--panel);
   cursor: pointer;
 }
 
 .feedback-target-control:hover,
 .feedback-target-control:focus-visible {
-  border-color: #178e89;
-  outline: 2px solid rgb(23 142 137 / 20%);
+  border-color: var(--accent);
+  outline: 2px solid var(--link);
 }
 
 .feedback-target-control span {
@@ -209,9 +252,9 @@ summary {
 
 .selected-badge {
   flex: none;
-  border-color: #a7dad4;
-  color: #126e6b;
-  background: #effbf9;
+  border-color: var(--line);
+  color: var(--accent);
+  background: var(--panel);
 }
 
 .sheet-content {
@@ -221,13 +264,13 @@ summary {
 .plan-sheet section {
   position: relative;
   padding: 16px 0;
-  border-bottom: 1px solid #edf0ef;
+  border-bottom: 1px solid var(--panel);
   transition: background-color 400ms ease;
 }
 
 .plan-sheet [data-section].changed {
   position: relative;
-  background: #fff4c9;
+  background: var(--panel);
 }
 
 .plan-sheet section.changed {
@@ -239,27 +282,27 @@ summary {
   top: 13px;
   right: 12px;
   content: "Updated";
-  color: #8b5a13;
+  color: var(--accent);
   font-size: 0.65rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .sheet-header.changed {
-  box-shadow: inset 0 -3px #e5b84f;
+  box-shadow: inset 0 -3px var(--accent);
 }
 
 .overview-index.changed {
   border-radius: 8px;
-  box-shadow: 0 0 0 8px #fff4c9;
+  box-shadow: 0 0 0 8px var(--panel);
 }
 
 .plan-sheet h3 {
   margin: 0 0 10px;
-  color: #667085;
+  color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -300,14 +343,14 @@ summary {
 
 .checklist svg {
   margin-top: 3px;
-  color: #178e89;
+  color: var(--accent);
 }
 
 .decision {
   padding: 11px 13px;
-  border-left: 3px solid #dc9c58;
+  border-left: 3px solid var(--accent);
   border-radius: 0 7px 7px 0;
-  background: #fff8ef;
+  background: var(--panel);
 }
 
 .decision + .decision {
@@ -320,7 +363,7 @@ summary {
 
 .reason {
   margin: 7px 0 0;
-  color: #7c5a34;
+  color: var(--accent);
   font-size: 0.78rem;
 }
 
@@ -335,8 +378,8 @@ summary {
   justify-content: space-between;
   padding: 9px 5px;
   border: 0;
-  border-bottom: 1px solid #edf0ef;
-  color: #334155;
+  border-bottom: 1px solid var(--panel);
+  color: var(--text);
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -344,12 +387,12 @@ summary {
 
 .index-row:hover,
 .index-row:focus-visible {
-  color: #0f7774;
-  background: #f2faf8;
+  color: var(--accent);
+  background: var(--bg);
 }
 
 .index-row:focus-visible {
-  outline: 2px solid #178e89;
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
@@ -360,9 +403,9 @@ summary {
 .asset-frame {
   overflow: hidden;
   min-height: 180px;
-  border: 1px solid #d7ddde;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f3f6f6;
+  background: var(--panel);
 }
 
 .asset-frame img,
@@ -377,12 +420,12 @@ summary {
 .asset-loading,
 .asset-error {
   padding: 65px 20px;
-  color: #64748b;
+  color: var(--muted);
   text-align: center;
 }
 
 .asset-error {
-  color: #9f2d2d;
+  color: var(--danger);
 }
 
 .asset-view figcaption {
@@ -391,7 +434,7 @@ summary {
   justify-content: space-between;
   gap: 10px;
   margin-top: 7px;
-  color: #64748b;
+  color: var(--muted);
   font-size: 0.75rem;
 }
 
@@ -408,14 +451,14 @@ summary {
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 2px solid #fffefb;
+  border: 2px solid var(--field);
   border-radius: 50%;
-  color: #fffefb;
-  background: #0f7774;
-  box-shadow: 0 3px 10px rgb(30 48 55 / 25%);
+  color: var(--field);
+  background: var(--accent);
+  box-shadow: 0 4px 16px #60493912;
   cursor: pointer;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -428,11 +471,11 @@ summary {
   width: min(390px, calc(100vw - 32px));
   max-height: calc(100% - 32px);
   padding: 18px;
-  border: 1px solid #d9e0e2;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  color: #1b2537;
-  background: #fffefb;
-  box-shadow: 0 20px 55px rgb(30 48 55 / 22%);
+  color: var(--text);
+  background: var(--field);
+  box-shadow: 0 4px 16px #60493912;
 }
 
 .feedback-panel > header,
@@ -445,31 +488,31 @@ summary {
 
 .feedback-panel h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: system-ui, sans-serif;
   font-size: 1.35rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .feedback-explanation {
   margin: 10px 0 14px;
-  color: #64748b;
+  color: var(--muted);
   line-height: 1.5;
 }
 
 .feedback-warning,
 .manual-copy {
   padding: 10px 12px;
-  border: 1px solid #f0ba8b;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  color: #7c3219;
-  background: #fff7ed;
+  color: var(--danger);
+  background: var(--panel);
   font-size: 0.82rem;
   line-height: 1.45;
 }
 
 .feedback-panel .pinning {
-  border-color: #178e89;
-  background: #effbf9;
+  border-color: var(--accent);
+  background: var(--panel);
 }
 
 .feedback-list {
@@ -480,9 +523,9 @@ summary {
 
 .feedback-empty {
   padding: 24px 14px;
-  border-top: 1px solid #edf0ef;
-  border-bottom: 1px solid #edf0ef;
-  color: #64748b;
+  border-top: 1px solid var(--panel);
+  border-bottom: 1px solid var(--panel);
+  color: var(--muted);
   text-align: center;
 }
 
@@ -492,9 +535,9 @@ summary {
 
 .feedback-editor {
   padding: 12px;
-  border-left: 3px solid #178e89;
+  border-left: 3px solid var(--accent);
   border-radius: 0 8px 8px 0;
-  background: #f9fbfb;
+  background: var(--field);
 }
 
 .feedback-editor > header > div {
@@ -518,8 +561,8 @@ summary {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #fffefb;
-  background: #0f7774;
+  color: var(--field);
+  background: var(--accent);
   font-size: 0.68rem;
 }
 
@@ -531,23 +574,23 @@ summary {
 }
 
 .target-status {
-  color: #64748b;
+  color: var(--muted);
 }
 
 .target-status.changed,
 .target-status.missing {
-  color: #82510d;
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .target-status.missing {
-  color: #9f2d2d;
+  color: var(--danger);
 }
 
 .original-reference {
   display: -webkit-box;
   overflow: hidden;
-  color: #51606f;
+  color: var(--muted);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
@@ -555,9 +598,9 @@ summary {
 .feedback-editor label {
   display: grid;
   gap: 5px;
-  color: #51606f;
+  color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .feedback-editor textarea,
@@ -565,10 +608,10 @@ summary {
   width: 100%;
   min-height: 78px;
   resize: vertical;
-  border: 1px solid #d7ddde;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  color: #1b2537;
-  background: #fff;
+  color: var(--text);
+  background: var(--field);
   font: inherit;
   font-size: 0.85rem;
   line-height: 1.45;
@@ -580,8 +623,8 @@ summary {
 
 .feedback-editor textarea:focus,
 .manual-copy textarea:focus {
-  border-color: #178e89;
-  outline: 2px solid rgb(23 142 137 / 18%);
+  border-color: var(--accent);
+  outline: 2px solid var(--link);
 }
 
 .trial-assessment {
@@ -590,14 +633,14 @@ summary {
   gap: 8px 14px;
   margin: 14px 0;
   padding: 12px;
-  border: 1px solid #dfe5e6;
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .trial-assessment legend {
   padding: 0 4px;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .trial-assessment label {
@@ -611,7 +654,7 @@ summary {
   display: grid;
   gap: 10px;
   padding-top: 14px;
-  border-top: 1px solid #edf0ef;
+  border-top: 1px solid var(--panel);
 }
 
 .feedback-copy > button {
@@ -636,18 +679,17 @@ summary {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border: 1px solid #f0ba8b;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  color: #7c3219;
-  background: #fff7ed;
-  box-shadow: 0 8px 20px rgb(44 25 12 / 10%);
+  color: var(--danger);
+  background: var(--panel);
+  box-shadow: 0 4px 16px #60493912;
 }
 
 .plan-list-page {
   min-height: 100vh;
   padding: clamp(32px, 7vw, 84px);
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 80%), transparent 55%), #edf2f3;
+  background: var(--bg);
 }
 
 .plan-list-page > header {
@@ -658,14 +700,14 @@ summary {
 .plan-list-page h1,
 .unavailable-state h1 {
   margin: 0.15rem 0 0.6rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: system-ui, sans-serif;
   font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.035em;
 }
 
 .plan-list-page > header > p:last-child {
-  color: #64748b;
+  color: var(--muted);
 }
 
 .plan-grid {
@@ -678,11 +720,11 @@ summary {
 .plan-grid a {
   min-height: 210px;
   padding: 24px;
-  border: 1px solid #d7dfe0;
+  border: 1px solid var(--line);
   border-radius: 12px;
   color: inherit;
-  background: #fffefb;
-  box-shadow: 0 8px 26px rgb(35 53 59 / 7%);
+  background: var(--field);
+  box-shadow: 0 4px 16px #60493912;
   text-decoration: none;
   transition:
     transform 160ms ease,
@@ -691,34 +733,34 @@ summary {
 
 .plan-grid a:hover,
 .plan-grid a:focus-visible {
-  box-shadow: 0 16px 35px rgb(35 53 59 / 14%);
-  outline: 2px solid #178e89;
+  box-shadow: 0 4px 16px #60493912;
+  outline: 2px solid var(--accent);
   transform: translateY(-3px);
 }
 
 .plan-grid h2 {
   margin: 35px 0 28px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: system-ui, sans-serif;
   font-size: 1.35rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .plan-grid span {
-  color: #64748b;
+  color: var(--muted);
   font-size: 0.78rem;
 }
 
 .plan-grid .repository {
-  color: #0f7774;
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .state-card,
 .loading-state,
 .unavailable-state {
-  border: 1px solid #d7dfe0;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fffefb;
+  background: var(--field);
 }
 
 .loading-state {
@@ -728,7 +770,7 @@ summary {
   gap: 10px;
   margin: 20vh auto;
   padding: 18px 22px;
-  color: #51606f;
+  color: var(--muted);
 }
 
 .empty-state {
@@ -737,7 +779,7 @@ summary {
 }
 
 .empty-state svg {
-  color: #178e89;
+  color: var(--accent);
 }
 
 .empty-state h2 {
@@ -745,12 +787,12 @@ summary {
 }
 
 .empty-state p {
-  color: #64748b;
+  color: var(--muted);
 }
 
 .state-card.error {
   padding: 16px;
-  color: #9f2d2d;
+  color: var(--danger);
 }
 
 .unavailable-state {
@@ -761,37 +803,41 @@ summary {
 }
 
 .unavailable-state > svg {
-  color: #c86c34;
+  color: var(--accent);
 }
 
 @media (max-width: 640px) {
   .review-header {
-    margin: 8px;
-    grid-template-columns: auto minmax(0, 1fr);
-    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+    grid-template-rows: 46px 48px;
+    gap: 0 8px;
+    padding: 0 14px;
   }
 
-  .review-header .connection {
-    padding-right: 6px;
-    padding-left: 6px;
-    font-size: 0.7rem;
+  .review-header > button:first-child {
+    justify-self: start;
   }
 
   .review-header h1 {
-    font-size: 1rem;
+    grid-column: 2 / -1;
   }
 
-  .review-header .eyebrow {
-    display: none;
+  .review-header-status {
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .review-header-actions {
-    gap: 4px;
+  .plan-details-toggle {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 8px 4px;
   }
 
   .feedback-open-button {
-    padding-right: 9px;
-    padding-left: 9px;
+    grid-column: 3;
+    grid-row: 2;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
   .react-flow__node-sheet,

@@ -95,7 +95,7 @@ for (const width of [1280, 390]) {
     await panTo(page, completion);
     await expect(completion).toBeInViewport();
     const beforeControl = await viewport.getAttribute("style");
-    await page.getByRole("button", { name: "Feedback", exact: true }).click();
+    await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     expect(await viewport.getAttribute("style")).toBe(beforeControl);
     await page.getByRole("button", { name: "Close feedback" }).click();
@@ -179,12 +179,14 @@ test("touch swipes move a phone document without adding feedback", async ({
     .locator(".react-flow__viewport")
     .getAttribute("style");
   const button = await page
-    .getByRole("button", { name: "Feedback", exact: true })
+    .getByRole("button", { name: "Feedback 0", exact: true })
     .boundingBox();
   if (button === null) throw new Error("Missing feedback control");
   await session.send("Input.dispatchTouchEvent", {
     type: "touchStart",
-    touchPoints: [{ x: button.x + 10, y: button.y + 10 }],
+    touchPoints: [
+      { x: button.x + button.width / 2, y: button.y + button.height / 2 },
+    ],
   });
   await session.send("Input.dispatchTouchEvent", {
     type: "touchEnd",

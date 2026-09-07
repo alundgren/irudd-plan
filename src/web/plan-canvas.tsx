@@ -257,12 +257,22 @@ function CanvasPins({
 
 function SheetNodeView({ data }: NodeProps<SheetNode>) {
   const flow = useReactFlow();
+  const container = useRef<HTMLDivElement>(null);
   const touch = useRef<
     | { x: number; y: number; viewport: ReturnType<typeof flow.getViewport> }
     | undefined
   >(undefined);
+  useEffect(() => {
+    const sheet = container.current?.querySelector(".plan-sheet");
+    const stopPanning = () => {
+      touch.current = undefined;
+    };
+    sheet?.addEventListener("selectstart", stopPanning);
+    return () => sheet?.removeEventListener("selectstart", stopPanning);
+  }, []);
   return (
     <div
+      ref={container}
       onTouchStart={(event) => {
         const point = event.touches[0];
         touch.current =
@@ -281,7 +291,11 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
       onTouchMove={(event) => {
         const start = touch.current;
         const point = event.touches[0];
-        if (event.touches.length !== 1) touch.current = undefined;
+        if (
+          event.touches.length !== 1 ||
+          window.getSelection()?.isCollapsed === false
+        )
+          touch.current = undefined;
         if (
           touch.current === undefined ||
           start === undefined ||

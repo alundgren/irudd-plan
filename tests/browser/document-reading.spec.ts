@@ -243,3 +243,53 @@ test("keeps the selected reading position when other items move and the viewport
     0,
   );
 });
+
+for (const selectionState of ["starting", "active"]) {
+  test(`touch panning stops when text selection is ${selectionState}`, async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const session = await context.newCDPSession(page);
+    await session.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    await page.goto("/plans/browser-plan/items/item-1");
+    await expectReadingTop(page);
+    const selected = page.locator(".plan-sheet.selected");
+    const text = selected
+      .locator('[data-section="item-1:goal"] .rich-text p')
+      .first();
+    const bounds = await text.boundingBox();
+    if (bounds === null) throw new Error("Missing selectable text");
+    const point = { x: bounds.x + 40, y: bounds.y + 20 };
+    const viewport = page.locator(".react-flow__viewport");
+    const before = await viewport.getAttribute("style");
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [point],
+    });
+    await text.evaluate((element, state) => {
+      if (state === "starting") {
+        element.dispatchEvent(new Event("selectstart", { bubbles: true }));
+        return;
+      }
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }, selectionState);
+    for (const offset of [30, 60, 90]) {
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: point.x, y: point.y - offset }],
+      });
+    }
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await page.waitForTimeout(100);
+    expect(await viewport.getAttribute("style")).toBe(before);
+    await expect(page.locator(".feedback-panel")).toHaveCount(0);
+  });
+}

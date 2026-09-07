@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import MockupWorker from "./mockup-worker.js?worker";
 
@@ -32,15 +32,21 @@ export function InteractiveDocument({
   title,
 }: InteractiveDocumentProps) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(240);
   const prepared = useMemo(() => prepareDocument(content), [content]);
 
   useEffect(() => {
     const iframe = frame.current;
     if (iframe === null) return;
     let worker: Worker | undefined;
+    let observer: ResizeObserver | undefined;
     const start = (): void => {
       const frameDocument = iframe.contentDocument;
       if (frameDocument === null) return;
+      const measure = () => setHeight(documentHeight(frameDocument));
+      observer = new ResizeObserver(measure);
+      observer.observe(frameDocument.body);
+      measure();
       worker = new MockupWorker({ type: "module" });
       worker.onerror = (event) =>
         console.error("Mockup worker failed:", event.message);
@@ -65,6 +71,30 @@ export function InteractiveDocument({
       frameDocument.addEventListener("submit", (event) =>
         event.preventDefault(),
       );
+      frameDocument.addEventListener(
+        "wheel",
+        (event) => {
+          if (!event.ctrlKey && !event.metaKey && canScroll(event)) return;
+          event.preventDefault();
+          const bounds = iframe.getBoundingClientRect();
+          const scale = bounds.width / iframe.offsetWidth;
+          iframe.dispatchEvent(
+            new WheelEvent("wheel", {
+              bubbles: true,
+              cancelable: true,
+              deltaX: event.deltaX,
+              deltaY: event.deltaY,
+              deltaMode: event.deltaMode,
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              shiftKey: event.shiftKey,
+              clientX: bounds.x + event.clientX * scale,
+              clientY: bounds.y + event.clientY * scale,
+            }),
+          );
+        },
+        { passive: false },
+      );
     };
     if (
       iframe.contentDocument?.readyState === "complete" &&
@@ -77,17 +107,64 @@ export function InteractiveDocument({
     return () => {
       iframe.removeEventListener("load", start);
       worker?.terminate();
+      observer?.disconnect();
     };
   }, [prepared]);
 
   return (
     <iframe
       ref={frame}
+      className="interactive-document"
+      style={{ height }}
       title={title}
       srcDoc={`<!doctype html><meta http-equiv="Content-Security-Policy" content="${documentCsp}">${prepared.html}`}
       sandbox="allow-same-origin"
     />
   );
+}
+
+function documentHeight(document: Document): number {
+  const body = document.body;
+  const style = getComputedStyle(body);
+  const contentHeight =
+    body.getBoundingClientRect().height +
+    Number.parseFloat(style.marginTop) +
+    Number.parseFloat(style.marginBottom);
+  // Viewport-relative mockups must not keep enlarging their own viewport.
+  return Math.min(
+    4096,
+    Math.max(
+      240,
+      Math.ceil(Math.max(contentHeight, document.documentElement.scrollHeight)),
+    ),
+  );
+}
+
+function canScroll(event: WheelEvent): boolean {
+  let element = event.target as HTMLElement | null;
+  while (element !== null) {
+    const style = getComputedStyle(element);
+    if (
+      (["auto", "scroll"].includes(style.overflowY) ||
+        element === element.ownerDocument.scrollingElement) &&
+      (event.deltaY < 0
+        ? element.scrollTop > 0
+        : event.deltaY > 0 &&
+          element.scrollTop + element.clientHeight < element.scrollHeight)
+    )
+      return true;
+    if (
+      (["auto", "scroll"].includes(style.overflowX) ||
+        element === element.ownerDocument.scrollingElement) &&
+      (event.deltaX < 0
+        ? element.scrollLeft > 0
+        : event.deltaX > 0 &&
+          element.scrollLeft + element.clientWidth < element.scrollWidth)
+    )
+      return true;
+    element = element.parentElement;
+  }
+  return false;
 }
 
 function prepareDocument(content: string): PreparedDocument {
@@ -118,7 +195,14 @@ function prepareDocument(content: string): PreparedDocument {
   for (const element of parsed.querySelectorAll("[id]")) {
     nodes[element.id] = snapshotNode(element);
   }
-  return { html: parsed.body.innerHTML, scripts, nodes };
+  return {
+    html:
+      [...parsed.head.querySelectorAll("style")]
+        .map((style) => style.outerHTML)
+        .join("") + parsed.body.innerHTML,
+    scripts,
+    nodes,
+  };
 }
 
 function snapshotNode(element: Element): NodeSnapshot {

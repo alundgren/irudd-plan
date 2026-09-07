@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { panTo } from "./canvas.js";
+import { openReference, panTo } from "./canvas.js";
 
 import { IruddMcpClient } from "../../src/client/mcp-client.js";
 import type { Plan } from "../../src/contract/plan.js";
@@ -42,17 +42,13 @@ test.describe.serial("local plan feedback", () => {
       .fill(privateText);
     await page.getByRole("button", { name: "Close feedback" }).click();
 
-    await panTo(
-      page,
-      selected.getByRole("button", {
-        name: "Add feedback to visual A small reference image",
-      }),
-    );
-    await selected
-      .getByRole("button", {
-        name: "Add feedback to visual A small reference image",
-      })
-      .click();
+    await openReference(page, "A small reference image");
+    const reference = page.locator(".reference-sheet.selected");
+    const addVisualFeedback = reference.getByRole("button", {
+      name: "Add feedback to visual A small reference image",
+    });
+    await panTo(page, addVisualFeedback);
+    await addVisualFeedback.click();
     await page
       .getByRole("textbox", { name: "Requested change for feedback 2" })
       .fill("Replace this visual with the current signed-in flow.");

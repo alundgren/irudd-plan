@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openReference } from "./canvas.js";
 
 test("renders a selected published item without private browser credentials", async ({
   browser,
@@ -20,6 +21,7 @@ test("renders a selected published item without private browser credentials", as
     );
     await expect(page.locator(".retention-notice")).toHaveCount(0);
     await expect(page.locator("figure.asset-view")).toHaveCount(3);
+    await openReference(page, "Interactive review control");
     await expect(
       page
         .frameLocator('iframe[title="Interactive review control"]')

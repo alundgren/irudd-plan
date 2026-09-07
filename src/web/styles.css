@@ -396,50 +396,89 @@ summary {
   outline-offset: -2px;
 }
 
+.reference-sheet .eyebrow {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.reference-sheet h2 {
+  margin: 0 0 20px;
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.reference-sheet [data-section].changed::before {
+  top: -20px;
+}
+
+.reference-links {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.reference-link {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.reference-link svg {
+  display: inline;
+}
+
 .asset-view {
-  margin: 12px 0;
+  margin: 24px 0 0;
+}
+
+.asset-view figcaption {
+  margin: 0 0 28px;
+  white-space: pre-line;
 }
 
 .asset-frame {
-  overflow: hidden;
-  min-height: 180px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  margin: 0 -20px;
+  border-radius: 5px;
 }
 
 .asset-frame img,
 .asset-frame iframe {
   display: block;
   width: 100%;
-  min-height: 240px;
+  height: auto;
   border: 0;
-  object-fit: contain;
+  border-radius: 5px;
+}
+
+.asset-feedback {
+  margin-top: 24px;
+  height: auto;
+  padding: 8px 12px;
+}
+
+.svg-document {
+  pointer-events: none;
 }
 
 .asset-loading,
 .asset-error {
-  padding: 65px 20px;
+  padding: 40px 20px;
   color: var(--muted);
   text-align: center;
 }
 
 .asset-error {
   color: var(--danger);
-}
-
-.asset-view figcaption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.asset-actions {
-  flex: none;
 }
 
 .pinning-feedback .react-flow__pane {

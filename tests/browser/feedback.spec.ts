@@ -36,10 +36,14 @@ test.describe.serial("local plan feedback", () => {
     });
     await selected
       .getByRole("button", { name: "Add feedback to Requirements" })
-      .click();
+      .focus();
+    await page.keyboard.press("Enter");
     await page
-      .getByRole("textbox", { name: "Requested change for feedback 1" })
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill(privateText);
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
+      .click();
     await page.getByRole("button", { name: "Close feedback" }).click();
 
     await openReference(page, "A small reference image");
@@ -48,21 +52,27 @@ test.describe.serial("local plan feedback", () => {
       name: "Add feedback to visual A small reference image",
     });
     await panTo(page, addVisualFeedback);
-    await addVisualFeedback.click();
+    await addVisualFeedback.focus();
+    await page.keyboard.press("Enter");
     await page
-      .getByRole("textbox", { name: "Requested change for feedback 2" })
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill("Replace this visual with the current signed-in flow.");
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
+      .click();
     await page.getByRole("button", { name: "Close feedback" }).click();
 
     await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
-    await page.getByRole("button", { name: "Pin a canvas area" }).click();
-    await page.locator(".react-flow__pane").dispatchEvent("click", {
-      clientX: 400,
-      clientY: 650,
-    });
     await page
-      .getByRole("textbox", { name: "Requested change for feedback 3" })
+      .getByRole("button", { name: "Comment on canvas center", exact: true })
+      .focus();
+    await page.keyboard.press("Enter");
+    await page
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill("Use this open area for a note about rollout order.");
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
+      .click();
     const canvasPin = page.getByRole("button", {
       name: "Open canvas feedback 3",
     });
@@ -86,8 +96,11 @@ test.describe.serial("local plan feedback", () => {
       .getByRole("button", { name: "Edit feedback 1", exact: true })
       .click();
     await page
-      .getByRole("textbox", { name: "Requested change for feedback 1" })
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill(`${privateText}, with the subject named.`);
+    await page
+      .getByRole("button", { name: "Save comment", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: "Copy feedback (3)" }),
     ).toBeVisible();
@@ -202,16 +215,21 @@ test.describe.serial("local plan feedback", () => {
     });
     const page = await context.newPage();
     await page.goto("/plans/feedback-plan/items/item-1");
+    await expect(page.locator(".plan-sheet.selected")).toBeVisible();
     await page
       .locator(".plan-sheet.selected")
       .getByRole("button", { name: "Add feedback to Goal" })
+      .focus();
+    await page.keyboard.press("Enter");
+    await page
+      .getByRole("textbox", { name: "Your feedback", exact: true })
+      .fill("Clarify the recovery path.");
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
       .click();
     await expect(page.getByRole("alert")).toContainText(
       "Local feedback storage is unavailable",
     );
-    await page
-      .getByRole("textbox", { name: "Requested change for feedback 1" })
-      .fill("Clarify the recovery path.");
     await page.getByRole("button", { name: "Copy feedback (1)" }).click();
     const manual = page.getByRole("textbox", {
       name: "Agent prompt for manual copy",

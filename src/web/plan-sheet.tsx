@@ -128,6 +128,7 @@ function ItemSheet({
     <article
       className={`plan-sheet item-sheet nodrag nopan ${selected ? "selected" : ""}`}
       aria-label={item.title}
+      data-item-id={item.id}
     >
       <SheetHeader
         eyebrow={item.id}

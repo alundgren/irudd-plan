@@ -65,9 +65,10 @@ for (const width of [1440, 390]) {
       page,
       sheet.getByRole("button", { name: /Add feedback to visual/ }),
     );
+    await sheet.getByRole("button", { name: /Add feedback to visual/ }).focus();
     await expect(
       sheet.getByRole("button", { name: /Add feedback to visual/ }),
-    ).toBeInViewport();
+    ).toBeFocused();
     await expectNoOverlap(page);
     await panTo(
       page,
@@ -93,6 +94,7 @@ for (const width of [1440, 390]) {
     expect(raster!.width / raster!.height).toBeCloseTo(1, 2);
     await sheet.getByRole("button", { name: "Return to Work item 1" }).click();
     await openReference(page, "Interactive document");
+    await page.getByRole("button", { name: "Pan", exact: true }).click();
     const html = sheet.frameLocator("iframe");
     await expect
       .poll(() =>
@@ -134,7 +136,7 @@ for (const width of [1440, 390]) {
       .locator(".canvas-navigation")
       .getByRole("button", { name: "Overview" })
       .click();
-    await page.getByRole("button", { name: "Fit all", exact: true }).click();
+    await page.getByRole("button", { name: "Fit", exact: true }).click();
     for (const reference of await page.locator(".reference-sheet").all())
       await expect(reference).toBeInViewport({ ratio: 0.99 });
   });
@@ -165,10 +167,14 @@ test("shared visual feedback retains each item and original digest across replac
     await expect(sheet).toHaveAttribute("data-item-id", `item-${item}`);
     const add = sheet.getByRole("button", { name: /Add feedback to visual/ });
     await panTo(page, add);
-    await add.click();
+    await add.focus();
+    await page.keyboard.press("Enter");
     await page
-      .getByRole("textbox", { name: `Requested change for feedback ${item}` })
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill(`Review guide for item ${item}.`);
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
+      .click();
     await page.getByRole("button", { name: "Close feedback" }).click();
   }
   await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
@@ -185,7 +191,12 @@ test("shared visual feedback retains each item and original digest across replac
     await expect
       .poll(
         async () =>
-          (await reference.locator("figure").boundingBox())!.y -
+          (await page
+            .getByRole("button", { name: `Open asset feedback ${item}` })
+            .boundingBox())!.y +
+          (await page
+            .getByRole("button", { name: `Open asset feedback ${item}` })
+            .boundingBox())!.height -
           (await page.locator(".react-flow").boundingBox())!.y,
       )
       .toBeCloseTo(100, 0);
@@ -275,6 +286,7 @@ test("bounds viewport-relative HTML and keeps overflow scrollable inside its iso
       timeout: 10000,
     })
     .toBe(4096);
+  await page.getByRole("button", { name: "Pan", exact: true }).click();
   const html = sheet.frameLocator("iframe");
   await expect
     .poll(() =>

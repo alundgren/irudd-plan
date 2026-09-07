@@ -111,7 +111,7 @@ for (const width of [1280, 390]) {
     await expect(page.locator(".overview-sheet h2")).toHaveText(
       "Review a complete delivery plan without losing the current conversation or reading position.",
     );
-    await page.getByRole("button", { name: "Fit all", exact: true }).click();
+    await page.getByRole("button", { name: "Fit", exact: true }).click();
     await page.goBack();
     await expectReadingTop(page);
     await expect(selected).toHaveAttribute("aria-label", "Work item 1");

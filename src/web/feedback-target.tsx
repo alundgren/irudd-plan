@@ -41,6 +41,7 @@ export function FeedbackButton({
       className="feedback-target-control nodrag nopan"
       aria-label={`Add feedback to ${label}`}
       title={`Add feedback to ${label}`}
+      data-feedback-label={label}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onAdd}
     >
@@ -76,6 +77,7 @@ export function addSectionFeedback(
     originalText,
     originalExcerpt: reference.excerpt,
     excerptOccurrence: reference.occurrence,
+    position: { x: 0.95, y: 0.1 },
   });
 }
 

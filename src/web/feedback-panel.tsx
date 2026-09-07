@@ -1,4 +1,4 @@
-import { Check, Clipboard, MapPin, MessageSquareText, X } from "lucide-react";
+import { Check, Clipboard, MessageSquareText, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Plan } from "../contract/plan.js";
@@ -17,11 +17,9 @@ interface FeedbackPanelProps {
   readonly storageError?: string;
   readonly selectedItem?: FeedbackItem;
   readonly onSelect: (item: FeedbackItem) => void;
-  readonly pinningCanvas: boolean;
   readonly trialAssessment?: TrialAssessment;
   readonly onClose: () => void;
-  readonly onStartCanvasPin: () => void;
-  readonly onUpdate: (id: string, requestedChange: string) => void;
+  readonly onEdit: (item: FeedbackItem) => void;
   readonly onRemove: (id: string) => void;
   readonly onAssessTrial: (assessment: TrialAssessment) => void;
 }
@@ -33,11 +31,9 @@ export function FeedbackPanel({
   storageError,
   selectedItem,
   onSelect,
-  pinningCanvas,
   trialAssessment,
   onClose,
-  onStartCanvasPin,
-  onUpdate,
+  onEdit,
   onRemove,
   onAssessTrial,
 }: FeedbackPanelProps) {
@@ -52,18 +48,10 @@ export function FeedbackPanel({
     >
       <PanelHeader count={items.length} onClose={onClose} />
       <div className="feedback-list">
-        <Button
-          variant="outline"
-          className={pinningCanvas ? "pinning" : ""}
-          onClick={onStartCanvasPin}
-        >
-          <MapPin aria-hidden="true" size={15} />
-          {pinningCanvas ? "Click a blank canvas area" : "Pin a canvas area"}
-        </Button>
         <FeedbackList
           items={items}
           plan={plan}
-          onUpdate={onUpdate}
+          onEdit={onEdit}
           onRemove={onRemove}
           {...(selectedItem === undefined ? {} : { selectedItem })}
           onSelect={onSelect}
@@ -118,20 +106,23 @@ function PanelHeader({
 function FeedbackList({
   items,
   plan,
-  onUpdate,
+  onEdit,
   onRemove,
   selectedItem,
   onSelect,
 }: Pick<
   FeedbackPanelProps,
-  "items" | "plan" | "onUpdate" | "onRemove" | "selectedItem" | "onSelect"
+  "items" | "plan" | "onEdit" | "onRemove" | "selectedItem" | "onSelect"
 >) {
   return (
     <div>
       {items.length === 0 ? (
         <div className="feedback-empty">
           <MessageSquareText aria-hidden="true" size={20} />
-          <p>Add feedback from a plan section, visual, or blank canvas area.</p>
+          <p>
+            Click a sentence, a drawing, or any space on the canvas. Your
+            feedback will gather here.
+          </p>
         </div>
       ) : (
         items.map((item, index) => (
@@ -140,7 +131,7 @@ function FeedbackList({
             item={item}
             number={index + 1}
             plan={plan}
-            onUpdate={onUpdate}
+            onEdit={onEdit}
             onRemove={onRemove}
             {...(selectedItem?.id === item.id
               ? { selected: selectedItem }
@@ -249,7 +240,7 @@ function FeedbackEditor({
   item,
   number,
   plan,
-  onUpdate,
+  onEdit,
   onRemove,
   selected,
   onSelect,
@@ -257,18 +248,13 @@ function FeedbackEditor({
   readonly item: FeedbackItem;
   readonly number: number;
   readonly plan: Plan;
-  readonly onUpdate: (id: string, requestedChange: string) => void;
+  readonly onEdit: (item: FeedbackItem) => void;
   readonly onRemove: (id: string) => void;
   readonly selected?: FeedbackItem;
   readonly onSelect: (item: FeedbackItem) => void;
 }) {
   const status = targetStatus(item, plan);
-  const [editing, setEditing] = useState(item.requestedChange === "");
   const row = useRef<HTMLElement>(null);
-  const editor = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (editing) editor.current?.focus({ preventScroll: true });
-  }, [editing]);
   useEffect(() => {
     if (!selected || row.current === null) return;
     const list = row.current.closest(".feedback-list");
@@ -298,27 +284,14 @@ function FeedbackEditor({
             : "This location is no longer in the plan. The copied feedback keeps your original reference."}
         </p>
       )}
-      {editing ? (
-        <label>
-          Your feedback
-          <textarea
-            ref={editor}
-            aria-label={`Requested change for feedback ${number}`}
-            value={item.requestedChange}
-            onChange={(event) => onUpdate(item.id, event.currentTarget.value)}
-            placeholder="Describe what the agent should revise"
-          />
-        </label>
-      ) : (
-        <p className="feedback-body">{item.requestedChange || "Empty draft"}</p>
-      )}
+      <p className="feedback-body">{item.requestedChange || "Empty draft"}</p>
       <div className="feedback-actions">
         <button
           type="button"
-          aria-label={`${editing ? "Done editing" : "Edit"} feedback ${number}`}
-          onClick={() => setEditing(!editing)}
+          aria-label={`Edit feedback ${number}`}
+          onClick={() => onEdit(item)}
         >
-          {editing ? "Done" : "Edit"}
+          Edit
         </button>
         <button
           type="button"
@@ -333,6 +306,7 @@ function FeedbackEditor({
 }
 
 function readableLocation(item: FeedbackItem, plan: Plan): string {
+  if (item.subject !== undefined) return item.subject;
   const target = item.target;
   if (target.kind === "canvas") return "Canvas area";
   const title =

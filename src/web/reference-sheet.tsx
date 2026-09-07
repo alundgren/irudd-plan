@@ -61,6 +61,7 @@ export function ReferenceSheet({
               assetId: asset.id,
               assetDigest: asset.digest,
               caption: asset.caption,
+              position: { x: 0.5, y: 0.5 },
             })
           }
         />

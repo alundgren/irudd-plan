@@ -253,6 +253,7 @@ test.describe.serial("plan review canvas", () => {
     const viewport = await page
       .locator(".react-flow__viewport")
       .getAttribute("style");
+    await page.getByRole("button", { name: "Pan", exact: true }).click();
     await mockup.getByRole("button", { name: "Fail one interaction" }).click();
     await mockup.getByRole("button", { name: "Reviewed 0 times" }).click();
     await expect(

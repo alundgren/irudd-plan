@@ -92,9 +92,12 @@ for (const width of [1440, 390]) {
     await panel
       .getByRole("button", { name: "Edit feedback 24", exact: true })
       .click();
-    await panel
-      .getByRole("textbox", { name: "Requested change for feedback 24" })
-      .fill("Unfinished edit stays while selecting another note.");
+    await page
+      .getByRole("textbox", { name: "Your feedback", exact: true })
+      .fill("Saved edit stays while selecting another note.");
+    await page
+      .getByRole("button", { name: "Save comment", exact: true })
+      .click();
     await panel
       .getByRole("button", {
         name: "1. Work item 1 · Requirements",
@@ -116,14 +119,14 @@ for (const width of [1440, 390]) {
     await page.screenshot({
       path: testInfo.outputPath("selected-location.png"),
     });
-    await expect(
-      panel.getByRole("textbox", { name: "Requested change for feedback 24" }),
-    ).toHaveValue("Unfinished edit stays while selecting another note.");
+    await expect(panel).toContainText(
+      "Saved edit stays while selecting another note.",
+    );
     await panel.getByRole("button", { name: "Close feedback" }).click();
     await toggle.click();
     await expect(panel.getByRole("textbox")).toHaveCount(0);
     await expect(panel).toContainText(
-      "Unfinished edit stays while selecting another note.",
+      "Saved edit stays while selecting another note.",
     );
     await panel
       .getByRole("button", { name: "Remove feedback 24", exact: true })
@@ -139,7 +142,7 @@ for (const width of [1440, 390]) {
     await panel.getByRole("button", { name: "Close feedback" }).click();
     await page.goto("/public/plans/owner-a/browser-plan");
     await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
-    await expect(panel).toContainText("Add feedback from a plan section");
+    await expect(panel).toContainText("Click a sentence");
     await expect(
       panel.getByRole("button", { name: "Copy feedback", exact: true }),
     ).toBeDisabled();
@@ -212,9 +215,12 @@ for (const width of [1440, 390]) {
     await panel
       .getByRole("button", { name: "Edit feedback 1", exact: true })
       .click();
-    await panel
-      .getByRole("textbox", { name: "Requested change for feedback 1" })
+    await page
+      .getByRole("textbox", { name: "Your feedback", exact: true })
       .fill("Recover this comment even when storage is full.");
+    await page
+      .getByRole("button", { name: "Save comment", exact: true })
+      .click();
     await expect(panel).toContainText("Your changes are in memory");
     await panel
       .getByRole("button", { name: "Copy feedback (2)", exact: true })
@@ -242,7 +248,7 @@ test("Fit all uses the canvas beside the column and a pin selects its note", asy
   await page.setViewportSize({ width: 1440, height: 900 });
   await seedNotes(page, 3);
   await page.getByRole("button", { name: "Feedback 3", exact: true }).click();
-  await page.getByRole("button", { name: "Fit all", exact: true }).click();
+  await page.getByRole("button", { name: "Fit", exact: true }).click();
   const canvas = (await page.locator(".react-flow").boundingBox())!;
   for (const sheet of await page.locator(".plan-sheet").all()) {
     const bounds = (await sheet.boundingBox())!;
@@ -302,7 +308,7 @@ test("a listed overview location restores reading zoom after Fit", async ({
   await toggle.click();
   await expect(page.locator(".feedback-panel")).toHaveCount(0);
   await toggle.click();
-  await page.getByRole("button", { name: "Fit all", exact: true }).click();
+  await page.getByRole("button", { name: "Fit", exact: true }).click();
   await page
     .getByRole("button", { name: "1. Plan overview · Epic goal", exact: true })
     .click();

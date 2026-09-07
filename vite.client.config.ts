@@ -11,16 +11,10 @@ export default defineConfig({
   worker: { format: "es" },
   build: {
     outDir: "dist/client",
-    emptyOutDir: false,
+    emptyOutDir: true,
+    manifest: true,
     rollupOptions: {
       input: "src/web/client.tsx",
-      output: {
-        entryFileNames: "assets/app.js",
-        assetFileNames: (asset) =>
-          asset.names.some((name) => name.endsWith(".css"))
-            ? "assets/app.css"
-            : "assets/[name]-[hash][extname]",
-      },
     },
   },
 });

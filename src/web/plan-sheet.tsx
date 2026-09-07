@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Compass } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 
 import type {
@@ -20,7 +20,6 @@ import {
   FeedbackSectionTitle,
 } from "./feedback-target.js";
 import { Badge } from "./ui/badge.js";
-import { Button } from "./ui/button.js";
 
 interface PlanSheetProps {
   readonly plan: Plan;
@@ -50,12 +49,12 @@ function OverviewSheet({
 }: PlanSheetProps) {
   return (
     <article
-      className={`plan-sheet overview-sheet ${selected ? "selected" : ""}`}
+      className={`plan-sheet overview-sheet nodrag nopan ${selected ? "selected" : ""}`}
       aria-label="Epic overview"
     >
       <SheetHeader
         eyebrow="Epic overview"
-        title={`${plan.repository.owner}/${plan.repository.name}`}
+        title={plan.epicGoal}
         selected={selected}
         changed={false}
       />
@@ -121,14 +120,13 @@ function ItemSheet({
   selected,
   changedSections,
   feedbackItems,
-  onSelect,
   onAddFeedback,
 }: PlanSheetProps & { readonly item: WorkItem }) {
   const { contexts, decisions, assets } = collectRequiredContent(plan, item);
   const feedbackProps = { plan, item, feedbackItems, onAddFeedback };
   return (
     <article
-      className={`plan-sheet item-sheet ${selected ? "selected" : ""}`}
+      className={`plan-sheet item-sheet nodrag nopan ${selected ? "selected" : ""}`}
       aria-label={item.title}
     >
       <SheetHeader
@@ -148,7 +146,7 @@ function ItemSheet({
           )
         }
       />
-      <div className="sheet-scroll nodrag nopan nowheel">
+      <div className="sheet-content">
         <FeedbackSheetSection
           {...feedbackProps}
           sectionId="goal"
@@ -202,7 +200,6 @@ function ItemSheet({
           contexts={contexts}
           changedSections={changedSections}
         />
-        <RelatedItems plan={plan} item={item} onSelect={onSelect} />
       </div>
     </article>
   );
@@ -319,26 +316,15 @@ function TechnicalDetail({
   readonly changedSections: ReadonlySet<string>;
 }) {
   return (
-    <details
-      className={`technical-details ${changedSections.has(`${item.id}:technical`) ? "changed" : ""}`}
-      data-section={`${item.id}:technical`}
-      data-feedback-container
+    <FeedbackSheetSection
+      plan={plan}
+      item={item}
+      feedbackItems={feedbackItems}
+      onAddFeedback={onAddFeedback}
+      sectionId="technical"
+      label="Technical detail"
+      changedSections={changedSections}
     >
-      <summary className="nodrag nopan">Technical detail</summary>
-      <FeedbackButton
-        label="Technical detail"
-        count={feedbackCount(feedbackItems, item.id, "technical")}
-        onAdd={(event) =>
-          addSectionFeedback(
-            event,
-            plan,
-            item.id,
-            "technical",
-            "Technical detail",
-            onAddFeedback,
-          )
-        }
-      />
       <h4>Required context</h4>
       {contexts.map((context) => (
         <div className="required-context" key={context.id}>
@@ -353,40 +339,7 @@ function TechnicalDetail({
       <Checklist values={item.deferrals} />
       <h4>Completion</h4>
       <RichText text={item.completionExpectation} />
-    </details>
-  );
-}
-
-function RelatedItems({
-  plan,
-  item,
-  onSelect,
-}: {
-  readonly plan: Plan;
-  readonly item: WorkItem;
-  readonly onSelect: (itemId?: string) => void;
-}) {
-  return (
-    <nav className="related-items" aria-label="Related plan items">
-      <Button variant="outline" size="sm" onClick={() => onSelect()}>
-        <Compass aria-hidden="true" size={14} /> Overview
-      </Button>
-      {item.relatedItemIds.map((relatedId) => {
-        const related = plan.items.find(
-          (candidate) => candidate.id === relatedId,
-        );
-        return related === undefined ? null : (
-          <Button
-            variant="ghost"
-            size="sm"
-            key={related.id}
-            onClick={() => onSelect(related.id)}
-          >
-            {related.title} <ArrowRight aria-hidden="true" size={14} />
-          </Button>
-        );
-      })}
-    </nav>
+    </FeedbackSheetSection>
   );
 }
 

@@ -3,8 +3,10 @@ import {
   Background,
   Controls,
   Handle,
+  getViewportForBounds,
   MarkerType,
   Position,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   ViewportPortal,
@@ -12,7 +14,11 @@ import {
   type Node,
   type NodeProps,
   useReactFlow,
+  useStore,
 } from "@xyflow/react";
+
+import { Compass } from "lucide-react";
+import { Button } from "./ui/button.js";
 
 import type { Plan, WorkItem } from "../contract/plan.js";
 import type { FeedbackItem, FeedbackTarget } from "./feedback.js";
@@ -67,7 +73,17 @@ function CanvasContents({
   onOpenFeedback,
 }: PlanCanvasProps) {
   const flow = useReactFlow<SheetNode, Edge>();
-  const previousSelection = useRef<string | undefined>(undefined);
+  const selectedNodeId = selectedItemId ?? "overview";
+  const sheetWidth = useStore(
+    (state) => state.nodeLookup.get(selectedNodeId)?.measured?.width,
+  );
+  const canvasWidth = useStore((state) => state.width);
+  const sheetX = useStore(
+    (state) => state.nodeLookup.get(selectedNodeId)?.position.x,
+  );
+  const previousSelection = useRef<
+    { id: string; x: number; width: number; canvasWidth: number } | undefined
+  >(undefined);
   const nodes = useMemo(
     () =>
       makeNodes(
@@ -88,21 +104,41 @@ function CanvasContents({
     ],
   );
   const edges = useMemo(() => makeEdges(plan), [plan]);
-  const selectedNodeId = selectedItemId ?? "overview";
-
   useEffect(() => {
-    if (previousSelection.current === selectedNodeId) return;
-    previousSelection.current = selectedNodeId;
-    const selected = nodes.find((node) => node.id === selectedNodeId);
-    if (selected !== undefined) {
-      void flow.fitView({
-        nodes: [selected],
-        duration: 380,
-        maxZoom: 0.92,
-        padding: 0.12,
+    if (
+      sheetWidth === undefined ||
+      sheetX === undefined ||
+      !flow.viewportInitialized
+    )
+      return;
+    const selected = flow.getInternalNode(selectedNodeId);
+    if (selected === undefined || canvasWidth === 0) return;
+    const previous = previousSelection.current;
+    previousSelection.current = {
+      id: selectedNodeId,
+      x: sheetX,
+      width: sheetWidth,
+      canvasWidth,
+    };
+    if (previous?.id === selectedNodeId) {
+      const viewport = flow.getViewport();
+      void flow.setViewport({
+        ...viewport,
+        x:
+          viewport.x +
+          (canvasWidth - previous.canvasWidth) / 2 -
+          ((sheetWidth - previous.width) / 2 + sheetX - previous.x) *
+            viewport.zoom,
       });
+      return;
     }
-  }, [flow, nodes, selectedNodeId]);
+    const zoom = Math.min(1, (canvasWidth - 24) / sheetWidth);
+    void flow.setViewport({
+      x: (canvasWidth - sheetWidth * zoom) / 2 - selected.position.x * zoom,
+      y: 58 - selected.position.y * zoom,
+      zoom,
+    });
+  }, [canvasWidth, flow, sheetWidth, sheetX, selectedNodeId]);
 
   return (
     <ReactFlow<SheetNode, Edge>
@@ -112,11 +148,11 @@ function CanvasContents({
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable
-      minZoom={0.2}
+      minZoom={0.02}
       maxZoom={1.4}
       panOnScroll
       zoomOnDoubleClick={false}
-      preventScrolling={false}
+      preventScrolling
       panOnDrag={!pinningCanvas}
       onPaneClick={(event) => {
         if (!pinningCanvas) return;
@@ -129,9 +165,54 @@ function CanvasContents({
       className={pinningCanvas ? "pinning-feedback" : ""}
     >
       <Background color="var(--line)" gap={20} size={1.6} />
-      <Controls showInteractive={false} position="bottom-right" />
+      <Controls
+        showInteractive={false}
+        showFitView={false}
+        position="bottom-right"
+      />
+      <CanvasNavigation selectedNodeId={selectedNodeId} onSelect={onSelect} />
       <CanvasPins items={feedbackItems} onOpen={onOpenFeedback} />
     </ReactFlow>
+  );
+}
+
+function CanvasNavigation({
+  selectedNodeId,
+  onSelect,
+}: {
+  readonly selectedNodeId: string;
+  readonly onSelect: (itemId?: string) => void;
+}) {
+  const flow = useReactFlow();
+  const canvasWidth = useStore((state) => state.width);
+  const canvasHeight = useStore((state) => state.height);
+  return (
+    <Panel position="top-left" className="canvas-navigation">
+      {selectedNodeId === "overview" ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            void flow.setViewport(
+              getViewportForBounds(
+                flow.getNodesBounds(flow.getNodes().map((node) => node.id)),
+                canvasWidth,
+                canvasHeight,
+                0.02,
+                1,
+                0.12,
+              ),
+            )
+          }
+        >
+          Fit all
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => onSelect()}>
+          <Compass aria-hidden="true" size={14} /> Overview
+        </Button>
+      )}
+    </Panel>
   );
 }
 
@@ -175,8 +256,70 @@ function CanvasPins({
 }
 
 function SheetNodeView({ data }: NodeProps<SheetNode>) {
+  const flow = useReactFlow();
+  const container = useRef<HTMLDivElement>(null);
+  const touch = useRef<
+    | { x: number; y: number; viewport: ReturnType<typeof flow.getViewport> }
+    | undefined
+  >(undefined);
+  useEffect(() => {
+    const sheet = container.current?.querySelector<HTMLElement>(".plan-sheet");
+    const stopPanning = () => {
+      touch.current = undefined;
+    };
+    const pan = (event: TouchEvent) => {
+      const start = touch.current;
+      const point = event.touches[0];
+      if (
+        event.touches.length !== 1 ||
+        window.getSelection()?.isCollapsed === false
+      )
+        touch.current = undefined;
+      if (
+        touch.current === undefined ||
+        start === undefined ||
+        point === undefined
+      )
+        return;
+      event.preventDefault();
+      void flow.setViewport({
+        ...start.viewport,
+        x: start.viewport.x + point.clientX - start.x,
+        y: start.viewport.y + point.clientY - start.y,
+      });
+    };
+    sheet?.addEventListener("selectstart", stopPanning);
+    sheet?.addEventListener("touchmove", pan, { passive: false });
+    return () => {
+      sheet?.removeEventListener("selectstart", stopPanning);
+      sheet?.removeEventListener("touchmove", pan);
+    };
+  }, [flow]);
   return (
-    <>
+    <div
+      ref={container}
+      onTouchStart={(event) => {
+        const point = event.touches[0];
+        touch.current =
+          event.touches.length === 1 &&
+          point !== undefined &&
+          !(event.target as Element).closest(
+            "button, a, input, textarea, select, iframe",
+          )
+            ? {
+                x: point.clientX,
+                y: point.clientY,
+                viewport: flow.getViewport(),
+              }
+            : undefined;
+      }}
+      onTouchEnd={() => {
+        touch.current = undefined;
+      }}
+      onTouchCancel={() => {
+        touch.current = undefined;
+      }}
+    >
       <Handle
         type="target"
         position={Position.Left}
@@ -190,7 +333,7 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
         isConnectable={false}
         style={{ opacity: 0, pointerEvents: "none" }}
       />
-    </>
+    </div>
   );
 }
 
@@ -214,18 +357,14 @@ function makeNodes(
       id: "overview",
       type: "sheet",
       position: { x: 0, y: 0 },
-      style: { height: 610 },
       data: { ...common, selected: selectedItemId === undefined },
       zIndex: selectedItemId === undefined ? 10 : 1,
     },
     ...plan.items.map((item, index) => {
-      const column = index % 3;
-      const row = Math.floor(index / 3);
       return {
         id: item.id,
         type: "sheet" as const,
-        position: { x: 620 + column * 520, y: row * 660 },
-        style: { height: 610 },
+        position: { x: (index + 1) * 672, y: 0 },
         data: {
           ...common,
           item,
@@ -246,14 +385,5 @@ function makeEdges(plan: Plan): Edge[] {
     markerEnd: { type: MarkerType.ArrowClosed },
     style: { stroke: "#C1AF9A", strokeWidth: 1.5 },
   }));
-  const relatedEdges = plan.items.flatMap((item) =>
-    item.relatedItemIds.map((target) => ({
-      id: `${item.id}-${target}`,
-      source: item.id,
-      target,
-      type: "smoothstep",
-      style: { stroke: "#3D5D71", strokeDasharray: "5 5" },
-    })),
-  );
-  return [...overviewEdges, ...relatedEdges];
+  return overviewEdges;
 }

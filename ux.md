@@ -4,7 +4,7 @@ The browser application is a read-only review tool. It has no controls for editi
 
 ## Layout and navigation
 
-The first page lists plans owned by the signed-in person. Opening a plan shows its epic overview and work items as document cards on a React Flow canvas. Pan or zoom to compare cards. The header reports the current committed revision and whether live updates are connected.
+The first page lists plans owned by the signed-in person. Opening a plan shows its epic overview and work items as document sheets on a React Flow canvas. Pan or zoom to compare sheets. The desktop documents are 600px wide with 40px padding and 72px gaps, arranged left to right. Each document grows with its content, so revisions cannot make rows overlap. The overview title uses the epic goal; its body and index remain available. The header reports the current committed revision and whether live updates are connected.
 
 The URL identifies current content, not a historical revision:
 
@@ -15,17 +15,17 @@ The URL identifies current content, not a historical revision:
 /public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
-A direct item URL centers that card. The overview button returns to the epic card, and related-item buttons move between explicitly related work items. Selecting another card changes the stable URL without reloading the application.
+A direct item URL focuses the top of its document at reading size, independently of document height. The compact Overview action above the canvas returns to the epic document. Its work-item index, direct URLs and browser history provide item navigation. Solid overview arrows remain; related-item edges and button strips are omitted without changing stored relationships. Fit all is an explicit action on the overview. Selecting another item changes the stable URL without reloading the application.
 
-The selected card puts the goal, required decisions, requirements, checks, and visual references first. Prior art, deferrals, and completion detail are in the collapsed technical-detail section. Text and controls inside cards do not pan the canvas.
+Each sheet presents the goal, required decisions, requirements, checks, visual references and Technical detail as one continuous document. Required context, prior art, deferrals and completion retain their existing labels and are always expanded. Wheel movement and touch swipes pan the canvas through the document bottom. Text selection and control clicks inside sheets do not pan the canvas or create feedback.
 
-On narrow screens, the selected card fits the viewport and remains vertically scrollable. The surrounding canvas still exists for navigation, but the interface does not claim to be a mobile authoring tool.
+At 390px width, documents reflow to the viewport with 24px inner padding and retain reading-size text. Canvas movement reaches all content without a nested document scrollbar. This differs from the reference prototype, which scales desktop paragraphs down on phones. The narrower paragraphs keep the text readable.
 
 ## Live revisions
 
-An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated cards.
+An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated documents.
 
-Existing cards retain their stable React Flow node IDs. A refresh does not run automatic zoom when the selected ID is unchanged, and the card scroll container remains mounted so its reading position and unchanged text selection can survive the update. Changed sections use a short warm paper "Updated" treatment that clears after five seconds.
+Existing sheets retain their stable React Flow node IDs. A refresh retains the viewport when the selected ID is unchanged. If other items are reordered or removed, the viewport compensates for the selected sheet's new horizontal position. Resizing the window keeps its horizontal reading offset and vertical canvas position. Unchanged text stays mounted so selection can survive the update. Update highlighting does not alter section spacing. Changed sections use a short warm paper "Updated" treatment that clears after five seconds.
 
 The header status shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
@@ -81,7 +81,7 @@ Use the prototype's warm paper CSS values: background `#F2EADE`, canvas/panel
 `0 4px 16px #60493912` shadow. The canvas is flat with a 20px dotted grid and 0.8px dot radius at 100% canvas
 zoom. Spacing and dots scale with the canvas, as in the prototype.
 Existing section labels, order and organization remain in place. Sheet sizing,
-navigation and relationship-line behavior are separate work.
+navigation and relationship lines follow the layout rules above.
 
 The full-width desktop header is 68px high when Plan details is closed. It shows
 `plan.epicGoal` on one ellipsized line, the revision and connection status, Plan

@@ -199,6 +199,16 @@ function diffSections(previous: Plan, next: Plan): ReadonlySet<string> {
       previousContent?.assets,
       nextContent.assets,
     );
+    for (const asset of nextContent.assets) {
+      compareSection(
+        changed,
+        JSON.stringify([item.id, asset.id]),
+        previousContent?.assets.find(
+          (previousAsset) => previousAsset.id === asset.id,
+        ),
+        asset,
+      );
+    }
     compareSection(
       changed,
       `${item.id}:technical`,

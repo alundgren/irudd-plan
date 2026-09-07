@@ -8,13 +8,11 @@ import type {
   SharedContext,
   WorkItem,
 } from "../contract/plan.js";
-import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
 import { collectRequiredContent } from "./required-content.js";
 import type { FeedbackItem, FeedbackTarget } from "./feedback.js";
 import {
   addSectionFeedback,
-  assetFeedbackCount,
   FeedbackButton,
   feedbackCount,
   FeedbackSectionTitle,
@@ -29,6 +27,7 @@ interface PlanSheetProps {
   readonly feedbackItems: ReadonlyArray<FeedbackItem>;
   readonly onSelect: (itemId?: string) => void;
   readonly onAddFeedback: (target: FeedbackTarget) => void;
+  readonly onReference: (itemId: string, assetId: string) => void;
 }
 
 export function PlanSheet(props: PlanSheetProps) {
@@ -121,6 +120,7 @@ function ItemSheet({
   changedSections,
   feedbackItems,
   onAddFeedback,
+  onReference,
 }: PlanSheetProps & { readonly item: WorkItem }) {
   const { contexts, decisions, assets } = collectRequiredContent(plan, item);
   const feedbackProps = { plan, item, feedbackItems, onAddFeedback };
@@ -193,6 +193,7 @@ function ItemSheet({
         <VisualReferences
           {...feedbackProps}
           assets={assets}
+          onReference={onReference}
           changedSections={changedSections}
         />
         <TechnicalDetail
@@ -265,15 +266,15 @@ function DecisionList({
 }
 
 function VisualReferences({
-  plan,
   item,
-  feedbackItems,
-  onAddFeedback,
   assets,
   changedSections,
-}: ItemFeedbackProps & {
+  onReference,
+}: {
+  readonly item: WorkItem;
   readonly assets: ReadonlyArray<AssetDescriptor>;
   readonly changedSections: ReadonlySet<string>;
+  readonly onReference: (itemId: string, assetId: string) => void;
 }) {
   if (assets.length === 0) return null;
   return (
@@ -282,24 +283,19 @@ function VisualReferences({
       title="Visual references"
       changed={changedSections.has(`${item.id}:visuals`)}
     >
-      {assets.map((asset) => (
-        <AssetView
-          key={asset.id}
-          planId={plan.planId}
-          asset={asset}
-          feedbackCount={assetFeedbackCount(feedbackItems, item.id, asset.id)}
-          onAddFeedback={() =>
-            onAddFeedback({
-              kind: "asset",
-              itemId: item.id,
-              sectionId: "visuals",
-              assetId: asset.id,
-              assetDigest: asset.digest,
-              caption: asset.caption,
-            })
-          }
-        />
-      ))}
+      <ul className="reference-links">
+        {assets.map((asset) => (
+          <li key={asset.id}>
+            <button
+              type="button"
+              className="reference-link"
+              onClick={() => onReference(item.id, asset.id)}
+            >
+              {asset.caption} <ArrowRight aria-hidden="true" size={14} />
+            </button>
+          </li>
+        ))}
+      </ul>
     </SheetSection>
   );
 }

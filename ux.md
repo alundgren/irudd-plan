@@ -17,9 +17,21 @@ The URL identifies current content, not a historical revision:
 
 A direct item URL focuses the top of its document at reading size, independently of document height. The compact Overview action above the canvas returns to the epic document. Its work-item index, direct URLs and browser history provide item navigation. Solid overview arrows remain; related-item edges and button strips are omitted without changing stored relationships. Fit all is an explicit action on the overview. Selecting another item changes the stable URL without reloading the application.
 
-Each sheet presents the goal, required decisions, requirements, checks, visual references and Technical detail as one continuous document. Required context, prior art, deferrals and completion retain their existing labels and are always expanded. Wheel movement and touch swipes pan the canvas through the document bottom. Text selection and control clicks inside sheets do not pan the canvas or create feedback.
+Each item sheet presents the goal, required decisions, requirements, checks, links to visual references and Technical detail as one continuous document. Required context, prior art, deferrals and completion retain their existing labels and are always expanded. Wheel movement and touch swipes pan the canvas through the document bottom. Text selection and control clicks inside sheets do not pan the canvas or create feedback.
 
 At 390px width, documents reflow to the viewport with 24px inner padding and retain reading-size text. Canvas movement reaches all content without a nested document scrollbar. This differs from the reference prototype, which scales desktop paragraphs down on phones. The narrower paragraphs keep the text readable.
+
+## Reference sheets
+
+Each required item/asset association has its own reference sheet immediately after the item. Required assets inherited through decisions and context use the same rule. Shared assets appear beside each item that requires them, using the existing bytes and identities. No plan format or stored data changes are needed.
+
+The sheet title names its originating item because the asset format has a caption but no separate title. The exact caption sits above the drawing. "Acceptance reference" or "Illustration" explains the asset's role in plain text. A short link in the item focuses its reference at reading zoom; Return to the named item restores the item's top without adding a browser-history entry. Reference selection stays within the item's existing URL. Overview, item history and Fit all retain their existing behavior, and Fit all includes every reference sheet.
+
+Reference sheets use the prototype's 600px width, 40px padding and 72px gaps. Drawings extend 20px into the inner margins, giving them 560px at desktop reading zoom. Raster and SVG proportions determine their height without cropping. Captions wrap and sheets grow downward without overlapping neighbors. Missing assets, failed requests and unsupported previews keep their caption, feedback control and return action visible.
+
+HTML keeps its isolated Worker interactions. Its frame grows with its document, up to 4096px, with internal scrolling beyond that limit. The limit prevents viewport-relative HTML from enlarging its own viewport indefinitely. Wheel movement over an HTML drawing pans the canvas unless a nested scroll area or the capped document can consume that movement. Static SVG frames let wheel and pointer movement reach the canvas. HTML head styles remain available inside the isolated frame.
+
+Asset feedback records the originating item, asset ID and exact digest. A replacement marks only its affected reference sheets as updated and remounts that visual, while saved feedback continues to describe the original digest and reports a changed target. Removing an association removes its sheet and reports missing feedback targets; a selected removed reference returns to its item. Reference node IDs encode the item and asset separately so arbitrary stored IDs cannot collide with item nodes.
 
 ## Live revisions
 

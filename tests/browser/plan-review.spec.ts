@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { panTo } from "./canvas.js";
+import { openReference, panTo } from "./canvas.js";
 
 import { IruddMcpClient } from "../../src/client/mcp-client.js";
 import type { AssetDescriptor } from "../../src/contract/plan.js";
@@ -98,12 +98,15 @@ test.describe.serial("plan review canvas", () => {
     await expect(
       selected.locator('[data-section="item-1:visuals"]'),
     ).toHaveClass(/changed/);
-    await expect(selected.locator("figure.asset-view")).toHaveCount(3);
+    await expect(selected.locator("figure.asset-view")).toHaveCount(0);
+    await expect(selected.locator(".reference-link")).toHaveCount(3);
+    await expect(page.locator(".reference-sheet")).toHaveCount(3);
     expect(
       await selected.evaluate((sheet) => sheet.clientHeight),
     ).toBeGreaterThan(heightBefore + 500);
     const nextSheet = await page
-      .locator('.item-sheet[aria-label="Work item 2"]')
+      .locator('.reference-sheet[data-item-id="item-1"]')
+      .first()
       .boundingBox();
     const currentSheet = await selected.boundingBox();
     expect(nextSheet!.x - currentSheet!.x - currentSheet!.width).toBe(72);
@@ -161,7 +164,7 @@ test.describe.serial("plan review canvas", () => {
         .locator(".overview-sheet")
         .getByRole("heading", { name: revisionFour.epicGoal }),
     ).toBeVisible();
-    await expect(page.locator(".react-flow__node-sheet")).toHaveCount(11);
+    await expect(page.locator(".react-flow__node-sheet")).toHaveCount(14);
     await expect(page.locator(".react-flow__edge")).toHaveCount(10);
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -217,6 +220,7 @@ test.describe.serial("plan review canvas", () => {
       }
     });
     await page.goto("/plans/browser-plan/items/item-1");
+    await openReference(page, "Interactive review control");
     const mockup = page.frameLocator(
       'iframe[title="Interactive review control"]',
     );

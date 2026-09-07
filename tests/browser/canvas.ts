@@ -12,3 +12,20 @@ export async function panTo(page: Page, target: Locator) {
     .poll(async () => (await target.boundingBox())?.y)
     .toBeCloseTo(top, 0);
 }
+
+export async function openReference(page: Page, caption: string) {
+  const link = page
+    .locator(".item-sheet.selected")
+    .getByRole("button", { name: caption, exact: true });
+  await panTo(page, link);
+  await link.click();
+  const sheet = page.locator(".reference-sheet.selected");
+  await expect(sheet).toBeVisible();
+  await expect
+    .poll(async () => {
+      const bounds = await sheet.boundingBox();
+      const canvas = await page.locator(".react-flow").boundingBox();
+      return bounds === null || canvas === null ? 0 : bounds.y - canvas.y;
+    })
+    .toBeCloseTo(58, 0);
+}

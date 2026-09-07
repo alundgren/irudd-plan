@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -20,13 +20,15 @@ import {
 import { Compass } from "lucide-react";
 import { Button } from "./ui/button.js";
 
-import type { Plan, WorkItem } from "../contract/plan.js";
+import type { AssetDescriptor, Plan, WorkItem } from "../contract/plan.js";
 import {
   type FeedbackItem,
   type FeedbackTarget,
   targetStatus,
 } from "./feedback.js";
 import { PlanSheet } from "./plan-sheet.js";
+import { collectRequiredContent } from "./required-content.js";
+import { ReferenceSheet, sheetNodeId } from "./reference-sheet.js";
 
 interface PlanCanvasProps {
   readonly plan: Plan;
@@ -47,6 +49,8 @@ interface PlanCanvasProps {
 interface SheetNodeData extends Record<string, unknown> {
   readonly plan: Plan;
   readonly item?: WorkItem;
+  readonly asset?: AssetDescriptor;
+  readonly onReference: (itemId: string, assetId: string) => void;
   readonly selected: boolean;
   readonly changedSections: ReadonlySet<string>;
   readonly feedbackItems: ReadonlyArray<FeedbackItem>;
@@ -79,7 +83,44 @@ function CanvasContents({
   onSelectFeedback,
 }: PlanCanvasProps) {
   const flow = useReactFlow<SheetNode, Edge>();
-  const selectedNodeId = selectedItemId ?? "overview";
+  const [focusRequest, setFocusRequest] = useState(0);
+  const [reference, setReference] = useState<{
+    itemId: string;
+    assetId: string;
+  }>();
+  const activeReference =
+    reference !== undefined &&
+    reference.itemId === selectedItemId &&
+    plan.items.some(
+      (item) =>
+        item.id === reference.itemId &&
+        collectRequiredContent(plan, item).assets.some(
+          (asset) => asset.id === reference.assetId,
+        ),
+    )
+      ? reference
+      : undefined;
+  useEffect(() => {
+    if (activeReference === undefined)
+      setReference((current) => (current === reference ? undefined : current));
+  }, [activeReference, reference]);
+  const selectItem = useCallback(
+    (itemId?: string) => {
+      setReference(undefined);
+      setFocusRequest((request) => request + 1);
+      if (itemId !== selectedItemId) onSelect(itemId);
+    },
+    [onSelect, selectedItemId],
+  );
+  const selectReference = useCallback(
+    (itemId: string, assetId: string) => {
+      setReference({ itemId, assetId });
+      setFocusRequest((request) => request + 1);
+      if (itemId !== selectedItemId) onSelect(itemId);
+    },
+    [onSelect, selectedItemId],
+  );
+  const selectedNodeId = sheetNodeId(selectedItemId, activeReference?.assetId);
   const sheetWidth = useStore(
     (state) => state.nodeLookup.get(selectedNodeId)?.measured?.width,
   );
@@ -88,25 +129,34 @@ function CanvasContents({
     (state) => state.nodeLookup.get(selectedNodeId)?.position.x,
   );
   const previousSelection = useRef<
-    { id: string; x: number; width: number; canvasWidth: number } | undefined
+    | {
+        id: string;
+        x: number;
+        width: number;
+        canvasWidth: number;
+        request: number;
+      }
+    | undefined
   >(undefined);
   const nodes = useMemo(
     () =>
       makeNodes(
         plan,
-        selectedItemId,
+        selectedNodeId,
         changedSections,
         feedbackItems,
-        onSelect,
+        selectItem,
         onAddFeedback,
+        selectReference,
       ),
     [
       changedSections,
       feedbackItems,
       onAddFeedback,
-      onSelect,
+      selectItem,
+      selectReference,
       plan,
-      selectedItemId,
+      selectedNodeId,
     ],
   );
   const edges = useMemo(() => makeEdges(plan), [plan]);
@@ -125,8 +175,9 @@ function CanvasContents({
       x: sheetX,
       width: sheetWidth,
       canvasWidth,
+      request: focusRequest,
     };
-    if (previous?.id === selectedNodeId) {
+    if (previous?.id === selectedNodeId && previous.request === focusRequest) {
       const viewport = flow.getViewport();
       void flow.setViewport({
         ...viewport,
@@ -144,7 +195,7 @@ function CanvasContents({
       y: 58 - selected.position.y * zoom,
       zoom,
     });
-  }, [canvasWidth, flow, sheetWidth, sheetX, selectedNodeId]);
+  }, [canvasWidth, flow, sheetWidth, sheetX, selectedNodeId, focusRequest]);
 
   return (
     <ReactFlow<SheetNode, Edge>
@@ -176,11 +227,14 @@ function CanvasContents({
         showFitView={false}
         position="bottom-right"
       />
-      <CanvasNavigation selectedNodeId={selectedNodeId} onSelect={onSelect} />
+      <CanvasNavigation selectedNodeId={selectedNodeId} onSelect={selectItem} />
       <CanvasPins items={feedbackItems} onOpen={onSelectFeedback} />
       <FeedbackFocus
         plan={plan}
         selectedNodeId={selectedNodeId}
+        {...(sheetWidth === undefined ? {} : { sheetWidth })}
+        onSelect={selectItem}
+        onReference={selectReference}
         {...(focusedFeedback === undefined ? {} : { item: focusedFeedback })}
       />
     </ReactFlow>
@@ -199,7 +253,7 @@ function CanvasNavigation({
   const canvasHeight = useStore((state) => state.height);
   return (
     <Panel position="top-left" className="canvas-navigation">
-      {selectedNodeId === "overview" ? (
+      {selectedNodeId === sheetNodeId() ? (
         <Button
           variant="outline"
           size="sm"
@@ -269,11 +323,17 @@ function CanvasPins({
 function FeedbackFocus({
   plan,
   selectedNodeId,
+  sheetWidth,
   item,
+  onSelect,
+  onReference,
 }: {
   readonly plan: Plan;
   readonly selectedNodeId: string;
+  readonly sheetWidth?: number;
   readonly item?: FeedbackItem;
+  readonly onSelect: (itemId?: string) => void;
+  readonly onReference: (itemId: string, assetId: string) => void;
 }) {
   const flow = useReactFlow();
   const width = useStore((state) => state.width);
@@ -288,9 +348,18 @@ function FeedbackFocus({
     const target = item.target;
     if (
       target.kind !== "canvas" &&
-      selectedNodeId !== (target.itemId ?? "overview")
-    )
+      selectedNodeId !==
+        sheetNodeId(
+          target.itemId,
+          target.kind === "asset" ? target.assetId : undefined,
+        )
+    ) {
+      if (target.kind === "asset") onReference(target.itemId, target.assetId);
+      else onSelect(target.itemId);
       return;
+    }
+    // Let the selected sheet finish its initial centering before focusing a note.
+    if (sheetWidth === undefined) return;
     const frame = requestAnimationFrame(() => {
       const viewport = flow.getViewport();
       if (target.kind === "canvas") {
@@ -333,7 +402,17 @@ function FeedbackFocus({
       applied.current = item;
     });
     return () => cancelAnimationFrame(frame);
-  }, [flow, height, item, plan, selectedNodeId, width]);
+  }, [
+    flow,
+    height,
+    item,
+    plan,
+    selectedNodeId,
+    sheetWidth,
+    width,
+    onSelect,
+    onReference,
+  ]);
   return null;
 }
 
@@ -408,7 +487,22 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
         isConnectable={false}
         style={{ opacity: 0, pointerEvents: "none" }}
       />
-      <PlanSheet {...data} />
+      {data.asset !== undefined && data.item !== undefined ? (
+        <ReferenceSheet
+          planId={data.plan.planId}
+          item={data.item}
+          asset={data.asset}
+          selected={data.selected}
+          changed={data.changedSections.has(
+            sheetNodeId(data.item.id, data.asset.id),
+          )}
+          feedbackItems={data.feedbackItems}
+          onReturn={() => data.onSelect(data.item?.id)}
+          onAddFeedback={data.onAddFeedback}
+        />
+      ) : (
+        <PlanSheet {...data} />
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -421,11 +515,12 @@ function SheetNodeView({ data }: NodeProps<SheetNode>) {
 
 function makeNodes(
   plan: Plan,
-  selectedItemId: string | undefined,
+  selectedNodeId: string,
   changedSections: ReadonlySet<string>,
   feedbackItems: ReadonlyArray<FeedbackItem>,
   onSelect: (itemId?: string) => void,
   onAddFeedback: (target: FeedbackTarget) => void,
+  onReference: (itemId: string, assetId: string) => void,
 ): SheetNode[] {
   const common = {
     plan,
@@ -433,36 +528,37 @@ function makeNodes(
     feedbackItems,
     onSelect,
     onAddFeedback,
+    onReference,
   };
-  return [
-    {
-      id: "overview",
-      type: "sheet",
-      position: { x: 0, y: 0 },
-      data: { ...common, selected: selectedItemId === undefined },
-      zIndex: selectedItemId === undefined ? 10 : 1,
-    },
-    ...plan.items.map((item, index) => {
-      return {
-        id: item.id,
-        type: "sheet" as const,
-        position: { x: (index + 1) * 672, y: 0 },
-        data: {
-          ...common,
-          item,
-          selected: selectedItemId === item.id,
-        },
-        zIndex: selectedItemId === item.id ? 10 : 1,
-      };
-    }),
+  const sheets: Array<{
+    id: string;
+    item?: WorkItem;
+    asset?: AssetDescriptor;
+  }> = [
+    { id: sheetNodeId() },
+    ...plan.items.flatMap((item) => [
+      { id: sheetNodeId(item.id), item },
+      ...collectRequiredContent(plan, item).assets.map((asset) => ({
+        id: sheetNodeId(item.id, asset.id),
+        item,
+        asset,
+      })),
+    ]),
   ];
+  return sheets.map(({ id, ...content }, index) => ({
+    id,
+    type: "sheet",
+    position: { x: index * 672, y: 0 },
+    data: { ...common, ...content, selected: id === selectedNodeId },
+    zIndex: id === selectedNodeId ? 10 : 1,
+  }));
 }
 
 function makeEdges(plan: Plan): Edge[] {
   const overviewEdges = plan.items.map((item) => ({
     id: `overview-${item.id}`,
-    source: "overview",
-    target: item.id,
+    source: sheetNodeId(),
+    target: sheetNodeId(item.id),
     type: "smoothstep",
     markerEnd: { type: MarkerType.ArrowClosed },
     style: { stroke: "#C1AF9A", strokeWidth: 1.5 },

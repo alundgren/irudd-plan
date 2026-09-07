@@ -38,7 +38,7 @@ export async function handleBrowserRequest(
 
   if (url.pathname === "/" || isPlanPage(url.pathname)) {
     await options.authenticator.authenticate(request.headers);
-    sendHtml(response, renderAppPage());
+    sendHtml(response, await renderAppPage(options.clientAssetsDirectory));
     return true;
   }
 
@@ -109,7 +109,11 @@ async function handlePublicRequest(
   if (route.kind === "page") {
     const current = await service.publicCurrent(route.ownerId, route.planId);
     if (current === undefined) throw publicUnavailable();
-    sendHtml(response, renderAppPage(true), "public, no-cache");
+    sendHtml(
+      response,
+      await renderAppPage(options.clientAssetsDirectory, true),
+      "public, no-cache",
+    );
   } else if (route.kind === "events") {
     await subscribePublic(
       request,
@@ -323,7 +327,7 @@ async function serveClientAsset(
     response.writeHead(200, {
       "content-type": clientAssetMediaType(filename),
       "content-length": content.byteLength,
-      "cache-control": filename.startsWith("mockup-worker-")
+      "cache-control": /-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/.test(filename)
         ? "public, max-age=31536000, immutable"
         : "no-cache, must-revalidate",
       ...(filename.startsWith("mockup-worker-")

@@ -38,8 +38,8 @@ test("renders a selected published item without private browser credentials", as
       );
     expect(runtimeResponses).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("/public/assets/app.js"),
-        expect.stringContaining("/public/assets/app.css"),
+        expect.stringMatching(/\/public\/assets\/client-[\w-]+\.js$/),
+        expect.stringMatching(/\/public\/assets\/client-[\w-]+\.css$/),
       ]),
     );
   } finally {

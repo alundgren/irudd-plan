@@ -197,7 +197,7 @@ test.describe.serial("plan review canvas", () => {
     let forbiddenNavigationRequests = 0;
     let forbiddenModuleRequests = 0;
     let workerCsp = "";
-    const stableAssetCacheHeaders: string[] = [];
+    const clientAssetCacheHeaders: string[] = [];
     page.on("request", (request) => {
       const pathname = new URL(request.url()).pathname;
       if (pathname === "/api/plans") {
@@ -215,8 +215,8 @@ test.describe.serial("plan review canvas", () => {
       if (pathname.includes("/assets/mockup-worker-")) {
         workerCsp = response.headers()["content-security-policy"] ?? "";
       }
-      if (pathname === "/assets/app.js" || pathname === "/assets/app.css") {
-        stableAssetCacheHeaders.push(response.headers()["cache-control"] ?? "");
+      if (/^\/assets\/client-[\w-]+\.(js|css)$/.test(pathname)) {
+        clientAssetCacheHeaders.push(response.headers()["cache-control"] ?? "");
       }
     });
     await page.goto("/plans/browser-plan/items/item-1");
@@ -267,10 +267,10 @@ test.describe.serial("plan review canvas", () => {
     expect(forbiddenNavigationRequests).toBe(0);
     expect(forbiddenModuleRequests).toBe(0);
     expect(workerCsp).toContain("connect-src 'none'");
-    expect(stableAssetCacheHeaders).toHaveLength(2);
-    expect(stableAssetCacheHeaders).toEqual([
-      "no-cache, must-revalidate",
-      "no-cache, must-revalidate",
+    expect(clientAssetCacheHeaders).toHaveLength(2);
+    expect(clientAssetCacheHeaders).toEqual([
+      "public, max-age=31536000, immutable",
+      "public, max-age=31536000, immutable",
     ]);
 
     const currentResponse = await page.request.get("/api/plans/browser-plan");

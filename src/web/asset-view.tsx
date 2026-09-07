@@ -57,7 +57,10 @@ export function AssetView({
   }, [isolated, source]);
 
   return (
-    <figure className="asset-view nodrag nopan nowheel">
+    <figure
+      className="asset-view nodrag nopan nowheel"
+      data-feedback-asset={asset.id}
+    >
       <div className="asset-frame">
         {failed ? (
           <p role="status" className="asset-error">

@@ -1,6 +1,7 @@
+import { canvasExtent } from "./canvas-coordinates.js";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNodesInitialized, useStore, ViewportPortal } from "@xyflow/react";
+import type { LayoutMode } from "./plan-canvas.js";
 import type { Plan } from "../contract/plan.js";
 import {
   targetStatus,
@@ -12,6 +13,17 @@ export function feedbackElement(
   target: FeedbackTarget,
 ): HTMLElement | undefined {
   if (target.kind === "canvas") return undefined;
+  if (
+    target.kind === "section" &&
+    target.itemId !== undefined &&
+    target.sectionId === "header"
+  ) {
+    return (
+      Array.from(document.querySelectorAll<HTMLElement>(".item-frame"))
+        .find((el) => el.dataset.frameItem === target.itemId)
+        ?.querySelector<HTMLElement>(".frame-heading") ?? undefined
+    );
+  }
   const sheets = Array.from(
     document.querySelectorAll<HTMLElement>(".plan-sheet"),
   );
@@ -37,29 +49,39 @@ export function FeedbackPins({
   items,
   selectedId,
   onOpen,
+  mode,
+  renderKey,
 }: {
   readonly plan: Plan;
   readonly items: ReadonlyArray<FeedbackItem>;
-  readonly selectedId?: string;
+  readonly selectedId?: string | undefined;
+  readonly mode: LayoutMode;
+  readonly renderKey: string;
   readonly onOpen: (item: FeedbackItem) => void;
 }) {
-  const initialized = useNodesInitialized();
-  const zoom = useStore((state) => state.transform[2]);
+  const extent = canvasExtent(items);
   const [hosts, setHosts] = useState<Map<string, HTMLElement>>(new Map());
   useEffect(() => {
     const next = new Map<string, HTMLElement>();
     for (const item of items) {
       if (targetStatus(item, plan) !== "current") continue;
+      if (
+        mode === "overview" &&
+        item.target.kind !== "canvas" &&
+        item.target.itemId !== undefined
+      )
+        continue;
       const element = feedbackElement(item.target);
       if (element !== undefined) next.set(item.id, element);
     }
     setHosts(next);
-  }, [items, plan, initialized]);
+  }, [items, plan, mode, renderKey]);
   return (
     <>
       {items.map((item, index) => {
         if (targetStatus(item, plan) !== "current") return null;
         const target = item.target;
+        if (target.kind === "canvas" && mode !== "sections") return null;
         const point =
           target.kind === "canvas"
             ? target
@@ -69,9 +91,15 @@ export function FeedbackPins({
             type="button"
             className={`canvas-feedback-pin nodrag nopan ${selectedId === item.id ? "selected" : ""}`}
             style={{
-              transform: `scale(${1 / zoom}) translate(-6px, -100%)`,
-              left: target.kind === "canvas" ? point.x : `${point.x * 100}%`,
-              top: target.kind === "canvas" ? point.y : `${point.y * 100}%`,
+              transform: "translate(-6px, -100%)",
+              left:
+                target.kind === "canvas"
+                  ? point.x - extent.left
+                  : `${point.x * 100}%`,
+              top:
+                target.kind === "canvas"
+                  ? point.y - extent.top
+                  : `${point.y * 100}%`,
             }}
             aria-label={`Open ${target.kind} feedback ${index + 1}`}
             aria-pressed={selectedId === item.id}
@@ -83,7 +111,7 @@ export function FeedbackPins({
         );
         const host = hosts.get(item.id);
         return target.kind === "canvas" ? (
-          <ViewportPortal key={item.id}>{pin}</ViewportPortal>
+          <span key={item.id}>{pin}</span>
         ) : host === undefined ? null : (
           createPortal(pin, host, item.id)
         );

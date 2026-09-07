@@ -53,7 +53,7 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
       await expect(notice).toBeVisible();
-      const canvas = await page.locator(".react-flow").boundingBox();
+      const canvas = await page.locator(".plan-viewport").boundingBox();
       expect(canvas!.y).toBeGreaterThanOrEqual(bounds!.y + bounds!.height);
       await summary.focus();
       await page.keyboard.press("Space");

@@ -1,6 +1,13 @@
 import { useCanvasTouch } from "./use-canvas-touch.js";
-import { createContext, useEffect, useRef, type ReactNode } from "react";
-import { useReactFlow } from "@xyflow/react";
+import {
+  createContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import type { LayoutMode } from "./plan-canvas.js";
 
 import type { Plan } from "../contract/plan.js";
 import {
@@ -12,7 +19,7 @@ import {
 export type CanvasTool = "comment" | "pan";
 export const CanvasToolContext = createContext<CanvasTool>("comment");
 const controls =
-  "button, a, input, textarea, select, dialog, [contenteditable], [role=button], .react-flow__panel";
+  "button, a, input, textarea, select, dialog, [contenteditable], [role=button]";
 
 export function relativePosition(
   element: Element,
@@ -28,19 +35,43 @@ export function relativePosition(
 
 export function CanvasComments({
   plan,
-  tool,
-  onTool,
+  viewport,
+  mode,
+  onZoom,
+  zoom,
   onAdd,
   children,
 }: {
   readonly plan: Plan;
-  readonly tool: CanvasTool;
-  readonly onTool: (tool: CanvasTool) => void;
+  readonly viewport: RefObject<HTMLDivElement | null>;
+  readonly mode: LayoutMode;
+  readonly onZoom: (zoom: number, itemId?: string) => void;
+  readonly zoom: number;
   readonly onAdd: (target: FeedbackTarget) => void;
-  readonly children: ReactNode;
+  readonly children: (
+    tool: CanvasTool,
+    onTool: (tool: CanvasTool) => void,
+  ) => ReactNode;
 }) {
-  const flow = useReactFlow();
-  const container = useCanvasTouch();
+  const [tool, onTool] = useState<CanvasTool>("comment");
+  const container = useCanvasTouch(viewport);
+  useEffect(() => {
+    const view = viewport.current;
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        onZoom(
+          zoom * (event.deltaY > 0 ? 1 / 1.2 : 1.2),
+          (event.target as Element).closest<HTMLElement>(".item-frame")?.dataset
+            .frameItem,
+        );
+      } else if (!event.isTrusted) {
+        view?.scrollBy(event.deltaX, event.deltaY);
+      }
+    };
+    view?.addEventListener("wheel", wheel, { passive: false });
+    return () => view?.removeEventListener("wheel", wheel);
+  }, [viewport, onZoom, zoom]);
   const gesture = useRef<
     | {
         x: number;
@@ -48,7 +79,8 @@ export function CanvasComments({
         id: number;
         moved: boolean;
         pan: boolean;
-        viewport: ReturnType<typeof flow.getViewport>;
+        left: number;
+        top: number;
       }
     | undefined
   >(undefined);
@@ -109,7 +141,8 @@ export function CanvasComments({
             id: event.pointerId,
             moved: false,
             pan,
-            viewport: flow.getViewport(),
+            left: viewport.current?.scrollLeft ?? 0,
+            top: viewport.current?.scrollTop ?? 0,
           };
           if (pan && event.pointerType !== "touch") {
             event.preventDefault();
@@ -125,11 +158,7 @@ export function CanvasComments({
           if (start.pan && event.pointerType !== "touch") {
             start.pan = true;
             event.preventDefault();
-            void flow.setViewport({
-              ...start.viewport,
-              x: start.viewport.x + dx,
-              y: start.viewport.y + dy,
-            });
+            viewport.current?.scrollTo(start.left - dx, start.top - dy);
           }
         }}
         onPointerUpCapture={(event) => {
@@ -174,19 +203,35 @@ export function CanvasComments({
               host.focus({ preventScroll: true });
               onAdd(target);
             }
-          } else if ((event.target as Element).closest(".react-flow__pane")) {
+          } else if (
+            mode === "sections" &&
+            !(event.target as Element).closest(".item-frame, .plan-sheet") &&
+            viewport.current?.contains(event.target as Element)
+          ) {
             event.currentTarget.focus({ preventScroll: true });
             onAdd({
               kind: "canvas",
-              ...flow.screenToFlowPosition({
-                x: event.clientX,
-                y: event.clientY,
-              }),
+              x:
+                Number(
+                  viewport.current.querySelector<HTMLElement>(".plan-layout")
+                    ?.dataset.originX ?? 0,
+                ) +
+                event.clientX -
+                viewport.current.getBoundingClientRect().left +
+                viewport.current.scrollLeft,
+              y:
+                Number(
+                  viewport.current.querySelector<HTMLElement>(".plan-layout")
+                    ?.dataset.originY ?? 0,
+                ) +
+                event.clientY -
+                viewport.current.getBoundingClientRect().top +
+                viewport.current.scrollTop,
             });
           }
         }}
       >
-        {children}
+        {children(tool, onTool)}
       </div>
     </CanvasToolContext>
   );

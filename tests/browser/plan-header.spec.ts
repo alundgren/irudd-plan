@@ -50,20 +50,14 @@ for (const width of [1440, 390]) {
         expect(box!.x + box!.width).toBeLessThanOrEqual(width);
         expect(box!.y + box!.height).toBeLessThanOrEqual(bounds!.height);
       }
-      await expect(page.locator(".react-flow")).toHaveCSS(
+      await expect(page.locator(".plan-viewport")).toHaveCSS(
         "background-color",
         "rgb(234, 223, 205)",
       );
-      const grid = await page.locator(".react-flow").evaluate((canvas) => {
-        const zoom = new DOMMatrix(
-          getComputedStyle(canvas.querySelector(".react-flow__viewport")!)
-            .transform,
-        ).a;
-        return (
-          Number(canvas.querySelector("pattern")!.getAttribute("width")) / zoom
-        );
-      });
-      expect(grid).toBeCloseTo(20);
+      await expect(page.locator(".plan-viewport")).toHaveCSS(
+        "background-size",
+        "20px 20px",
+      );
       await expect(header).toHaveCSS("background-color", "rgb(242, 234, 222)");
       await expect(header.locator("h1")).toHaveCSS(
         "font-family",
@@ -71,11 +65,11 @@ for (const width of [1440, 390]) {
       );
       await expect(page.locator(".plan-sheet.selected")).toHaveCSS(
         "background-color",
-        "rgb(249, 246, 240)",
+        "rgba(0, 0, 0, 0)",
       );
       await expect(page.locator(".plan-sheet.selected")).toHaveCSS(
         "box-shadow",
-        "rgba(96, 73, 57, 0.07) 0px 4px 16px 0px",
+        "none",
       );
       await page.screenshot({ path: testInfo.outputPath("overview.png") });
       await header

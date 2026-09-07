@@ -12,19 +12,19 @@ test.describe.serial("plan review canvas", () => {
   }) => {
     await page.goto("/plans/browser-plan/items/item-1");
     const selected = page.locator(".plan-sheet.selected");
-    await expect(
-      selected.getByRole("heading", { name: "Work item 1" }),
-    ).toBeVisible();
+    await expect(page.locator(".item-title-bar")).toBeVisible();
     await expect(page.getByText("Live · r1")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /edit|publish/i }),
     ).toHaveCount(0);
 
-    const viewport = page.locator(".react-flow__viewport");
+    const viewport = page.locator(".plan-viewport");
     await page.waitForTimeout(450);
     await panTo(page, selected.locator('[data-section="item-1:requirements"]'));
     const heightBefore = await selected.evaluate((sheet) => sheet.clientHeight);
-    const viewportBefore = await viewport.getAttribute("style");
+    const viewportBefore = await viewport.evaluate((el) =>
+      String(el.scrollTop),
+    );
     await selected
       .getByText("Keep the current committed requirements")
       .evaluate((element) => {
@@ -37,7 +37,9 @@ test.describe.serial("plan review canvas", () => {
     await expect
       .poll(() => page.evaluate(() => window.getSelection()?.toString()))
       .toContain("current committed requirements");
-    expect(await viewport.getAttribute("style")).toBe(viewportBefore);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
+      viewportBefore,
+    );
 
     const client = new IruddMcpClient(
       new URL("http://127.0.0.1:4173/mcp"),
@@ -109,12 +111,15 @@ test.describe.serial("plan review canvas", () => {
       .first()
       .boundingBox();
     const currentSheet = await selected.boundingBox();
-    expect(nextSheet!.x - currentSheet!.x - currentSheet!.width).toBe(72);
-    expect(nextSheet!.y).toBe(currentSheet!.y);
+    expect(nextSheet!.y).toBeGreaterThanOrEqual(
+      currentSheet!.y + currentSheet!.height,
+    );
     await expect(selected.locator("details")).toHaveCount(0);
     await expect(selected.getByText("Authentication rules")).toBeVisible();
     await expect(selected.getByText("Service boundary")).toBeVisible();
-    expect(await viewport.getAttribute("style")).toBe(viewportBefore);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
+      viewportBefore,
+    );
 
     await page.screenshot({
       path: "docs/captures/plan-canvas-desktop.png",
@@ -135,7 +140,9 @@ test.describe.serial("plan review canvas", () => {
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
 
     await panTo(page, page.locator(".overview-index"));
-    const overviewReadingPosition = await viewport.getAttribute("style");
+    const overviewReadingPosition = await viewport.evaluate((el) =>
+      String(el.scrollTop),
+    );
     await context.setOffline(true);
     await expect(page.getByText("reconnecting")).toBeVisible();
     const revisionThree = {
@@ -158,14 +165,15 @@ test.describe.serial("plan review canvas", () => {
     });
     await context.setOffline(false);
     await expect(page.getByText("Live · r4")).toBeVisible();
-    expect(await viewport.getAttribute("style")).toBe(overviewReadingPosition);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
+      overviewReadingPosition,
+    );
     await expect(
       page
         .locator(".overview-sheet")
         .getByRole("heading", { name: revisionFour.epicGoal }),
     ).toBeVisible();
-    await expect(page.locator(".react-flow__node-sheet")).toHaveCount(14);
-    await expect(page.locator(".react-flow__edge")).toHaveCount(10);
+    await expect(page.locator(".item-frame")).toHaveCount(10);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/plans/browser-plan/items/item-1");
@@ -251,8 +259,8 @@ test.describe.serial("plan review canvas", () => {
       page.locator('iframe[title="Interactive review control"]'),
     );
     const viewport = await page
-      .locator(".react-flow__viewport")
-      .getAttribute("style");
+      .locator(".plan-viewport")
+      .evaluate((el) => String(el.scrollTop));
     await page.getByRole("button", { name: "Pan", exact: true }).click();
     await mockup.getByRole("button", { name: "Fail one interaction" }).click();
     await mockup.getByRole("button", { name: "Reviewed 0 times" }).click();
@@ -260,7 +268,9 @@ test.describe.serial("plan review canvas", () => {
       mockup.getByRole("button", { name: "Reviewed 1 time" }),
     ).toBeVisible();
     expect(
-      await page.locator(".react-flow__viewport").getAttribute("style"),
+      await page
+        .locator(".plan-viewport")
+        .evaluate((el) => String(el.scrollTop)),
     ).toBe(viewport);
     await expect(page).toHaveURL(/\/plans\/browser-plan\/items\/item-1$/);
     expect(unexpectedPlanListRequests).toBe(0);
@@ -345,7 +355,7 @@ test.describe.serial("plan review canvas", () => {
     await expect(page.getByText("Live · r7")).toBeVisible();
     await expect(
       page
-        .locator(".overview-sheet")
+        .locator(".review-header")
         .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await page.waitForTimeout(600);
@@ -365,7 +375,7 @@ test.describe.serial("plan review canvas", () => {
     await expect(page.getByText("Live · r8")).toHaveCount(0);
     await expect(
       page
-        .locator(".overview-sheet")
+        .locator(".review-header")
         .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await client.close();

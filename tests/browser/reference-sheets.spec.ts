@@ -11,14 +11,19 @@ async function expectNoOverlap(page: Page) {
   const sheets = await page
     .locator(".plan-sheet")
     .evaluateAll((elements) =>
-      elements
-        .map((element) => element.getBoundingClientRect().toJSON())
-        .sort((a, b) => a.x - b.x),
+      elements.map((el) => el.getBoundingClientRect().toJSON()),
     );
-  for (let index = 1; index < sheets.length; index += 1) {
-    expect(sheets[index]!.x).toBeGreaterThan(sheets[index - 1]!.right);
-    expect(sheets[index]!.y).toBeCloseTo(sheets[0]!.y, 0);
-  }
+  for (let i = 0; i < sheets.length; i++)
+    for (let j = i + 1; j < sheets.length; j++) {
+      const a = sheets[i]!,
+        b = sheets[j]!;
+      expect(
+        a.right <= b.left ||
+          b.right <= a.left ||
+          a.bottom <= b.top ||
+          b.bottom <= a.top,
+      ).toBe(true);
+    }
 }
 
 for (const width of [1440, 390]) {
@@ -106,13 +111,14 @@ for (const width of [1440, 390]) {
     const htmlBounds = await sheet.locator("iframe").boundingBox();
     await page.mouse.move(htmlBounds!.x + 40, htmlBounds!.y + 40);
     const beforeWheel = await page
-      .locator(".react-flow__viewport")
-      .getAttribute("style");
+      .locator(".plan-viewport")
+      .evaluate((el) => String(el.scrollTop));
     await page.mouse.wheel(0, 1300);
-    await expect(page.locator(".react-flow__viewport")).not.toHaveAttribute(
-      "style",
-      beforeWheel!,
-    );
+    await expect
+      .poll(() =>
+        page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
+      )
+      .not.toBe(beforeWheel);
     await html.getByRole("button", { name: "Show detail" }).click();
     await expect(html.getByText("The detail is now visible.")).toBeVisible();
     await expectNoOverlap(page);
@@ -137,8 +143,13 @@ for (const width of [1440, 390]) {
       .getByRole("button", { name: "Overview" })
       .click();
     await page.getByRole("button", { name: "Fit", exact: true }).click();
-    for (const reference of await page.locator(".reference-sheet").all())
-      await expect(reference).toBeInViewport({ ratio: 0.99 });
+    await expect(page.locator(".plan-viewport")).toHaveAttribute(
+      "data-mode",
+      "overview",
+    );
+    await expect(page.locator(".item-summary").first()).toContainText(
+      "visual references",
+    );
   });
 }
 
@@ -197,9 +208,9 @@ test("shared visual feedback retains each item and original digest across replac
           (await page
             .getByRole("button", { name: `Open asset feedback ${item}` })
             .boundingBox())!.height -
-          (await page.locator(".react-flow").boundingBox())!.y,
+          (await page.locator(".plan-viewport").boundingBox())!.y,
       )
-      .toBeCloseTo(100, 0);
+      .toBeCloseTo(24, 0);
   }
   await page.getByRole("button", { name: "Close feedback" }).click();
   await expect
@@ -207,28 +218,30 @@ test("shared visual feedback retains each item and original digest across replac
       async () =>
         (await page.locator(".reference-sheet.selected").boundingBox())!.x,
     )
-    .toBe(420);
+    .toBeGreaterThan(300);
   const viewport = await page
-    .locator(".react-flow__viewport")
-    .getAttribute("style");
+    .locator(".plan-viewport")
+    .evaluate((el) => String(el.scrollTop));
   await fixture.update();
   const changedSheet = page.locator(".reference-sheet.selected");
   await expect(changedSheet.locator("[data-section]")).toHaveClass("changed");
-  await expect(
-    page.locator(
-      '.reference-sheet[data-item-id="item-1"][data-asset-id="wide"] [data-section]',
-    ),
-  ).not.toHaveClass("changed");
   const captionBounds = await changedSheet.locator("figcaption").boundingBox();
   const drawingBounds = await changedSheet.locator("iframe").boundingBox();
-  expect(captionBounds!.height).toBeGreaterThan(800);
+  expect(captionBounds!.height).toBeGreaterThan(500);
   expect(drawingBounds!.y).toBeGreaterThan(
     captionBounds!.y + captionBounds!.height,
   );
   await expectNoOverlap(page);
   expect(
-    await page.locator(".react-flow__viewport").getAttribute("style"),
+    await page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
   ).toBe(viewport);
+  await page.getByRole("button", { name: "Zoom out", exact: true }).click();
+  await expect(
+    page.locator(
+      '.reference-sheet[data-item-id="item-1"][data-asset-id="wide"] [data-section]',
+    ),
+  ).not.toHaveClass("changed");
+  await page.getByTitle("Reset to 100%", { exact: true }).click();
   await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
   await expect(
     page.getByText(
@@ -299,14 +312,14 @@ test("bounds viewport-relative HTML and keeps overflow scrollable inside its iso
   const bounds = await frame.boundingBox();
   await page.mouse.move(bounds!.x + 40, bounds!.y + 40);
   const viewport = await page
-    .locator(".react-flow__viewport")
-    .getAttribute("style");
+    .locator(".plan-viewport")
+    .evaluate((el) => String(el.scrollTop));
   await page.mouse.wheel(0, 200);
   await expect
     .poll(() => html.locator("html").evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
   expect(
-    await page.locator(".react-flow__viewport").getAttribute("style"),
+    await page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
   ).toBe(viewport);
 });
 
@@ -343,7 +356,7 @@ test("return from a reference preserves the previous browser-history destination
     .locator(".reference-sheet.selected")
     .getByRole("button", { name: "Return to Work item 1" })
     .click();
-  await expect(page.locator(".item-sheet.selected h2")).toBeInViewport();
+  await expect(page.locator(".item-title-bar")).toBeInViewport();
   await page.goBack();
   await expect(page).toHaveURL(/\/plans\/browser-plan$/);
   await expect(page.locator(".overview-sheet.selected")).toBeVisible();

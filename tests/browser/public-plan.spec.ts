@@ -10,11 +10,7 @@ test("renders a selected published item without private browser credentials", as
     await page.goto(
       "http://127.0.0.1:4173/public/plans/owner-a/browser-plan/items/item-1",
     );
-    await expect(
-      page.locator(".plan-sheet.selected").getByRole("heading", {
-        name: "Work item 1",
-      }),
-    ).toBeVisible();
+    await expect(page.locator(".item-title-bar")).toBeVisible();
     await page.locator(".plan-details-toggle").click();
     await expect(page.locator(".plan-details-content")).toContainText(
       "Published",

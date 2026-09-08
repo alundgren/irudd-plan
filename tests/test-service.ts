@@ -70,6 +70,7 @@ export async function startTestServer(
   port = 0,
   initialize?: (service: PlanService) => Promise<void>,
   github?: GitHubConnection,
+  clientAssetsDirectory?: string,
 ) {
   const store = await createTestStore(filename);
   const expiredTokens = new Set(["expired"]);
@@ -96,6 +97,7 @@ export async function startTestServer(
     new Authenticator(verifier, store, "service"),
     {
       browserAuthenticator: new Authenticator(verifier, store, "browser"),
+      ...(clientAssetsDirectory === undefined ? {} : { clientAssetsDirectory }),
     },
   );
   if (initialize !== undefined) await initialize(service);

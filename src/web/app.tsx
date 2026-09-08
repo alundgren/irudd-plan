@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { Plan } from "../contract/plan.js";
 import {
   fetchPlans,
   type PlanDocument,
@@ -84,8 +83,6 @@ export function App() {
       document={document}
       connection={connection}
       changedSections={changedSections}
-      isPublic={route.publicOwnerId !== undefined}
-      publicationStatus={accessLabel(document.access)}
       {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
       onSelect={navigate}
       onShowPlans={() =>
@@ -101,8 +98,6 @@ function PlanWorkspace({
   document,
   connection,
   changedSections,
-  isPublic,
-  publicationStatus,
   itemId,
   onSelect,
   onShowPlans,
@@ -110,12 +105,13 @@ function PlanWorkspace({
   readonly document: PlanDocument;
   readonly connection: ConnectionState;
   readonly changedSections: ReadonlySet<string>;
-  readonly isPublic: boolean;
-  readonly publicationStatus: string;
   readonly itemId?: string;
   readonly onSelect: (itemId?: string) => void;
   readonly onShowPlans: () => void;
 }) {
+  const [navigationHost, setNavigationHost] = useState<HTMLDivElement | null>(
+    null,
+  );
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [composer, setComposer] = useState<{
     item: FeedbackItem;
@@ -158,16 +154,13 @@ function PlanWorkspace({
     !document.plan.items.some((item) => item.id === itemId);
 
   return (
-    <main className="review-app">
+    <main
+      className="review-app"
+      data-version={document.version}
+      data-connection={connection}
+    >
       <ReviewHeader
-        plan={document.plan}
-        version={document.version}
-        connection={connection}
-        isPublic={isPublic}
-        publicationStatus={publicationStatus}
-        {...(isPublic || document.retention === undefined
-          ? {}
-          : { retention: document.retention })}
+        navigationRef={setNavigationHost}
         feedbackCount={feedbackState.items.length}
         onShowPlans={onShowPlans}
         feedbackOpen={feedbackOpen}
@@ -182,6 +175,7 @@ function PlanWorkspace({
         className={`review-content ${feedbackOpen ? "feedback-visible" : ""}`}
       >
         <PlanCanvas
+          navigationHost={navigationHost}
           plan={document.plan}
           {...(selectionDeleted || itemId === undefined
             ? {}
@@ -328,63 +322,25 @@ function accessLabel(access: PlanListEntry["access"]): string {
 }
 
 function ReviewHeader({
-  plan,
-  version,
-  connection,
-  isPublic,
-  publicationStatus,
-  retention,
+  navigationRef,
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
   feedbackOpen,
 }: {
-  readonly plan: Plan;
-  readonly version: number;
-  readonly connection: ConnectionState;
-  readonly isPublic: boolean;
-  readonly publicationStatus: string;
-  readonly retention?: PlanDocument["retention"];
+  readonly navigationRef: (element: HTMLDivElement | null) => void;
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
   readonly onOpenFeedback: () => void;
   readonly feedbackOpen: boolean;
 }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
   return (
     <header className="review-header">
       <Button variant="ghost" size="sm" onClick={onShowPlans}>
         <ListTree aria-hidden="true" size={16} />
-        {isPublic ? "Overview" : "Plans"}
+        Plans
       </Button>
-      <h1 title={plan.epicGoal}>{plan.epicGoal}</h1>
-      <div className="review-header-status" role="status">
-        <span className={`connection ${connection}`}>
-          {connection === "live" ? (
-            `Live · r${version}`
-          ) : (
-            <>
-              <RefreshCw aria-hidden="true" size={12} />
-              {connection} · r{version}
-            </>
-          )}
-        </span>
-        {retention?.status === "scheduled" ? (
-          <span>Scheduled expiry</span>
-        ) : null}
-        {retention?.status === "unknown" ? (
-          <span>Retention unknown</span>
-        ) : null}
-      </div>
-      <button
-        type="button"
-        className="plan-details-toggle"
-        aria-expanded={detailsOpen}
-        aria-controls="plan-details"
-        onClick={() => setDetailsOpen((open) => !open)}
-      >
-        Plan details
-      </button>
+      <div className="header-navigation" ref={navigationRef} />
       <Button
         variant="outline"
         size="sm"
@@ -395,16 +351,6 @@ function ReviewHeader({
         <MessageSquareText aria-hidden="true" size={15} />
         Feedback {feedbackCount}
       </Button>
-      {detailsOpen ? (
-        <div className="plan-details-content" id="plan-details">
-          <p>
-            {plan.repository.owner}/{plan.repository.name} · {publicationStatus}
-          </p>
-          {retention === undefined ? null : (
-            <RetentionNotice retention={retention} />
-          )}
-        </div>
-      ) : null}
     </header>
   );
 }

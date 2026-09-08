@@ -43,6 +43,31 @@ describe("browser-local feedback", () => {
     expect(targetStatus(feedback, removed)).toBe("missing");
   });
 
+  it("preserves legacy index notes and reports their removed target as missing", () => {
+    const plan = tenItemPlan("feedback-plan");
+    const originalText = plan.items
+      .map((item) => `${item.id}: ${item.title}`)
+      .join("\n");
+    const feedback: FeedbackItem = {
+      ...sectionFeedback(originalText),
+      target: {
+        kind: "section",
+        sectionId: "overview-items",
+        label: "Work item index",
+        originalText,
+        originalExcerpt: originalText,
+        excerptOccurrence: 1,
+      },
+    };
+    const restored = parseFeedbackState(JSON.stringify({ items: [feedback] }))
+      .items[0]!;
+    expect(restored).toEqual(feedback);
+    expect(targetStatus(restored, plan)).toBe("missing");
+    const prompt = buildRevisionPrompt(plan, 1, [restored]);
+    expect(prompt).toContain(JSON.stringify(originalText));
+    expect(prompt).toContain("Current target status: missing");
+  });
+
   it("compares immutable asset digests and ignores empty drafts in prompts", () => {
     const base = tenItemPlan("asset-feedback");
     const asset = {

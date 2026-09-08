@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 for (const state of ["retained", "scheduled", "unknown"] as const) {
-  test(`owner can read ${state} retention status at desktop and narrow widths`, async ({
+  test(`${state} retention does not add controls to the review header`, async ({
     page,
   }) => {
     await page.route("**/api/plans/browser-plan", async (route) => {
@@ -24,44 +24,15 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
       await route.fulfill({ response, json: body });
     });
     await page.goto("/plans/browser-plan");
-    const summary = page.locator(".plan-details-toggle");
-    const notice = page.locator(".retention-notice");
-    await expect(notice).not.toBeVisible();
-    if (state !== "retained") {
-      await expect(page.locator(".review-header-status")).toContainText(
-        state === "scheduled" ? "Scheduled expiry" : "Retention unknown",
-      );
-    }
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    await expect(summary).toHaveAttribute("aria-expanded", "true");
-    await expect(notice).toContainText(
-      state === "retained"
-        ? "Retained for open GitHub work"
-        : state === "unknown"
-          ? "GitHub status unknown"
-          : "Scheduled expiry",
-    );
-    await expect(notice).toContainText("Last checked");
-    if (state === "scheduled")
-      await expect(notice).toContainText("Once deleted, content is lost.");
-    if (state === "unknown")
-      await expect(notice).toContainText("installation access was denied");
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-      const bounds = await notice.boundingBox();
-      expect(bounds!.x).toBeGreaterThanOrEqual(0);
-      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
-      await expect(notice).toBeVisible();
+      const header = page.locator(".review-header");
+      await expect(header.getByRole("button")).toHaveCount(3);
+      await expect(header).toHaveText(/Plans.*Epic goal.*Feedback 0/);
+      const bounds = await header.boundingBox();
+      expect(bounds!.height).toBe(width === 1440 ? 68 : 58);
       const canvas = await page.locator(".plan-viewport").boundingBox();
-      expect(canvas!.y).toBeGreaterThanOrEqual(bounds!.y + bounds!.height);
-      await summary.focus();
-      await page.keyboard.press("Space");
-      await expect(notice).not.toBeVisible();
-      const header = await page.locator(".review-header").boundingBox();
-      expect(header!.height).toBe(width === 1440 ? 68 : 95);
-      await page.keyboard.press("Enter");
-      await expect(notice).toBeVisible();
+      expect(canvas!.y).toBe(bounds!.height);
     }
   });
 }
@@ -82,7 +53,7 @@ test("an expired live plan replaces cached content with the unavailable state", 
   expect(page.url()).toContain("/plans/browser-plan");
 });
 
-test("stale selection and opened feedback remain below the narrow retention header", async ({
+test("stale selection and opened feedback remain below the narrow header", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -164,6 +135,9 @@ for (const publicView of [false, true]) {
     await page.unroute(`**${eventsPath}`);
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.locator(".review-app")).toBeVisible();
-    await expect(page.getByText(/^Live · r/)).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      /\d+/,
+    );
   });
 }

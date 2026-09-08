@@ -43,7 +43,6 @@ function OverviewSheet({
   selected,
   changedSections,
   feedbackItems,
-  onSelect,
   onAddFeedback,
 }: PlanSheetProps) {
   return (
@@ -72,40 +71,6 @@ function OverviewSheet({
         />
         <h2>{plan.epicGoal}</h2>
       </section>
-      <details className="overview-index-disclosure">
-        <summary>Work item index</summary>
-        <div
-          className={`overview-index ${changedSections.has("overview-items") ? "changed" : ""}`}
-          data-section="overview-items"
-          data-feedback-container
-        >
-          <FeedbackSectionTitle
-            label={`${plan.items.length} work items`}
-            count={feedbackCount(feedbackItems, undefined, "overview-items")}
-            onAdd={(event) =>
-              addSectionFeedback(
-                event,
-                plan,
-                undefined,
-                "overview-items",
-                "Work item index",
-                onAddFeedback,
-              )
-            }
-          />
-          {plan.items.map((item) => (
-            <button
-              type="button"
-              className={`index-row nodrag nopan ${changedSections.has(`${item.id}:header`) ? "changed" : ""}`}
-              key={item.id}
-              onClick={() => onSelect(item.id)}
-            >
-              <span>{item.title}</span>
-              <ArrowRight aria-hidden="true" size={14} />
-            </button>
-          ))}
-        </div>
-      </details>
     </article>
   );
 }

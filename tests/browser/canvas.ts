@@ -2,11 +2,6 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function panTo(page: Page, target: Locator) {
   await page.locator(".plan-viewport").waitFor({ state: "visible" });
-  await page.locator(".overview-index-disclosure").evaluateAll((elements) =>
-    elements.forEach((element) => {
-      (element as HTMLDetailsElement).open = true;
-    }),
-  );
   await target.evaluate((element) => {
     const details = element.closest("details");
     if (details) details.open = true;

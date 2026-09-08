@@ -17,7 +17,10 @@ test.describe.serial("local plan feedback", () => {
     });
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/plans/feedback-plan/items/item-1");
-    await expect(page.getByText("Live · r1")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "1",
+    );
     const selected = page.locator(".plan-sheet.selected");
 
     const requirement = selected.getByText(
@@ -148,7 +151,11 @@ test.describe.serial("local plan feedback", () => {
     });
     await client.close();
 
-    await expect(page.getByText("Live · r2")).toBeVisible({ timeout: 2_000 });
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "2",
+      { timeout: 2_000 },
+    );
     await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Copy feedback (2)" }),
@@ -186,7 +193,10 @@ test.describe.serial("local plan feedback", () => {
       page.getByRole("button", { name: "Feedback 2", exact: true }),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByText("Live · r2")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "2",
+    );
 
     expect(
       observedRequests.some((request) => request.includes(privateText)),

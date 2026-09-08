@@ -1,3 +1,4 @@
+import { chooseItem } from "./canvas.js";
 import { expect, test, type Page } from "@playwright/test";
 import type { Plan } from "../../src/contract/plan.js";
 import { panTo } from "./canvas.js";
@@ -93,10 +94,7 @@ for (const width of [1280, 390]) {
     );
     expect(Number(afterControl)).toBeCloseTo(Number(beforeControl), 1);
     await page.getByRole("button", { name: "Close feedback" }).click();
-    await page
-      .locator(".canvas-navigation")
-      .getByRole("button", { name: "Overview" })
-      .click();
+    await chooseItem(page, "Epic goal");
     await expectReadingTop(page);
     await expect(page.locator(".overview-sheet h2")).toHaveText(
       "Review a complete delivery plan without losing the current conversation or reading position.",
@@ -228,7 +226,10 @@ test("keeps the selected reading position when other items move and the viewport
     window.dispatchEvent(new Event("offline"));
     window.dispatchEvent(new Event("online"));
   });
-  await expect(page.getByText("Live · r2")).toBeVisible();
+  await expect(page.locator(".review-app")).toHaveAttribute(
+    "data-version",
+    "2",
+  );
   await expect
     .poll(async () => (await selected.boundingBox())?.x)
     .toBeCloseTo(before!.x, 1);

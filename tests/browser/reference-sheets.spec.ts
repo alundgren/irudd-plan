@@ -1,3 +1,4 @@
+import { chooseItem } from "./canvas.js";
 import { expect, test, type Page } from "@playwright/test";
 import {
   caption,
@@ -156,10 +157,7 @@ for (const width of [1440, 390]) {
         .getByRole("button", { name: "Return to Work item 1" })
         .click();
     }
-    await page
-      .locator(".canvas-navigation")
-      .getByRole("button", { name: "Overview" })
-      .click();
+    await chooseItem(page, "Epic goal");
     await page.getByRole("button", { name: "Fit", exact: true }).click();
     await expect(page.locator(".plan-layout")).toHaveClass(/show-summaries/);
     await expect(page.locator(".item-summary").first()).toContainText(
@@ -178,15 +176,8 @@ test("shared visual feedback retains each item and original digest across replac
   await page.goto("/plans/browser-plan/items/item-1");
   for (const item of [1, 2]) {
     if (item === 2) {
-      await page
-        .locator(".canvas-navigation")
-        .getByRole("button", { name: "Overview" })
-        .click();
-      const row = page
-        .locator(".overview-index")
-        .getByRole("button", { name: "Work item 2", exact: true });
-      await panTo(page, row);
-      await row.click();
+      await chooseItem(page, "Epic goal");
+      await chooseItem(page, "Work item 2");
     }
     await openReference(page, caption);
     const sheet = page.locator(".reference-sheet.selected");
@@ -390,11 +381,7 @@ test("return from a reference preserves the previous browser-history destination
 }) => {
   await referenceFixture(page);
   await page.goto("/plans/browser-plan");
-  const itemLink = page
-    .locator(".overview-index")
-    .getByRole("button", { name: "Work item 1", exact: true });
-  await panTo(page, itemLink);
-  await itemLink.click();
+  await chooseItem(page, "Work item 1");
   await openReference(page, caption);
   await page
     .locator(".reference-sheet.selected")

@@ -113,15 +113,21 @@ export function CanvasComments({
       if (event.key === "Escape" || event.key === "Enter")
         clearTimeout(pendingClick.current);
       if (
+        event.defaultPrevented ||
+        event.isComposing ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey ||
         !(event.target instanceof Element) ||
-        event.target.closest(controls)
+        event.target.closest(
+          "input, textarea, select, [contenteditable], dialog, [role=dialog], [role=menu], [role=listbox]",
+        )
       )
         return;
-      if (event.key.toLowerCase() === "c") onTool("comment");
-      if (event.key.toLowerCase() === "v") onTool("pan");
+      const key = event.key.toLowerCase();
+      if (key !== "c" && key !== "v") return;
+      event.preventDefault();
+      onTool(key === "c" ? "comment" : "pan");
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);

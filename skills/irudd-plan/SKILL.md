@@ -35,7 +35,8 @@ check each separately. Report reconnecting as disconnected, not live.
    `get_work_item` with `contractVersion`, `planId`, and `itemId`. Read the full
    selected item, required contexts, decisions and assets. Record `packetVersion`
    and `internalRevision` in working notes. The compact epic index is for lookup;
-   it is not the sibling specifications. Do not call `get_plan` by default.
+   it is not the sibling specifications. Dependency IDs are navigation only,
+   not execution eligibility. Do not recursively retrieve prerequisites. Do not call `get_plan` by default.
 2. Retrieve every required asset using `get_asset` with its exact `assetId` and
    `digest`. Decode `bytesBase64`, verify SHA-256 against the descriptor, then
    inspect the visual. Use an image viewer for raster files and an isolated
@@ -68,6 +69,11 @@ call `get_plan` deliberately to get the complete document and `internalRevision`
 `write_plan` replaces the complete document. Preserve unrelated records and IDs;
 never reconstruct a full plan from one item packet. Use a new `operationId` and
 the current revision as `expectedVersion`. Use null only for creation.
+
+Before sending any `dependsOnItemIds` field, including `[]`, require
+`get_contract.features.itemDependencies: true`. If absent, stop and update the
+server; an older decoder may discard the field. Preserve stored prerequisites
+explicitly or clear them with `[]`. See the contract for graph validation.
 
 Keep the canvas current after each material decision. Record a decision's
 actual source and reason. Record human agreement only when the conversation

@@ -23,7 +23,8 @@
       "requiredContextIds": ["context-auth"],
       "requiredDecisionIds": ["decision-sqlite"],
       "requiredAssetIds": [],
-      "relatedItemIds": []
+      "relatedItemIds": [],
+      "dependsOnItemIds": []
     }
   ],
   "contexts": [

@@ -205,6 +205,7 @@ async function callTool(
         value = {
           contractVersion: CONTRACT_VERSION,
           skillVersion: SKILL_VERSION,
+          features: { itemDependencies: true },
           protocolVersion: MCP_PROTOCOL_VERSION,
           ownerId,
         };

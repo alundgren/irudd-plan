@@ -97,6 +97,7 @@ export const WorkItem = Schema.Struct({
   requiredDecisionIds: Schema.Array(Identifier),
   requiredAssetIds: Schema.Array(Identifier),
   relatedItemIds: Schema.Array(Identifier),
+  dependsOnItemIds: Schema.optionalKey(Schema.Array(Identifier)),
 });
 
 export const Plan = Schema.Struct({

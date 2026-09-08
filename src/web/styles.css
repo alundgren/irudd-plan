@@ -1033,11 +1033,18 @@ summary {
   overflow: hidden;
 }
 .frame-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-right: 48px;
   position: relative;
   background: var(--raised);
   border-bottom: 1px solid var(--line);
 }
 .frame-heading > h2 {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   font: inherit;
 }
@@ -1291,4 +1298,63 @@ summary {
     right: 8px;
     width: auto;
   }
+}
+
+.dependency-trigger {
+  margin: 12px 24px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--link);
+  font-size: 18px;
+  white-space: nowrap;
+}
+.dependency-panel {
+  margin: auto;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(560px, calc(100dvh - 32px));
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.dependency-panel::backdrop {
+  background: rgb(96 73 57 / 20%);
+}
+.dependency-panel header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+.dependency-panel h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.dependency-panel p {
+  overflow-wrap: anywhere;
+}
+.dependency-panel ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+.dependency-panel button {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--link);
+}
+.dependency-panel li + li {
+  margin-top: 8px;
+}
+.dependency-panel li button {
+  width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
 }

@@ -13,6 +13,7 @@ import { collectRequiredContent } from "./required-content.js";
 export function ItemFrame(
   props: PlanCanvasProps & {
     readonly item: WorkItem;
+    readonly onDependencies: (itemId: string) => void;
     readonly summary: boolean;
     readonly selected: boolean;
     readonly referenceId: string | undefined;
@@ -41,6 +42,16 @@ export function ItemFrame(
             <span>{item.title}</span>
           </button>
         </h2>
+        {(item.dependsOnItemIds?.length ?? 0) > 0 && (
+          <button
+            type="button"
+            className="dependency-trigger"
+            aria-haspopup="dialog"
+            onClick={() => props.onDependencies(item.id)}
+          >
+            Depends on {item.dependsOnItemIds!.length}
+          </button>
+        )}
         {!summary && (
           <FeedbackButton
             label="Work item heading"

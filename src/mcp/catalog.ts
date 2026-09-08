@@ -4,7 +4,7 @@ export const tools = [
   {
     name: "get_contract",
     description:
-      "Check the supported plan contract, public skill version, protocol and authenticated owner before working on a plan.",
+      "Check the supported plan contract, public skill version, additive features, protocol and authenticated owner before working on a plan.",
     inputSchema: {
       type: "object",
       required: ["contractVersion"],

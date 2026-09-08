@@ -48,6 +48,8 @@ export async function fetchPlan(
   const response = await fetch(path, signal === undefined ? {} : { signal });
   if (response.status === 404)
     throw new PlanUnavailableError("Plan is unavailable");
+  if (response.status === 401 || response.status === 403)
+    throw new PlanUnavailableError(await responseMessage(response));
   if (!response.ok) throw new Error(await responseMessage(response));
   return (await response.json()) as PlanDocument;
 }

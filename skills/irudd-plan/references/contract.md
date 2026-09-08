@@ -15,6 +15,23 @@ Each item has `id`, `title`, `shortGoal`, complete `goal`, `requirements`,
 `relevantPriorArt`, `checks`, `deferrals`, `completionExpectation`,
 `acceptanceCriteria` with stable id/text pairs, `requiredContextIds`,
 `requiredDecisionIds`, `requiredAssetIds`, and `relatedItemIds`.
+Optional `dependsOnItemIds` lists direct prerequisite item IDs in the same plan.
+A lists B when B must precede A. It is independent of `relatedItemIds`; absent
+means no declared prerequisites. Self references, repeated IDs, missing IDs and
+cycles fail with structured errors identifying the affected IDs. Disconnected
+items and diamonds are valid.
+
+Before sending this field, even an empty list, require
+`get_contract.features.itemDependencies: true`. An absent or false feature means
+stop and update the server. Contract and skill versions remain exactly `v1`.
+Legacy dependency-free clients remain compatible. Unknown fields can be dropped
+by decoders, so matching `v1` alone does not prove dependency support.
+
+Replacements must explicitly retain or clear each existing nonempty dependency
+list. Omission fails inside the version-checked transaction without changing
+the prior revision. `[]` clears it. Removing an item also requires removing all
+incoming references in the same replacement. No edges are silently removed.
+
 Contexts and decisions have `id`, `title`, `body`, `reason`, optional `source`,
 `requiredContextIds`, and `assetIds`. Required references must exist and context
 requirements must be acyclic. Use source to identify recorded evidence or human
@@ -22,14 +39,18 @@ agreement precisely, without copying private conversational detail.
 
 `get_work_item` returns the complete selected item with recursively required
 contexts, decisions and asset descriptors, plus `epic.goal`, repository and a
-compact index. The index contains IDs, titles, short goals and related item IDs.
+compact index. Both overview and item-packet indexes contain IDs, titles, short
+goals, related item IDs and optional dependency IDs. Dependencies do not pull
+sibling specifications into the packet or enforce implementation eligibility.
 `relatedContextIds` lists other contexts for deliberate lookup. `get_plan` is
 an explicit full-document read for planning, not an implementation prerequisite.
 
 `internalRevision` is a plan-wide integer used as `expectedVersion` when
 replacing a plan. `packetVersion` is a selected-content SHA-256 digest. It covers
 the item and its required contexts, decisions and assets, not unrelated siblings
-or optional context read later. A new internal revision alone does not require
+or optional context read later. The selected item's dependency IDs are covered;
+graph changes visible only in the compact index are outside this digest. Legacy
+absent fields stay absent and retain their original digests. A new internal revision alone does not require
 restarting implementation. `get_related_context` also returns a packet digest;
 reread it if implementation depends on that optional context.
 

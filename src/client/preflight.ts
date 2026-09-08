@@ -106,6 +106,9 @@ async function checkCompatibility(
       skillVersion: Schema.Literal(SKILL_VERSION),
       protocolVersion: Schema.Literal(MCP_PROTOCOL_VERSION),
       ownerId: Schema.Literal(ownerId),
+      features: Schema.optionalKey(
+        Schema.Struct({ itemDependencies: Schema.optionalKey(Schema.Boolean) }),
+      ),
     }),
     await toolValue(client, "get_contract", {
       contractVersion: CONTRACT_VERSION,

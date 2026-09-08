@@ -49,7 +49,16 @@ export class IruddMcpClient {
     return this.client.listTools();
   }
 
-  callTool<T = CallToolResult>(name: string, args: unknown): Promise<T> {
+  async callTool<T = CallToolResult>(name: string, args: unknown): Promise<T> {
+    if (name === "write_plan" && hasDependencyData(args)) {
+      const contract = await this.client.callTool({
+        name: "get_contract",
+        arguments: { contractVersion: "v1" },
+      });
+      requireItemDependencies(
+        contract.isError ? undefined : contract.structuredContent,
+      );
+    }
     return this.client.callTool({
       name,
       arguments: args as Record<string, unknown>,
@@ -59,4 +68,26 @@ export class IruddMcpClient {
   readResource<T = ReadResourceResult>(uri: string): Promise<T> {
     return this.client.readResource({ uri }) as Promise<T>;
   }
+}
+
+function requireItemDependencies(contract: unknown): void {
+  const features = (
+    contract as { features?: { itemDependencies?: unknown } } | undefined
+  )?.features;
+  if (features?.itemDependencies !== true)
+    throw new Error(
+      "Server does not advertise itemDependencies; update the server before writing dependsOnItemIds",
+    );
+}
+
+function hasDependencyData(args: unknown): boolean {
+  const items = (args as { plan?: { items?: unknown } } | undefined)?.plan
+    ?.items;
+  return (
+    Array.isArray(items) &&
+    items.some(
+      (item) =>
+        item !== null && typeof item === "object" && "dependsOnItemIds" in item,
+    )
+  );
 }

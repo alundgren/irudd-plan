@@ -68,8 +68,17 @@ export function PlanCanvas(props: PlanCanvasProps) {
   };
   const pending = useRef<(() => void) | undefined>(undefined);
   const appliedFeedback = useRef<FeedbackItem | undefined>(undefined);
+  const stopFeedbackTracking = useRef<(() => void) | undefined>(undefined);
+  useLayoutEffect(() => {
+    appliedFeedback.current = undefined;
+    return () => {
+      stopFeedbackTracking.current?.();
+      stopFeedbackTracking.current = undefined;
+    };
+  }, [focusedFeedback]);
   const [request, setRequest] = useState(0);
   const savePosition = () => {
+    stopFeedbackTracking.current?.();
     if (viewport.current)
       positions.current.set(currentKey.current, {
         top: viewport.current.scrollTop,
@@ -224,14 +233,14 @@ export function PlanCanvas(props: PlanCanvasProps) {
         const observer = new ResizeObserver(focus);
         observer.observe(element);
         observer.observe(element.closest(".item-frame") ?? element);
-        const stop = () => observer.disconnect();
-        for (const event of ["wheel", "pointerdown", "touchstart", "keydown"])
-          view.addEventListener(event, stop, { once: true });
-        return () => {
+        const stop = () => {
           observer.disconnect();
           for (const event of ["wheel", "pointerdown", "touchstart", "keydown"])
             view.removeEventListener(event, stop);
         };
+        for (const event of ["wheel", "pointerdown", "touchstart", "keydown"])
+          view.addEventListener(event, stop, { once: true });
+        stopFeedbackTracking.current = stop;
       }
     }
     appliedFeedback.current = focusedFeedback;
@@ -357,15 +366,19 @@ export function PlanCanvas(props: PlanCanvasProps) {
               setRequest((n) => n + 1);
             }}
             onAddCanvas={() => {
+              savePosition();
               setZoom(0.6);
-              props.onAddFeedback({
-                kind: "canvas",
-                x:
-                  extent.left +
-                  (viewport.current?.scrollLeft ?? 0) +
-                  (viewport.current?.clientWidth ?? 0) / 2,
-                y: extent.top + (viewport.current?.scrollTop ?? 0) + 150,
-              });
+              pending.current = () => {
+                props.onAddFeedback({
+                  kind: "canvas",
+                  x:
+                    extent.left +
+                    (viewport.current?.scrollLeft ?? 0) +
+                    (viewport.current?.clientWidth ?? 0) / 2,
+                  y: extent.top + (viewport.current?.scrollTop ?? 0) + 150,
+                });
+              };
+              setRequest((n) => n + 1);
             }}
           />
         </>

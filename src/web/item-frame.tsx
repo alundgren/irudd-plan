@@ -31,15 +31,17 @@ export function ItemFrame(
       aria-label={`Section: ${item.title}`}
     >
       <div className="frame-heading" data-feedback-container>
-        <button
-          type="button"
-          className="item-title-bar"
-          onClick={() => onSelect(item.id)}
-        >
-          <span>{String(plan.items.indexOf(item) + 1).padStart(2, "0")}</span>
-          <span>{item.title}</span>
-          <span aria-hidden="true">↗</span>
-        </button>
+        <h2>
+          <button
+            type="button"
+            className="item-title-bar"
+            onClick={() => onSelect(item.id)}
+          >
+            <span>{String(plan.items.indexOf(item) + 1).padStart(2, "0")}</span>
+            <span>{item.title}</span>
+            <span aria-hidden="true">↗</span>
+          </button>
+        </h2>
         {mode !== "overview" && (
           <FeedbackButton
             label="Work item heading"

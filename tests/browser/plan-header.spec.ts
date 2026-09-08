@@ -58,6 +58,10 @@ for (const width of [1440, 390]) {
         "background-size",
         "20px 20px",
       );
+      await expect(page.locator(".plan-viewport")).toHaveCSS(
+        "background-image",
+        /radial-gradient/,
+      );
       await expect(header).toHaveCSS("background-color", "rgb(242, 234, 222)");
       await expect(header.locator("h1")).toHaveCSS(
         "font-family",

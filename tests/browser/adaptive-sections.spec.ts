@@ -98,9 +98,14 @@ for (const width of [1440, 390]) {
     for (let i = 0; i < 4; i++)
       await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     const view = await page.locator(".plan-viewport").boundingBox();
+    const gutter = await page
+      .locator(".plan-viewport")
+      .evaluate((el) => (el as HTMLElement).offsetWidth - el.clientWidth);
     const frame = await page.locator(".item-frame").boundingBox();
     expect(
-      Math.abs(frame!.x + frame!.width / 2 - view!.x - (view!.width - 15) / 2),
+      Math.abs(
+        frame!.x + frame!.width / 2 - view!.x - (view!.width - gutter) / 2,
+      ),
     ).toBeLessThan(10);
     expect(
       await page
@@ -324,4 +329,94 @@ test("keyboard heading feedback retains the original item target", async ({
     originalText: "Work item 1",
     originalExcerpt: "Work item 1",
   });
+});
+
+test("tool shortcuts ignore focused controls", async ({ page }) => {
+  await page.goto("/plans/browser-plan");
+  const comment = page.getByRole("button", { name: "Comment", exact: true });
+  await comment.focus();
+  await page.keyboard.press("v");
+  await expect(comment).toHaveAttribute("aria-pressed", "true");
+  await page.locator(".plan-viewport").focus();
+  await page.keyboard.press("v");
+  await expect(comment).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Pan", exact: true }).focus();
+  await page.keyboard.press("c");
+  await expect(comment).toHaveAttribute("aria-pressed", "false");
+  await page.locator(".plan-viewport").focus();
+  await page.keyboard.press("c");
+  await expect(comment).toHaveAttribute("aria-pressed", "true");
+});
+
+for (const mode of ["overview", "reading"]) {
+  test(`canvas comment uses restored sections position from ${mode}`, async ({
+    page,
+  }) => {
+    await page.goto("/plans/browser-plan/items/item-1");
+    await zoomToMode(page, "sections", "out");
+    const view = page.locator(".plan-viewport");
+    await view.evaluate((el) => (el.scrollTop = 700));
+    if (mode === "overview")
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
+    else await page.getByTitle("Reset to 100%", { exact: true }).click();
+    const action = page.getByRole("button", {
+      name: "Comment on canvas center",
+    });
+    await action.focus();
+    await page.keyboard.press("Enter");
+    await expect(view).toHaveAttribute("data-mode", "sections");
+    await page
+      .getByRole("textbox", { name: "Your feedback", exact: true })
+      .fill("Canvas position");
+    await page
+      .getByRole("button", { name: "Add comment", exact: true })
+      .click();
+    const target = await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((entry) =>
+        entry.endsWith(":browser-plan"),
+      )!;
+      return JSON.parse(localStorage.getItem(key)!).items[0].target;
+    });
+    expect(target.kind).toBe("canvas");
+    expect(target.y).toBe(850);
+  });
+}
+
+test("feedback tracking survives a render and stops after user navigation", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan/items/item-1");
+  const section = page.locator('[data-section="item-1:requirements"]');
+  await section
+    .getByRole("button", { name: "Add feedback to Requirements" })
+    .focus();
+  await page.keyboard.press("Enter");
+  await page
+    .getByRole("textbox", { name: "Your feedback", exact: true })
+    .fill("Keep this target visible");
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  await page.locator(".feedback-location").first().click();
+  await page
+    .getByRole("button", { name: "Close feedback", exact: true })
+    .click();
+  const offset = () =>
+    section.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top -
+        document.querySelector(".plan-viewport")!.getBoundingClientRect().top,
+    );
+  const initialOffset = await offset();
+  const goal = page.locator('[data-section="item-1:goal"]');
+  await goal.evaluate(
+    (el) => ((el as HTMLElement).style.paddingBottom = "400px"),
+  );
+  await expect
+    .poll(async () => Math.abs((await offset()) - initialOffset))
+    .toBeLessThan(1);
+  const view = page.locator(".plan-viewport");
+  await view.dispatchEvent("wheel", { deltaY: 100 });
+  await goal.evaluate(
+    (el) => ((el as HTMLElement).style.paddingBottom = "800px"),
+  );
+  await expect.poll(offset).toBeGreaterThan(300);
 });

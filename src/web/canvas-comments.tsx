@@ -108,9 +108,7 @@ export function CanvasComments({
         event.metaKey ||
         event.altKey ||
         !(event.target instanceof Element) ||
-        event.target.closest(
-          "input, textarea, select, summary, dialog, [contenteditable]",
-        )
+        event.target.closest(controls)
       )
         return;
       if (event.key.toLowerCase() === "c") onTool("comment");

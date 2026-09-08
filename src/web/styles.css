@@ -1397,3 +1397,8 @@ summary {
 .item-references .asset-frame {
   margin: 0;
 }
+
+.frame-heading > h2 {
+  margin: 0;
+  font: inherit;
+}

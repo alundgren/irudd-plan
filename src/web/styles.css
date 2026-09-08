@@ -1024,6 +1024,8 @@ summary {
   align-items: start;
 }
 .item-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   position: relative;
   width: 1200px;
   min-width: 0;
@@ -1042,7 +1044,7 @@ summary {
   border-bottom: 1px solid var(--line);
 }
 .frame-heading > h2 {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   max-width: 100%;
   min-width: 0;
   margin: 0;
@@ -1061,7 +1063,7 @@ summary {
   text-align: left;
   line-height: 1.4;
   font-weight: 600;
-  font-size: 22px;
+  font-size: max(22px, var(--heading-size));
   overflow-wrap: anywhere;
 }
 .item-title-bar span:nth-child(2) {
@@ -1072,41 +1074,45 @@ summary {
   font-weight: 400;
 }
 .item-summary {
-  position: absolute;
-  top: auto;
-  left: 0;
-  width: 100%;
+  grid-area: 2 / 1;
+  align-self: start;
   padding: 40px;
+  overflow-wrap: anywhere;
+  font-size: calc(var(--heading-size) * 0.8);
+}
+.summary-goal,
+.summary-reference {
+  display: block;
+  width: 100%;
+  padding: 0;
   text-align: left;
   border: 0;
   background: transparent;
   white-space: normal;
   overflow-wrap: anywhere;
-  font-size: var(--heading-size);
+  font: inherit;
 }
-.item-summary > span {
-  display: block;
-  margin-bottom: 16px;
-}
-.summary-meta,
-.summary-reference {
-  font-size: calc(var(--heading-size) * 0.8);
+.summary-meta {
+  margin: 16px 0;
   color: var(--muted);
 }
+.summary-reference {
+  display: flex;
+  align-items: start;
+  gap: 24px;
+  margin-top: 24px;
+  color: var(--link);
+}
+.summary-reference:hover span {
+  text-decoration: underline;
+}
 .asset-thumbnail {
-  float: right;
-  width: 150px;
-  max-width: 35%;
-  max-height: 120px;
+  flex: none;
+  width: 35%;
+  max-height: 280px;
   object-fit: contain;
-  margin: 0 0 16px 20px;
   border: 1px solid var(--line);
   border-radius: 5px;
-}
-.item-summary::after {
-  content: "";
-  display: block;
-  clear: both;
 }
 .plan-layout .plan-sheet {
   width: 100%;
@@ -1125,6 +1131,7 @@ summary {
   display: none;
 }
 .item-body {
+  grid-area: 2 / 1;
   padding: 32px;
   display: grid;
   grid-template-columns: clamp(280px, calc(100cqw - 48px), 640px) 464px;
@@ -1153,6 +1160,7 @@ summary {
   visibility: hidden;
 }
 .show-summaries .item-body {
+  grid-area: 2 / 1;
   visibility: hidden;
 }
 .canvas-link-icon {
@@ -1554,4 +1562,9 @@ summary {
     padding: 4px 8px;
     height: auto;
   }
+}
+
+.plan-layout > .overview-sheet h2 {
+  font-size: max(22px, var(--heading-size));
+  overflow-wrap: anywhere;
 }

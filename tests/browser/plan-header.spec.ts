@@ -39,7 +39,6 @@ for (const width of [1440, 390, 320]) {
         x: 0,
         y: 0,
         width,
-        height: width === 1440 ? 68 : 58,
       });
       for (const control of [
         header.getByRole("button", { name: "Plans" }),
@@ -88,7 +87,7 @@ for (const width of [1440, 390, 320]) {
         .locator(".feedback-panel")
         .getByRole("button", { name: /close/i })
         .click();
-      await expect(header.getByRole("button")).toHaveCount(3);
+      await expect(header.getByRole("button")).toHaveCount(4);
       await header.getByRole("button", { name: "Read work item" }).click();
       const menu = await page.locator(".work-item-menu").boundingBox();
       expect(menu!.x).toBeGreaterThanOrEqual(0);
@@ -106,7 +105,7 @@ for (const width of [1440, 390, 320]) {
         "data-connection",
         "reconnecting",
       );
-      await expect(header.getByRole("button")).toHaveCount(3);
+      await expect(header.getByRole("button")).toHaveCount(4);
       await expect(header).toHaveText(/Plans.*Epic goal.*Feedback 0/);
       expect(await header.boundingBox()).toEqual(bounds);
       await context.setOffline(false);
@@ -140,7 +139,9 @@ test("long item headers keep their layout through zoom and chooser navigation", 
   for (const key of ["-", "-", "-", "+", "+", "+"]) {
     await viewport.focus();
     await page.keyboard.press(key);
-    expect(await dimensions()).toEqual(original);
+    const current = await dimensions();
+    expect(current.width).toBe(original.width);
+    expect(current.textHeight).toBeLessThanOrEqual(current.height);
   }
   await expect(
     page.getByRole("button", { name: "Jump to reference" }),

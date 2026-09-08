@@ -89,7 +89,10 @@ export async function referenceFixture(page: Page) {
         window.dispatchEvent(new Event("offline"));
         window.dispatchEvent(new Event("online"));
       });
-      await expect(page.getByText(`Live · r${version}`)).toBeVisible();
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        String(version),
+      );
     },
   };
 }

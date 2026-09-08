@@ -1,3 +1,4 @@
+import { chooseItem } from "./canvas.js";
 import { expect, test } from "@playwright/test";
 import { openReference, panTo } from "./canvas.js";
 
@@ -15,7 +16,10 @@ test.describe.serial("plan review canvas", () => {
     await expect(
       page.locator('[data-frame-item="item-1"] .item-title-bar'),
     ).toBeVisible();
-    await expect(page.getByText("Live · r1")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "1",
+    );
     await expect(
       page.getByRole("button", { name: /edit|publish/i }),
     ).toHaveCount(0);
@@ -102,7 +106,11 @@ test.describe.serial("plan review canvas", () => {
       expectedVersion: 1,
       plan: revisionTwo,
     });
-    await expect(page.getByText("Live · r2")).toBeVisible({ timeout: 2_000 });
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "2",
+      { timeout: 2_000 },
+    );
     await expect(
       page.getByText("This requirement arrived through a live MCP revision."),
     ).toBeVisible();
@@ -143,10 +151,7 @@ test.describe.serial("plan review canvas", () => {
       path: "docs/captures/plan-canvas-desktop.png",
       fullPage: true,
     });
-    await page
-      .locator(".canvas-navigation")
-      .getByRole("button", { name: "Overview" })
-      .click();
+    await chooseItem(page, "Epic goal");
     await expect(page).toHaveURL(/\/plans\/browser-plan$/);
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
     await page.goBack();
@@ -157,7 +162,7 @@ test.describe.serial("plan review canvas", () => {
     await page.goForward();
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
 
-    await panTo(page, page.locator(".overview-index"));
+    await panTo(page, page.locator(".overview-sheet"));
     const overviewReadingPosition = await viewport.evaluate((el) =>
       String(
         new DOMMatrix(
@@ -186,7 +191,10 @@ test.describe.serial("plan review canvas", () => {
       plan: revisionFour,
     });
     await context.setOffline(false);
-    await expect(page.getByText("Live · r4")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "4",
+    );
     expect(
       await viewport.evaluate((el) =>
         String(
@@ -350,7 +358,10 @@ test.describe.serial("plan review canvas", () => {
     page,
   }) => {
     await page.goto("/plans/browser-plan/items/item-1");
-    await expect(page.getByText("Live · r5")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "5",
+    );
     const staleResponse = await page.request.get("/api/plans/browser-plan");
     const staleDocument = await staleResponse.json();
     const client = new IruddMcpClient(
@@ -392,14 +403,20 @@ test.describe.serial("plan review canvas", () => {
       expectedVersion: 6,
       plan: revisionSeven,
     });
-    await expect(page.getByText("Live · r7")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "7",
+    );
     await expect(
       page
-        .locator(".review-header")
+        .locator(".overview-sheet")
         .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await page.waitForTimeout(600);
-    await expect(page.getByText("Live · r7")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      "7",
+    );
 
     await page.unroute("**/api/plans/browser-plan");
     await page.route("**/api/plans/browser-plan", (route) =>
@@ -412,10 +429,13 @@ test.describe.serial("plan review canvas", () => {
       plan: revisionEight,
     });
     await expect(page.getByText("reconnecting")).toBeVisible();
-    await expect(page.getByText("Live · r8")).toHaveCount(0);
+    await expect(page.locator(".review-app")).not.toHaveAttribute(
+      "data-version",
+      "8",
+    );
     await expect(
       page
-        .locator(".review-header")
+        .locator(".overview-sheet")
         .getByRole("heading", { name: "Current revision seven" }),
     ).toBeVisible();
     await client.close();

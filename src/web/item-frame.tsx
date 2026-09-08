@@ -1,4 +1,3 @@
-import { PanelsTopLeft } from "lucide-react";
 import { AssetThumbnail } from "./asset-thumbnail.js";
 import {
   addSectionFeedback,
@@ -20,7 +19,7 @@ export function ItemFrame(
     readonly onReference: (itemId: string, assetId: string) => void;
   },
 ) {
-  const { item, plan, summary, onSelect, onReference } = props;
+  const { item, plan, summary, onSelect } = props;
   const assets = collectRequiredContent(plan, item).assets;
   const count = props.feedbackItems.filter(
     (note) => note.target.kind !== "canvas" && note.target.itemId === item.id,
@@ -40,7 +39,6 @@ export function ItemFrame(
           >
             <span>{String(plan.items.indexOf(item) + 1).padStart(2, "0")}</span>
             <span>{item.title}</span>
-            <span aria-hidden="true">↗</span>
           </button>
         </h2>
         {!summary && (
@@ -60,17 +58,6 @@ export function ItemFrame(
           />
         )}
       </div>
-      {!summary && assets.length > 0 && (
-        <button
-          type="button"
-          className="jump-reference canvas-link-icon"
-          aria-label="Jump to reference"
-          title="Jump to reference"
-          onClick={() => onReference(item.id, assets[0]!.id)}
-        >
-          <PanelsTopLeft size={18} aria-hidden="true" />
-        </button>
-      )}
       <button
         className="item-summary"
         type="button"

@@ -73,26 +73,15 @@ test("reveals legacy notes from summaries and retains negative canvas coordinate
     window.dispatchEvent(new Event("offline"));
     window.dispatchEvent(new Event("online"));
   });
-  await expect(page.getByText("Live · r2")).toBeVisible();
+  await expect(page.locator(".review-app")).toHaveAttribute(
+    "data-version",
+    "2",
+  );
   expect(await position()).toBe(beforeRevision);
   await page.getByRole("button", { name: "Fit", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Open canvas feedback 2" }),
   ).toBeInViewport();
-});
-
-test("item index opens and closes without starting feedback", async ({
-  page,
-}) => {
-  await page.goto("/plans/browser-plan");
-  const disclosure = page.locator("summary", { hasText: "Work item index" });
-  for (const open of [true, false]) {
-    await disclosure.click();
-    await expect(disclosure.locator("..")).toHaveJSProperty("open", open);
-    // Comment capture waits 300 ms to distinguish clicks from selection.
-    await page.waitForTimeout(400);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-  }
 });
 
 test("keyboard heading feedback retains the original item target", async ({
@@ -202,7 +191,10 @@ test("feedback tracking survives a render and stops after user navigation", asyn
     window.dispatchEvent(new Event("offline"));
     window.dispatchEvent(new Event("online"));
   });
-  await expect(page.getByText("Live · r2")).toBeVisible();
+  await expect(page.locator(".review-app")).toHaveAttribute(
+    "data-version",
+    "2",
+  );
   expect(await offset()).toBeCloseTo(beforeRevision, 0);
 });
 

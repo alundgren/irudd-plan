@@ -82,7 +82,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         ).status(),
       ).not.toBe(200);
       await page.goto(privatePath);
-      await expect(page.getByText("Live · r1")).toBeVisible();
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        "1",
+      );
       await expect(
         page
           .locator(".plan-sheet.selected")
@@ -122,7 +125,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         expectedVersion: 1,
         plan: revised,
       });
-      await expect(page.getByText("Live · r2")).toBeVisible();
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        "2",
+      );
       await expect(
         page.getByText(revised.items[0]!.requirements[0]!),
       ).toBeVisible();
@@ -131,7 +137,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         page.getByText("reconnecting", { exact: false }),
       ).toBeVisible();
       await context.setOffline(false);
-      await expect(page.getByText("Live · r2")).toBeVisible();
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        "2",
+      );
       await toolValue(editor, "verify_github_repository", {
         contractVersion: "v1",
         planId: plan.planId,
@@ -142,7 +151,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
       });
       const publicPage = await anonymous.newPage();
       await publicPage.goto(`${publicRoot}/items/item-1`);
-      await expect(publicPage.getByText("Live · r2")).toBeVisible();
+      await expect(publicPage.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        "2",
+      );
       await expect(
         publicPage.getByText("Published", { exact: true }),
       ).toBeVisible();
@@ -171,7 +183,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         expectedVersion: 2,
         plan: final,
       });
-      await expect(publicPage.getByText("Live · r3")).toBeVisible();
+      await expect(publicPage.locator(".review-app")).toHaveAttribute(
+        "data-version",
+        "3",
+      );
       console.log(
         `Smoke passed for ${plan.planId}; ${remote ? "deployed Cloudflare endpoint" : "local injected verifier only"}`,
       );

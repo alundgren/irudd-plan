@@ -1,4 +1,4 @@
-import { panTo } from "./canvas.js";
+import { chooseItem, panTo } from "./canvas.js";
 import { expect, test, type Page } from "@playwright/test";
 
 const route = "/plans/browser-plan";
@@ -195,10 +195,7 @@ test("title navigation, references and browser history keep the continuous canva
   await expect(page.locator(".reference-sheet.selected")).toBeInViewport();
   await page.locator(".reference-sheet.selected .reference-link").click();
   await expect(page.locator(".item-sheet.selected")).toBeInViewport();
-  await page
-    .locator(".canvas-navigation")
-    .getByRole("button", { name: "Overview" })
-    .click();
+  await chooseItem(page, "Epic goal");
   await expect(page).toHaveURL(/browser-plan$/);
   await page.goBack();
   await expect(page.locator(".item-sheet.selected")).toBeInViewport();

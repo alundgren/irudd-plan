@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Plan } from "../contract/plan.js";
 import { CanvasComments } from "./canvas-comments.js";
@@ -14,6 +15,7 @@ import { ItemFrame } from "./item-frame.js";
 import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 
 export interface PlanCanvasProps {
+  readonly navigationHost: HTMLDivElement | null;
   readonly plan: Plan;
   readonly selectedItemId?: string;
   readonly changedSections: ReadonlySet<string>;
@@ -185,25 +187,15 @@ export function PlanCanvas(props: PlanCanvasProps) {
     >
       {(tool, onTool) => (
         <>
-          <nav className="canvas-navigation" aria-label="Plan navigation">
-            <button
-              type="button"
-              onClick={() => {
-                navigate();
-                setSelected(undefined);
-                setReading(false);
-                fit();
-              }}
-            >
-              Overview
-            </button>
-            <WorkItemChooser
-              items={plan.items}
-              selected={selected}
-              onSelect={selectItem}
-            />
-            <span>Scroll to zoom · Pan to move</span>
-          </nav>
+          {props.navigationHost &&
+            createPortal(
+              <WorkItemChooser
+                items={plan.items}
+                selected={selected}
+                onSelect={selectItem}
+              />,
+              props.navigationHost,
+            )}
           <div
             ref={viewport}
             className="plan-viewport"

@@ -8,9 +8,9 @@ The first page lists plans owned by the signed-in person. Opening a plan fits a 
 
 Wheel movement zooms around the pointer using gesture magnitude. Ctrl/Cmd-wheel also zooms, including trackpad pinch events. Pan mode uses wheel movement to pan; Shift-wheel pans in either tool. Dragging with Pan or the middle mouse button moves the camera. Touch supports one-finger panning and two-finger zoom. Text selection remains available in Comment mode and cancels touch panning. Arrow keys move the focused canvas, plus/minus zoom, and Home fits all content.
 
-Below 45%, summaries cover each item's complete content without removing or resizing it. Title text grows relative to the document to stay readable at a distance. Title bars reserve a fixed height and limit visible text to two lines so zoom cannot move another frame or cause overlapping headers. Full titles remain available in the work-item chooser. Fit can shrink below a readable text size to include large plans and distant canvas comments. The searchable chooser provides readable navigation at any scale.
+Below 45%, summaries cover each item's complete content without removing or resizing it. Item headers use 22px text in canvas coordinates and grow only to fit their complete titles. Zoom scales the header with the document without changing its line breaks or layout height. Full titles remain available in the work-item chooser. Fit can shrink below a readable text size to include large plans and distant canvas comments. The searchable chooser provides readable navigation at any scale.
 
-Clicking a title, summary or chooser option centers the description column at up to 110%. Descriptions wrap to the available phone width with 16px text at their reading scale. References stay alongside the description in the same canvas. Icon buttons jump to the reference and return to its description, with hover labels and accessible names. Long documents remain fully expanded; Pan, touch or arrow keys reach their lower sections.
+Clicking a title, summary or chooser option centers the description column at up to 110%. Descriptions wrap to the available phone width with 16px text at their reading scale. References stay alongside the description in the same canvas. Visual-reference links in the description focus each reference. Each reference retains its return-to-description icon. Long documents remain fully expanded; Pan, touch or arrow keys reach their lower sections.
 
 The chooser uses the warm-paper palette, a search field and a scrollable list. Arrow keys move the active option, Enter opens it, and Escape closes the menu and restores focus. Clicking outside or tabbing away dismisses it. Search is useful for plans that cannot display readable titles when fitted.
 
@@ -23,7 +23,7 @@ The URL identifies current content, not a historical revision:
 /public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
-Direct item URLs and browser history center the requested description. References use their owning item's URL. Zoom and pan preserve selection and do not add history entries. Overview opens the plan URL and fits the canvas. Fit keeps the current selection. Opening Feedback and resizing preserve the selected document's vertical position and recenter it in the remaining width.
+Direct item URLs and browser history center the requested description. References use their owning item's URL. Zoom and pan preserve selection and do not add history entries. Epic goal in the chooser opens the plan URL and focuses the goal. Fit keeps the current selection. Opening Feedback and resizing preserve the selected document's vertical position and recenter it in the remaining width.
 
 Every item presents its goal, required decisions, requirements, checks, visual-reference links and Technical detail. Required context, prior art, deferrals and completion remain expanded. Text selection and control clicks do not create feedback.
 
@@ -40,7 +40,7 @@ Replacing an asset remounts only its visual, while saved feedback retains the or
 An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated documents.
 
 Items and references retain their stable React keys during live updates. The camera compensates when a live update moves the selected document to another grid row. Width changes keep its center in view and retain its vertical position. Unchanged text stays mounted so selection can survive. Update highlighting does not alter section spacing and clears after five seconds.
-The header status shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
+Connection failures remain visible in the header. Normal live status and the revision number appear in Plan details. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
 Plan details shows `Private` or `Published` and repository verification status. The signed-in plan list also
 shows whether the repository still needs verification or cannot be published
@@ -75,9 +75,7 @@ Raster images are owner-authenticated reads. Uploaded SVG and HTML never execute
 ## Retention status
 
 The private plan list and open-plan view distinguish retained open work,
-scheduled expiry and unknown GitHub status in plain text. In the open-plan header,
-"Scheduled expiry" and "Retention unknown" remain visible beside the connection
-status. One Plan details disclosure holds retention, repository verification
+scheduled expiry and unknown GitHub status in plain text. In the open-plan view, retention status appears in Plan details. One Plan details disclosure holds retention, repository verification
 and check timestamps. It opens with Enter or Space and pushes the canvas down.
 Scheduled expiry inside the disclosure shows the UTC date and explains that deleted content is lost. Unknown status includes
 the verification failure reason; completed checks show last and next check
@@ -103,17 +101,6 @@ review area is flat with a 20px dotted grid. The grid remains in viewport pixels
 Existing section labels, order and organization remain in place. Sheet sizing
 and navigation follow the continuous canvas rules above. Relationship arrows from the previous canvas are no longer drawn.
 
-The full-width desktop header is 68px high when Plan details is closed. It shows
-`plan.epicGoal` on one ellipsized line, the revision and connection status, Plan
-details, and Feedback with its count including zero. The complete goal remains
-in the overview; the header also exposes it as a native title tooltip. Existing
-private Plans and public Overview navigation remain available. Connection
-failures stay visible in the error colour even with details closed. Normal live
-status uses secondary text. Public routes omit owner retention details.
+The desktop header is 68px high when Plan details is closed. It contains Plans or public Overview, the searchable work-item chooser, Plan details and Feedback. The epic goal stays on the canvas, and there is no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again.
 
-At widths up to 640px the header deliberately uses two rows totalling 95px,
-instead of the prototype's 58px phone bar. This keeps the title, navigation,
-connection/retention status, details and Feedback reachable without overlap.
-Opening details grows the header in document flow, capped at 60% of the viewport
-with scrolling for long reasons. The canvas and feedback panel remain below it.
-There is no auto-hide or fullscreen behavior and no prototype sidebar.
+At widths up to 640px the header uses two rows totalling 95px. Navigation and the chooser occupy the first row; Plan details and Feedback occupy the second. Connection failures appear below the desktop controls or in the available phone row. Plan details contains normal live status, revision, repository and owner retention information. It expands in document flow and scrolls within a bounded height. The chooser menu can extend over the canvas without being clipped by the header.

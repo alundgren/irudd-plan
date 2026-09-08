@@ -27,11 +27,6 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
     const summary = page.locator(".plan-details-toggle");
     const notice = page.locator(".retention-notice");
     await expect(notice).not.toBeVisible();
-    if (state !== "retained") {
-      await expect(page.locator(".review-header-status")).toContainText(
-        state === "scheduled" ? "Scheduled expiry" : "Retention unknown",
-      );
-    }
     await summary.focus();
     await page.keyboard.press("Enter");
     await expect(summary).toHaveAttribute("aria-expanded", "true");
@@ -164,6 +159,9 @@ for (const publicView of [false, true]) {
     await page.unroute(`**${eventsPath}`);
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.locator(".review-app")).toBeVisible();
-    await expect(page.getByText(/^Live · r/)).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-version",
+      /\d+/,
+    );
   });
 }

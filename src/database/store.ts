@@ -291,6 +291,40 @@ export class PlanStore {
             );
           }
 
+          if (existing !== undefined) {
+            const revisions = yield* tx
+              .select()
+              .from(planRevisions)
+              .where(
+                and(
+                  eq(planRevisions.ownerId, ownerId),
+                  eq(planRevisions.planId, request.plan.planId),
+                  eq(planRevisions.version, existing.currentVersion),
+                ),
+              )
+              .limit(1);
+            const previous = JSON.parse(revisions[0]!.contentJson) as Plan;
+            const replacements = new Map(
+              request.plan.items.map((item) => [item.id, item]),
+            );
+            const omitted = previous.items
+              .filter(
+                (item) =>
+                  (item.dependsOnItemIds?.length ?? 0) > 0 &&
+                  replacements.has(item.id) &&
+                  replacements.get(item.id)!.dependsOnItemIds === undefined,
+              )
+              .map((item) => item.id);
+            if (omitted.length > 0)
+              return yield* Effect.fail(
+                new PlanError(
+                  "REQUEST_INVALID",
+                  "Retrieve the current plan and explicitly retain dependsOnItemIds or clear it with []",
+                  { itemIds: omitted, field: "dependsOnItemIds" },
+                ),
+              );
+          }
+
           const version = (existing?.currentVersion ?? 0) + 1;
           if (existing === undefined) {
             yield* tx.insert(plans).values({

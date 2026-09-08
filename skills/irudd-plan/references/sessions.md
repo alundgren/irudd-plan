@@ -7,6 +7,8 @@ owner-a. Plan a CSV importer with ten work items and a diagram. Store the plan
 privately and keep the canvas current. We agreed rows with missing IDs fail."
 
 Call `get_contract`, then draft the complete plan using the contract example.
+For the example's prerequisite list, first require `features.itemDependencies: true`;
+stop if support is absent.
 Upload the diagram and include its returned descriptor where required. Write
 with a unique operation ID and `expectedVersion: null`. Return the human link
 from `get_github_reference`. Record the missing-ID decision with its actual

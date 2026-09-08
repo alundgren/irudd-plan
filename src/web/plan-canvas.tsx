@@ -11,6 +11,7 @@ import {
   type FeedbackTarget,
 } from "./feedback.js";
 import { PlanSheet } from "./plan-sheet.js";
+import { DependencyPanel } from "./dependency-panel.js";
 import { ItemFrame } from "./item-frame.js";
 import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 
@@ -32,6 +33,14 @@ export function PlanCanvas(props: PlanCanvasProps) {
   const camera = useCanvasCamera();
   const { viewport, world, focus, fit } = camera;
   const [selected, setSelected] = useState(selectedItemId);
+  const [dependencyItemId, setDependencyItemId] = useState<string>();
+  const dependencyItem = plan.items.find(
+    (item) => item.id === dependencyItemId,
+  );
+  useLayoutEffect(() => {
+    if (!dependencyItem?.dependsOnItemIds?.length)
+      setDependencyItemId(undefined);
+  }, [dependencyItem]);
   const [referenceId, setReferenceId] = useState<string>();
   const [reading, setReading] = useState(selectedItemId !== undefined);
   const previousRoute = useRef<string | undefined | null>(null);
@@ -51,6 +60,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
     }
   };
   const selectItem = (id?: string, assetId?: string) => {
+    setDependencyItemId(undefined);
     stoppedFeedback.current = focusedFeedback;
     setSelected(id);
     setReferenceId(assetId);
@@ -62,6 +72,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
   useLayoutEffect(() => {
     if (previousRoute.current === selectedItemId) return;
     previousRoute.current = selectedItemId;
+    setDependencyItemId(undefined);
     if (requestedRoute.current === selectedItemId) {
       requestedRoute.current = null;
       return;
@@ -188,6 +199,27 @@ export function PlanCanvas(props: PlanCanvasProps) {
     >
       {(tool, onTool) => (
         <>
+          {dependencyItem &&
+            (dependencyItem.dependsOnItemIds?.length ?? 0) > 0 && (
+              <DependencyPanel
+                item={dependencyItem}
+                items={plan.items}
+                onClose={() => setDependencyItemId(undefined)}
+                onSelect={(id) => {
+                  selectItem(id);
+                  requestAnimationFrame(() => {
+                    Array.from(
+                      world.current?.querySelectorAll<HTMLElement>(
+                        "[data-frame-item]",
+                      ) ?? [],
+                    )
+                      .find((element) => element.dataset.frameItem === id)
+                      ?.querySelector<HTMLButtonElement>(".item-title-bar")
+                      ?.focus({ preventScroll: true });
+                  });
+                }}
+              />
+            )}
           {props.navigationHost &&
             createPortal(
               <WorkItemChooser
@@ -275,6 +307,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
                     selected={item.id === selected}
                     onSelect={selectItem}
                     onReference={selectItem}
+                    onDependencies={setDependencyItemId}
                   />
                 ))}
               </div>

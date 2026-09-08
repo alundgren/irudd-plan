@@ -77,6 +77,45 @@ function visitContexts(
   visited.add(id);
 }
 
+function validateItemDependencies(items: ReadonlyMap<string, WorkItem>): void {
+  for (const item of items.values()) {
+    const seen = new Set<string>();
+    for (const id of item.dependsOnItemIds ?? []) {
+      requireReference(items, id, `item ${item.id} dependsOnItemIds`);
+      if (seen.has(id))
+        throw new PlanError(
+          "DUPLICATE_ID",
+          `Item ${item.id} repeats prerequisite ${id}`,
+          {
+            itemId: item.id,
+            dependencyId: id,
+          },
+        );
+      seen.add(id);
+    }
+  }
+  const visited = new Set<string>();
+  const path = new Set<string>();
+  const visit = (id: string): void => {
+    if (path.has(id)) {
+      const cycle = [...path].slice([...path].indexOf(id)).concat(id);
+      throw new PlanError(
+        "REFERENCE_CYCLE",
+        `Item dependency cycle: ${cycle.join(" -> ")}`,
+        {
+          itemIds: cycle,
+        },
+      );
+    }
+    if (visited.has(id)) return;
+    path.add(id);
+    for (const child of items.get(id)!.dependsOnItemIds ?? []) visit(child);
+    path.delete(id);
+    visited.add(id);
+  };
+  for (const id of items.keys()) visit(id);
+}
+
 function requireAvailableAsset(
   assets: ReadonlyMap<string, AssetDescriptor>,
   id: string,
@@ -152,6 +191,7 @@ export function validatePlan(plan: Plan): PlanIndex {
       requireAvailableAsset(assets, id, `decision ${decision.id}`);
   }
 
+  validateItemDependencies(items);
   const visited = new Set<string>();
   for (const id of contexts.keys())
     visitContexts(id, contexts, new Set(), visited);

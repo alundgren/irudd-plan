@@ -45,6 +45,7 @@ describe("strict client handoff", () => {
       protocolVersion: "2026-07-28",
       contractVersion: "v1",
       skillVersion: "v1",
+      features: { itemDependencies: true },
       verifiedAssets: 1,
       internalRevision: 1,
     });
@@ -157,6 +158,29 @@ describe("strict client handoff", () => {
     await expect(
       preflight(clientFor(running.url), selection),
     ).rejects.toThrow();
+  });
+
+  it("keeps dependency-free preflight compatible with servers without the additive feature", async () => {
+    const { running } = await setup();
+    const client = clientFor(running.url);
+    const call = client.callTool.bind(client);
+    vi.spyOn(client, "callTool").mockImplementation(async (name, args) =>
+      name === "get_contract"
+        ? {
+            content: [],
+            structuredContent: {
+              contractVersion: "v1",
+              skillVersion: "v1",
+              protocolVersion: "2026-07-28",
+              ownerId: "owner-a",
+            },
+          }
+        : call(name, args),
+    );
+    await expect(preflight(client, selection)).resolves.toMatchObject({
+      internalRevision: 1,
+      verifiedAssets: 1,
+    });
   });
 
   it("stops on missing required bytes, corrupt bytes and incompatible skill versions", async () => {

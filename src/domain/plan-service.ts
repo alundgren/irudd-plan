@@ -136,6 +136,9 @@ export class PlanService {
         title: item.title,
         shortGoal: item.shortGoal,
         relatedItemIds: item.relatedItemIds,
+        ...(item.dependsOnItemIds === undefined
+          ? {}
+          : { dependsOnItemIds: item.dependsOnItemIds }),
         resourceUri: itemResourceUri(stored.plan.planId, item.id),
       })),
       internalRevision: stored.version,
@@ -176,6 +179,9 @@ export class PlanService {
           title: item.title,
           shortGoal: item.shortGoal,
           relatedItemIds: item.relatedItemIds,
+          ...(item.dependsOnItemIds === undefined
+            ? {}
+            : { dependsOnItemIds: item.dependsOnItemIds }),
         })),
       },
       ...requiredContent,

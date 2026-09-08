@@ -96,3 +96,23 @@ and navigation follow the continuous canvas rules above. Relationship arrows fro
 The header contains exactly three controls: the Plans icon and text, the searchable work-item chooser, and Feedback with its count. There is no Plan details option, status text, revision, repository or retention metadata in the review header. The epic goal stays on the canvas, with no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again. On public routes, Plans retains the existing return-to-published-overview destination.
 
 The header stays on one row, 68px high on desktop and 58px at widths up to 640px. The chooser uses the space between Plans and Feedback and truncates its selected title when necessary. On phones the open menu spans the viewport with 8px margins so search and item names remain readable. Choosing an item cancels tracking of a previously selected feedback note. Its menu can extend over the canvas without being clipped by the header.
+
+## Item prerequisites
+
+Each section title bar has a separate `Depends on N` control when the item has
+direct prerequisites. The title and control can wrap without hiding the title.
+Zero prerequisites adds no badge and implies no readiness or completion state.
+Related-item links have a separate meaning.
+
+The control opens one small modal panel at a readable viewport size, even when
+the canvas is zoomed out. It lists direct prerequisites in plan order using
+current item titles. Each entry opens that item's stable reading view and moves
+keyboard focus to its title. Escape, Close or a click/tap outside dismisses the
+panel; dismissal returns focus to the trigger. Long lists scroll within the
+viewport. Mouse, keyboard and touch use the same controls.
+
+The panel creates no feedback and preserves pending notes. Live revisions
+update its count and titles; removing its item or clearing its dependencies
+closes it. Selected-item removal and plan-access failures retain the existing
+recovery pages. Owner and public routes use the same authorized plan data,
+without GitHub lookups or prerequisite completion tracking.

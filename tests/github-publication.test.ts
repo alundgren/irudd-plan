@@ -1,5 +1,8 @@
 import { createPrivateKey } from "node:crypto";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { exportPKCS8, generateKeyPair } from "jose";
 import { afterEach, describe, expect, it } from "vite-plus/test";
@@ -403,12 +406,29 @@ describe("GitHub verification and publication", () => {
   });
 
   it("serves only published current documents, assets, and events anonymously", async () => {
+    const clientDirectory = await mkdtemp(
+      join(tmpdir(), "plan-public-client-"),
+    );
+    active.push({
+      close: () => rm(clientDirectory, { recursive: true, force: true }),
+    });
+    await mkdir(join(clientDirectory, ".vite"));
+    await writeFile(
+      join(clientDirectory, ".vite/manifest.json"),
+      JSON.stringify({
+        "src/web/client.tsx": {
+          file: "assets/client-test1234.js",
+          css: ["assets/client-test1234.css"],
+        },
+      }),
+    );
     const reader = new FakeGitHubReader();
     const running = await startTestServer(
       undefined,
       0,
       undefined,
       connection(reader),
+      join(clientDirectory, "assets"),
     );
     active.push(running);
     const plan = tenItemPlan("anonymous-plan");
@@ -473,7 +493,11 @@ describe("GitHub verification and publication", () => {
     );
     expect(asset.status).toBe(200);
     expect(asset.headers.get("cache-control")).toBe("public, no-cache");
-    expect((await fetch(`${publicRoot}/items/item-1`)).status).toBe(200);
+    const page = await fetch(`${publicRoot}/items/item-1`);
+    expect(page.status).toBe(200);
+    const html = await page.text();
+    expect(html).toContain('src="/public/assets/client-test1234.js"');
+    expect(html).toContain('href="/public/assets/client-test1234.css"');
     const eventController = new AbortController();
     const events = await fetch(`${publicRoot}/events`, {
       signal: eventController.signal,

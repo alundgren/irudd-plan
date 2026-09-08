@@ -1,5 +1,13 @@
+import { ImplementationOrderView } from "./implementation-order-view.js";
+import { Button } from "./ui/button.js";
 import { createPortal } from "react-dom";
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import type { Plan } from "../contract/plan.js";
 import { CanvasComments } from "./canvas-comments.js";
 import { WorkItemChooser } from "./work-item-chooser.js";
@@ -16,6 +24,7 @@ import { ItemFrame } from "./item-frame.js";
 import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 
 export interface PlanCanvasProps {
+  readonly error?: string;
   readonly navigationHost: HTMLDivElement | null;
   readonly plan: Plan;
   readonly selectedItemId?: string;
@@ -30,6 +39,12 @@ export interface PlanCanvasProps {
 
 export function PlanCanvas(props: PlanCanvasProps) {
   const { plan, selectedItemId, onSelect, focusedFeedback } = props;
+  const [orderOpen, setOrderOpen] = useState(false);
+  useEffect(() => {
+    const leaveOrder = () => setOrderOpen(false);
+    window.addEventListener("popstate", leaveOrder);
+    return () => window.removeEventListener("popstate", leaveOrder);
+  }, []);
   const camera = useCanvasCamera();
   const { viewport, world, focus, fit } = camera;
   const [selected, setSelected] = useState(selectedItemId);
@@ -60,6 +75,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
     }
   };
   const selectItem = (id?: string, assetId?: string) => {
+    setOrderOpen(false);
     setDependencyItemId(undefined);
     stoppedFeedback.current = focusedFeedback;
     setSelected(id);
@@ -137,6 +153,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
       targetStatus(focusedFeedback, plan) !== "current"
     )
       return;
+    setOrderOpen(false);
     const target = focusedFeedback.target;
     let observer: ResizeObserver | undefined;
     if (target.kind === "canvas") {
@@ -187,160 +204,200 @@ export function PlanCanvas(props: PlanCanvasProps) {
     camera.zoom(zoom, point);
   };
   return (
-    <CanvasComments
-      plan={plan}
-      onAdd={props.onAddFeedback}
-      viewport={viewport}
-      onScale={(factor, point) =>
-        changeZoom(camera.current.current.zoom * factor, point)
-      }
-      onPan={camera.pan}
-      toWorld={camera.toWorld}
-    >
-      {(tool, onTool) => (
-        <>
-          {dependencyItem &&
-            (dependencyItem.dependsOnItemIds?.length ?? 0) > 0 && (
-              <DependencyPanel
-                item={dependencyItem}
-                items={plan.items}
-                onClose={() => setDependencyItemId(undefined)}
-                onSelect={(id) => {
-                  selectItem(id);
-                  requestAnimationFrame(() => {
-                    Array.from(
-                      world.current?.querySelectorAll<HTMLElement>(
-                        "[data-frame-item]",
-                      ) ?? [],
-                    )
-                      .find((element) => element.dataset.frameItem === id)
-                      ?.querySelector<HTMLButtonElement>(".item-title-bar")
-                      ?.focus({ preventScroll: true });
-                  });
-                }}
-              />
-            )}
-          {props.navigationHost &&
-            createPortal(
-              <WorkItemChooser
-                items={plan.items}
-                selected={selected}
-                onSelect={selectItem}
-              />,
-              props.navigationHost,
-            )}
-          <div
-            ref={viewport}
-            className="plan-viewport"
-            aria-label="Plan canvas"
-            tabIndex={0}
-            data-zoom={camera.camera.zoom}
-            onFocusCapture={(event) => {
-              if (event.target === event.currentTarget) return;
-              const target = event.target.getBoundingClientRect();
-              const view = event.currentTarget.getBoundingClientRect();
-              const x =
-                target.left < view.left + 16
-                  ? view.left + 16 - target.left
-                  : Math.min(0, view.right - 16 - target.right);
-              const y =
-                target.top < view.top + 16
-                  ? view.top + 16 - target.top
-                  : Math.min(0, view.bottom - 16 - target.bottom);
-              if (x || y) camera.pan(x, y);
-            }}
-            onKeyDown={(event) => {
-              if (event.target !== event.currentTarget) return;
-              const step = event.shiftKey ? 300 : 80;
-              const moves: Record<string, [number, number]> = {
-                ArrowDown: [0, -step],
-                ArrowUp: [0, step],
-                ArrowLeft: [step, 0],
-                ArrowRight: [-step, 0],
-              };
-              if (moves[event.key]) {
-                event.preventDefault();
-                camera.pan(...moves[event.key]!);
-              }
-              if (event.key === "+" || event.key === "=" || event.key === "-") {
-                event.preventDefault();
-                changeZoom(
-                  camera.camera.zoom * (event.key === "-" ? 1 / 1.2 : 1.2),
-                );
-              }
-              if (event.key === "Home") {
-                event.preventDefault();
-                setReading(false);
-                fit();
-              }
-            }}
-          >
-            <div
-              ref={world}
-              className={`plan-layout ${summary ? "show-summaries" : "show-details"}`}
-              style={
-                {
-                  transform: `translate(${camera.camera.x}px, ${camera.camera.y}px) scale(${camera.camera.zoom})`,
-                  "--heading-size": `${Math.min(80, Math.max(18, 15 / camera.camera.zoom))}px`,
-                } as CSSProperties
-              }
+    <div className="plan-views">
+      {props.navigationHost &&
+        createPortal(
+          <div className="view-navigation">
+            <WorkItemChooser
+              items={plan.items}
+              selected={selected}
+              onSelect={selectItem}
+            />
+            <Button
+              variant="outline"
+              className="order-toggle"
+              aria-pressed={orderOpen}
+              onClick={() => {
+                setDependencyItemId(undefined);
+                stoppedFeedback.current = focusedFeedback;
+                setOrderOpen(!orderOpen);
+              }}
             >
-              <PlanSheet
-                {...props}
-                selected={selected === undefined}
-                onSelect={selectItem}
-                onReference={selectItem}
-              />
+              Implementation order
+            </Button>
+          </div>,
+          props.navigationHost,
+        )}
+      <div
+        className="ordinary-view"
+        inert={orderOpen}
+        style={{ visibility: orderOpen ? "hidden" : "visible" }}
+      >
+        <CanvasComments
+          plan={plan}
+          onAdd={props.onAddFeedback}
+          viewport={viewport}
+          onScale={(factor, point) =>
+            changeZoom(camera.current.current.zoom * factor, point)
+          }
+          onPan={camera.pan}
+          toWorld={camera.toWorld}
+        >
+          {(tool, onTool) => (
+            <>
+              {dependencyItem &&
+                (dependencyItem.dependsOnItemIds?.length ?? 0) > 0 && (
+                  <DependencyPanel
+                    item={dependencyItem}
+                    items={plan.items}
+                    onClose={() => setDependencyItemId(undefined)}
+                    onSelect={(id) => {
+                      selectItem(id);
+                      requestAnimationFrame(() => {
+                        Array.from(
+                          world.current?.querySelectorAll<HTMLElement>(
+                            "[data-frame-item]",
+                          ) ?? [],
+                        )
+                          .find((element) => element.dataset.frameItem === id)
+                          ?.querySelector<HTMLButtonElement>(".item-title-bar")
+                          ?.focus({ preventScroll: true });
+                      });
+                    }}
+                  />
+                )}
               <div
-                className="item-grid"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(Math.sqrt(plan.items.length)))}, 1200px)`,
+                ref={viewport}
+                className="plan-viewport"
+                aria-label="Plan canvas"
+                tabIndex={0}
+                data-zoom={camera.camera.zoom}
+                onFocusCapture={(event) => {
+                  if (event.target === event.currentTarget) return;
+                  const target = event.target.getBoundingClientRect();
+                  const view = event.currentTarget.getBoundingClientRect();
+                  const x =
+                    target.left < view.left + 16
+                      ? view.left + 16 - target.left
+                      : Math.min(0, view.right - 16 - target.right);
+                  const y =
+                    target.top < view.top + 16
+                      ? view.top + 16 - target.top
+                      : Math.min(0, view.bottom - 16 - target.bottom);
+                  if (x || y) camera.pan(x, y);
+                }}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  const step = event.shiftKey ? 300 : 80;
+                  const moves: Record<string, [number, number]> = {
+                    ArrowDown: [0, -step],
+                    ArrowUp: [0, step],
+                    ArrowLeft: [step, 0],
+                    ArrowRight: [-step, 0],
+                  };
+                  if (moves[event.key]) {
+                    event.preventDefault();
+                    camera.pan(...moves[event.key]!);
+                  }
+                  if (
+                    event.key === "+" ||
+                    event.key === "=" ||
+                    event.key === "-"
+                  ) {
+                    event.preventDefault();
+                    changeZoom(
+                      camera.camera.zoom * (event.key === "-" ? 1 / 1.2 : 1.2),
+                    );
+                  }
+                  if (event.key === "Home") {
+                    event.preventDefault();
+                    setReading(false);
+                    fit();
+                  }
                 }}
               >
-                {plan.items.map((item) => (
-                  <ItemFrame
-                    key={item.id}
+                <div
+                  ref={world}
+                  className={`plan-layout ${summary ? "show-summaries" : "show-details"}`}
+                  style={
+                    {
+                      transform: `translate(${camera.camera.x}px, ${camera.camera.y}px) scale(${camera.camera.zoom})`,
+                      "--heading-size": `${Math.min(80, Math.max(18, 15 / camera.camera.zoom))}px`,
+                    } as CSSProperties
+                  }
+                >
+                  <PlanSheet
                     {...props}
-                    item={item}
-                    summary={summary}
-                    referenceId={referenceId}
-                    selected={item.id === selected}
+                    selected={selected === undefined}
                     onSelect={selectItem}
                     onReference={selectItem}
-                    onDependencies={setDependencyItemId}
                   />
-                ))}
+                  <div
+                    className="item-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(Math.sqrt(plan.items.length)))}, 1200px)`,
+                    }}
+                  >
+                    {plan.items.map((item) => (
+                      <ItemFrame
+                        key={item.id}
+                        {...props}
+                        item={item}
+                        summary={summary}
+                        referenceId={referenceId}
+                        selected={item.id === selected}
+                        onSelect={selectItem}
+                        onReference={selectItem}
+                        onDependencies={setDependencyItemId}
+                      />
+                    ))}
+                  </div>
+                  <FeedbackPins
+                    {...props}
+                    selectedId={props.selectedFeedbackId}
+                    onOpen={props.onSelectFeedback}
+                    items={props.feedbackItems}
+                    summary={summary}
+                  />
+                </div>
               </div>
-              <FeedbackPins
-                {...props}
-                selectedId={props.selectedFeedbackId}
-                onOpen={props.onSelectFeedback}
-                items={props.feedbackItems}
-                summary={summary}
+              <CanvasTools
+                tool={tool}
+                onTool={onTool}
+                zoom={camera.camera.zoom}
+                onZoom={changeZoom}
+                onFit={() => {
+                  setReading(false);
+                  fit();
+                }}
+                onAddCanvas={() =>
+                  props.onAddFeedback({
+                    kind: "canvas",
+                    ...camera.toWorld({
+                      x: (viewport.current?.clientWidth ?? 0) / 2,
+                      y: (viewport.current?.clientHeight ?? 0) / 2,
+                    }),
+                  })
+                }
               />
-            </div>
-          </div>
-          <CanvasTools
-            tool={tool}
-            onTool={onTool}
-            zoom={camera.camera.zoom}
-            onZoom={changeZoom}
-            onFit={() => {
-              setReading(false);
-              fit();
-            }}
-            onAddCanvas={() =>
-              props.onAddFeedback({
-                kind: "canvas",
-                ...camera.toWorld({
-                  x: (viewport.current?.clientWidth ?? 0) / 2,
-                  y: (viewport.current?.clientHeight ?? 0) / 2,
-                }),
-              })
-            }
-          />
-        </>
-      )}
-    </CanvasComments>
+            </>
+          )}
+        </CanvasComments>
+      </div>
+      <ImplementationOrderView
+        plan={plan}
+        active={orderOpen}
+        {...(props.error === undefined ? {} : { error: props.error })}
+        onOpen={(id) => {
+          selectItem(id);
+          requestAnimationFrame(() =>
+            targetElement(id)
+              ?.closest(".item-frame")
+              ?.querySelector<HTMLElement>(".item-title-bar")
+              ?.focus({ preventScroll: true }),
+          );
+        }}
+      />
+    </div>
   );
 }

@@ -86,14 +86,15 @@ export function ItemFrame(
         {assets.map((asset) => (
           <button
             className="summary-reference"
+            title={asset.caption}
             type="button"
             key={`${asset.id}:${asset.digest}`}
             onClick={() => props.onReference(item.id, asset.id)}
           >
             <AssetThumbnail planId={plan.planId} asset={asset} />
             <span>
+              {!asset.available ? "Unavailable · " : ""}
               {asset.caption}
-              {!asset.available ? " · Unavailable" : ""}
             </span>
           </button>
         ))}

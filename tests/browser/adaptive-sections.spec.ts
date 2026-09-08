@@ -200,6 +200,7 @@ test("feedback tracking survives a render and stops after user navigation", asyn
         el.getBoundingClientRect().top -
         document.querySelector(".plan-viewport")!.getBoundingClientRect().top,
     );
+  await expect.poll(offset).toBeCloseTo(24, 0);
   const initialOffset = await offset();
   const goal = page.locator('[data-section="item-1:goal"]');
   await goal.evaluate(

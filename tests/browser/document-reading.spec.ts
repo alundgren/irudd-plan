@@ -75,24 +75,13 @@ for (const width of [1280, 390]) {
     );
     await panTo(page, completion);
     await expect(completion).toBeInViewport();
-    const beforeControl = await viewport.evaluate((el) =>
-      String(
-        new DOMMatrix(
-          getComputedStyle(el.querySelector(".plan-layout")!).transform,
-        ).f,
-      ),
-    );
+    const beforeControl = (await completion.boundingBox())!.y;
     await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     await expect(completion).toBeInViewport();
-    const afterControl = await viewport.evaluate((el) =>
-      String(
-        new DOMMatrix(
-          getComputedStyle(el.querySelector(".plan-layout")!).transform,
-        ).f,
-      ),
-    );
-    expect(Number(afterControl)).toBeCloseTo(Number(beforeControl), 1);
+    await expect
+      .poll(async () => (await completion.boundingBox())!.y)
+      .toBeCloseTo(beforeControl, 1);
     await page.getByRole("button", { name: "Close feedback" }).click();
     await chooseItem(page, "Epic goal");
     await expectReadingTop(page);

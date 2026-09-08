@@ -211,10 +211,17 @@ test("heading and positioned notes stay within their targets and canvas coordina
     .focus();
   await page.keyboard.press("Enter");
   await save(page, "Heading note");
-  const pin = page.getByRole("button", { name: "Open section feedback 1" });
+  await expect(
+    page.getByRole("button", { name: "Open section feedback 1" }),
+  ).toBeVisible();
   const check = async () => {
-    const target = (await goal.boundingBox())!,
-      b = (await pin.boundingBox())!;
+    const { target, b } = await goal.evaluate((element) => ({
+      target: element.getBoundingClientRect().toJSON(),
+      b: element
+        .querySelector(".canvas-feedback-pin")!
+        .getBoundingClientRect()
+        .toJSON(),
+    }));
     expect(b.x).toBeGreaterThanOrEqual(target.x - 1);
     expect(b.y).toBeGreaterThanOrEqual(target.y - 1);
     expect(b.x + b.width).toBeLessThanOrEqual(target.x + target.width + 1);

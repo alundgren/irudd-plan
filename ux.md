@@ -93,9 +93,9 @@ review area is flat with a 20px dotted grid. The grid remains in viewport pixels
 Existing section labels, order and organization remain in place. Sheet sizing
 and navigation follow the continuous canvas rules above. Relationship arrows from the previous canvas are no longer drawn.
 
-The header contains exactly three controls: the Plans icon and text, the searchable work-item chooser, and Feedback with its count. There is no Plan details option, status text, revision, repository or retention metadata in the review header. The epic goal stays on the canvas, with no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again. On public routes, Plans retains the existing return-to-published-overview destination.
+The header contains the Implementation order action alongside these controls: the Plans icon and text, the searchable work-item chooser, and Feedback with its count. There is no Plan details option, status text, revision, repository or retention metadata in the review header. The epic goal stays on the canvas, with no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again. On public routes, Plans retains the existing return-to-published-overview destination.
 
-The header stays on one row, 68px high on desktop and 58px at widths up to 640px. The chooser uses the space between Plans and Feedback and truncates its selected title when necessary. On phones the open menu spans the viewport with 8px margins so search and item names remain readable. Choosing an item cancels tracking of a previously selected feedback note. Its menu can extend over the canvas without being clipped by the header.
+The header stays on one row, 68px high on desktop. At widths up to 700px, the Implementation order action sits below the chooser and the header grows to keep both readable. The chooser uses the space between Plans and Feedback and truncates its selected title when necessary. On phones the open menu spans the viewport with 8px margins so search and item names remain readable. Choosing an item cancels tracking of a previously selected feedback note. Its menu can extend over the canvas without being clipped by the header.
 
 ## Item prerequisites
 
@@ -116,3 +116,35 @@ update its count and titles; removing its item or clearing its dependencies
 closes it. Selected-item removal and plan-access failures retain the existing
 recovery pages. Owner and public routes use the same authorized plan data,
 without GitHub lookups or prerequisite completion tracking.
+
+## Implementation order
+
+Implementation order toggles a separate read-only view beside the ordinary
+chooser. Toggling it off restores the ordinary canvas selection and camera;
+the canvas and full references remain mounted. The order view retains its
+selection and scroll across switches. Selecting a feedback location returns
+to its full ordinary target, and the feedback dock and drafts remain available.
+
+Step 1 contains items with no declared prerequisites. Every other step is one
+plus the highest step of the item's direct prerequisites. Items stay in plan
+array order within each step. Items in the same step have no declared dependency
+on one another and may be implemented in parallel. These groups never indicate
+completion, readiness, work started, or execution state. Related-item links and
+GitHub associations do not participate.
+
+Selecting an item inspects its direct relationships without navigating away.
+Only its incident arrows appear, from prerequisite to dependent, including
+connections that skip steps. Named prerequisite and dependent lists always
+accompany the selection and scroll when long. Buttons in those lists inspect
+another item. Open item navigates to the existing full reading view and stable
+item URL. Returning to Implementation order retains the inspected item.
+
+Step columns scroll at readable text size instead of shrinking the graph to fit.
+Below 700px of available view width they stack vertically and omit arrows; the
+named lists carry the same relationships. All inspection controls work with
+Tab and Enter or Space. Live revisions recompute steps and lists without
+resetting the graph scroll. Removed selections get an explicit notice. Invalid
+or unavailable dependencies show an error instead of invented steps, while
+legacy absent dependency fields and empty lists mean no declared prerequisites.
+An empty plan gets an explanatory empty state. Relationship lines and compact
+items create no new feedback targets.

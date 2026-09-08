@@ -81,6 +81,7 @@ export function App() {
   return (
     <PlanWorkspace
       document={document}
+      {...(error === undefined ? {} : { error })}
       connection={connection}
       changedSections={changedSections}
       {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
@@ -96,12 +97,14 @@ export function App() {
 
 function PlanWorkspace({
   document,
+  error,
   connection,
   changedSections,
   itemId,
   onSelect,
   onShowPlans,
 }: {
+  readonly error?: string;
   readonly document: PlanDocument;
   readonly connection: ConnectionState;
   readonly changedSections: ReadonlySet<string>;
@@ -177,6 +180,7 @@ function PlanWorkspace({
         <PlanCanvas
           navigationHost={navigationHost}
           plan={document.plan}
+          {...(error === undefined ? {} : { error })}
           {...(selectionDeleted || itemId === undefined
             ? {}
             : { selectedItemId: itemId })}

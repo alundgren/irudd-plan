@@ -51,7 +51,7 @@ summary {
   flex-direction: column;
   width: 100vw;
   height: 100dvh;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .review-header {
@@ -1357,4 +1357,201 @@ summary {
   width: 100%;
   text-align: left;
   overflow-wrap: anywhere;
+}
+
+.plan-views {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.ordinary-view {
+  position: absolute;
+  inset: 0;
+  display: grid;
+}
+.view-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.order-toggle {
+  flex-shrink: 0;
+  white-space: normal;
+}
+.order-toggle[aria-pressed="true"] {
+  background: var(--raised);
+}
+.implementation-order {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--bg);
+  padding: 24px;
+}
+.implementation-order[hidden] {
+  display: none;
+}
+.order-introduction h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.order-introduction p {
+  max-width: 75ch;
+  margin: 0 0 20px;
+}
+.order-notice {
+  padding: 16px 0;
+}
+.order-relationships {
+  margin-bottom: 16px;
+}
+.order-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.order-selection h2 {
+  font-size: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.order-relationship-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 12px;
+}
+.order-relationship-lists h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.order-relationship-lists ul {
+  max-height: 144px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.order-relationship-lists button {
+  text-align: left;
+  color: var(--link);
+  text-decoration: underline;
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
+.order-graph-scroll {
+  overflow: auto;
+  max-height: 65vh;
+}
+.order-graph {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 72px;
+  width: max-content;
+  min-width: 100%;
+  padding: 84px 20px 20px;
+}
+.order-step {
+  width: 248px;
+  flex-shrink: 0;
+}
+.order-step h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.order-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 96px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+  text-align: left;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  cursor: pointer;
+}
+.order-item small {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.order-item.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  background: var(--raised);
+}
+.order-item.prerequisite,
+.order-item.dependent {
+  border: 2px solid var(--link);
+  padding: 15px;
+}
+.order-item:focus-visible,
+.order-relationship-lists button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.order-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.order-arrows > path {
+  fill: none;
+  stroke: var(--link);
+  stroke-width: 2;
+}
+.order-arrows marker path {
+  fill: var(--link);
+}
+.plan-views {
+  container-type: inline-size;
+}
+@container (max-width: 700px) {
+  .order-arrows {
+    display: none;
+  }
+  .order-graph {
+    display: block;
+    width: 100%;
+    padding: 8px;
+  }
+  .order-step {
+    width: 100%;
+  }
+  .order-relationship-lists {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .implementation-order {
+    padding: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .review-header {
+    grid-template-rows: auto;
+    min-height: 94px;
+  }
+  .view-navigation {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 0;
+  }
+  .order-toggle {
+    font-size: 13.5px;
+    padding: 4px 8px;
+    height: auto;
+  }
 }

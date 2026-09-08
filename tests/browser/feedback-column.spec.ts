@@ -65,7 +65,8 @@ for (const width of [1440, 390]) {
     const bounds = await panel.boundingBox();
     const canvas = await page.locator(".plan-viewport").boundingBox();
     expect(bounds!.width).toBe(330);
-    expect(bounds!.y).toBe(width === 1440 ? 68 : 58);
+    const header = await page.locator(".review-header").boundingBox();
+    expect(bounds!.y).toBe(header!.y + header!.height);
     if (width === 1440) expect(canvas!.x + canvas!.width).toBe(bounds!.x);
     await panel
       .getByRole("button", { name: "Remove feedback 24", exact: true })

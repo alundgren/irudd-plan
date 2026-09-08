@@ -83,7 +83,10 @@ export function PlanCanvas(props: PlanCanvasProps) {
     setReading(true);
     navigate(id);
     const element = targetElement(id, assetId);
-    if (element) focus(element);
+    if (element) {
+      focus(element);
+      requestAnimationFrame(() => focus(element));
+    }
   };
   useLayoutEffect(() => {
     if (previousRoute.current === selectedItemId) return;
@@ -115,6 +118,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
       focus(element);
     }
     let width = viewport.current!.clientWidth;
+    let scale = camera.current.current.zoom;
     const track = () => {
       const origin = elementPoint(element, world.current!);
       const point = { x: origin.x + element.offsetWidth / 2, y: origin.y };
@@ -130,13 +134,17 @@ export function PlanCanvas(props: PlanCanvasProps) {
             ((anchor.current?.y ?? point.y) - point.y) *
               camera.current.current.zoom,
         });
-      } else if (anchor.current?.element === element) {
+      } else if (
+        scale === camera.current.current.zoom &&
+        anchor.current?.element === element
+      ) {
         camera.pan(
           (anchor.current.x - point.x) * camera.current.current.zoom,
           (anchor.current.y - point.y) * camera.current.current.zoom,
         );
       }
       width = viewport.current!.clientWidth;
+      scale = camera.current.current.zoom;
       anchor.current = { element, ...point };
     };
     track();
@@ -322,7 +330,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
                   style={
                     {
                       transform: `translate(${camera.camera.x}px, ${camera.camera.y}px) scale(${camera.camera.zoom})`,
-                      "--heading-size": `${Math.min(80, Math.max(18, 15 / camera.camera.zoom))}px`,
+                      "--heading-size": `${Math.min(80, Math.max(18, 16 / camera.camera.zoom))}px`,
                     } as CSSProperties
                   }
                 >

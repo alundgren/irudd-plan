@@ -69,32 +69,35 @@ export function ItemFrame(
           />
         )}
       </div>
-      <button
-        className="item-summary"
-        type="button"
-        onClick={() => onSelect(item.id)}
-        aria-label={`Read ${item.title}`}
-      >
-        {assets[0] && (
-          <AssetThumbnail
-            key={`${assets[0].id}:${assets[0].digest}`}
-            planId={plan.planId}
-            asset={assets[0]}
-          />
-        )}
-        <span>{item.shortGoal}</span>
-        <span className="summary-meta">
+      <div className="item-summary" inert={!summary}>
+        <button
+          className="summary-goal"
+          type="button"
+          onClick={() => onSelect(item.id)}
+          aria-label={`Read ${item.title}`}
+        >
+          {item.shortGoal}
+        </button>
+        <p className="summary-meta">
           {assets.length} visual{" "}
           {assets.length === 1 ? "reference" : "references"} · {count}{" "}
           {count === 1 ? "comment" : "comments"}
-        </span>
+        </p>
         {assets.map((asset) => (
-          <span className="summary-reference" key={asset.id}>
-            {asset.caption}
-            {!asset.available ? " · Unavailable" : ""}
-          </span>
+          <button
+            className="summary-reference"
+            type="button"
+            key={`${asset.id}:${asset.digest}`}
+            onClick={() => props.onReference(item.id, asset.id)}
+          >
+            <AssetThumbnail planId={plan.planId} asset={asset} />
+            <span>
+              {asset.caption}
+              {!asset.available ? " · Unavailable" : ""}
+            </span>
+          </button>
         ))}
-      </button>
+      </div>
       <div className="item-body" inert={summary}>
         <PlanSheet
           {...props}

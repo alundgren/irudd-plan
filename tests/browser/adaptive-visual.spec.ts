@@ -40,3 +40,48 @@ test("captures the continuous canvas and checks attached non-overlapping headers
   }
   await page.screenshot({ path: info.outputPath("zoomed-out.png") });
 });
+
+test("overview keeps primary headings readable and every visual reachable", async ({
+  page,
+}, info) => {
+  const { referenceFixture } = await import("./reference-fixture.js");
+  const { panTo } = await import("./canvas.js");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await referenceFixture(page);
+  await page.goto("/plans/browser-plan/items/item-1");
+  for (let i = 0; i < 8; i++)
+    await page.getByRole("button", { name: "Zoom out", exact: true }).click();
+  const zoom = Number(
+    await page.locator(".plan-viewport").getAttribute("data-zoom"),
+  );
+  for (const selector of [".item-title-bar", ".overview-sheet h2"]) {
+    const sizes = await page
+      .locator(selector)
+      .evaluateAll((elements) =>
+        elements.map((element) =>
+          parseFloat(getComputedStyle(element).fontSize),
+        ),
+      );
+    for (const size of sizes) expect(size * zoom).toBeGreaterThanOrEqual(15.9);
+  }
+  const summary = page.locator('[data-frame-item="item-1"] .item-summary');
+  await expect(summary.locator(".summary-reference")).toHaveCount(7);
+  await expect(summary.locator("img")).toHaveCount(3);
+  const frame = summary.locator("..");
+  const summaryBounds = (await summary.boundingBox())!;
+  const frameBounds = (await frame.boundingBox())!;
+  expect(summaryBounds.y + summaryBounds.height).toBeLessThanOrEqual(
+    frameBounds.y + frameBounds.height,
+  );
+  await panTo(page, summary);
+  await page.screenshot({ path: info.outputPath("adaptive-references.png") });
+  const reference = summary.getByRole("button", { name: "Wide overview" });
+  await panTo(page, reference);
+  await reference.click();
+  await expect(page.locator(".reference-sheet.selected")).toHaveAttribute(
+    "data-asset-id",
+    "wide",
+  );
+  await expect(page.locator(".reference-sheet.selected")).toBeInViewport();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});

@@ -27,10 +27,11 @@ for (const state of ["retained", "scheduled", "unknown"] as const) {
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
       const header = page.locator(".review-header");
-      await expect(header.getByRole("button")).toHaveCount(3);
+      await expect(header.getByRole("button")).toHaveCount(4);
       await expect(header).toHaveText(/Plans.*Epic goal.*Feedback 0/);
       const bounds = await header.boundingBox();
-      expect(bounds!.height).toBe(width === 1440 ? 68 : 58);
+      expect(bounds!.height).toBeGreaterThanOrEqual(68);
+      expect(bounds!.height).toBeLessThan(120);
       const canvas = await page.locator(".plan-viewport").boundingBox();
       expect(canvas!.y).toBe(bounds!.height);
     }

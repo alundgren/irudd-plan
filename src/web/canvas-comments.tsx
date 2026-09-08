@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { LayoutMode } from "./plan-canvas.js";
+import { wheelZoom, type Point } from "./canvas-camera.js";
 
 import type { Plan } from "../contract/plan.js";
 import {
@@ -36,17 +36,17 @@ export function relativePosition(
 export function CanvasComments({
   plan,
   viewport,
-  mode,
-  onZoom,
-  zoom,
+  onPan,
+  toWorld,
+  onScale,
   onAdd,
   children,
 }: {
   readonly plan: Plan;
   readonly viewport: RefObject<HTMLDivElement | null>;
-  readonly mode: LayoutMode;
-  readonly onZoom: (zoom: number, itemId?: string) => void;
-  readonly zoom: number;
+  readonly onPan: (x: number, y: number) => void;
+  readonly toWorld: (point: Point) => Point;
+  readonly onScale: (factor: number, point?: Point) => void;
   readonly onAdd: (target: FeedbackTarget) => void;
   readonly children: (
     tool: CanvasTool,
@@ -54,24 +54,35 @@ export function CanvasComments({
   ) => ReactNode;
 }) {
   const [tool, onTool] = useState<CanvasTool>("comment");
-  const container = useCanvasTouch(viewport);
+  const container = useCanvasTouch(viewport, onPan, onScale);
   useEffect(() => {
     const view = viewport.current;
     const wheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        event.preventDefault();
-        onZoom(
-          zoom * (event.deltaY > 0 ? 1 / 1.2 : 1.2),
-          (event.target as Element).closest<HTMLElement>(".item-frame")?.dataset
-            .frameItem,
-        );
-      } else if (!event.isTrusted) {
-        view?.scrollBy(event.deltaX, event.deltaY);
+      if (!view || (event.target as Element).closest("input, textarea, select"))
+        return;
+      event.preventDefault();
+      if (
+        (tool === "pan" && !event.ctrlKey && !event.metaKey) ||
+        event.shiftKey
+      ) {
+        const unit =
+          event.deltaMode === 1
+            ? 16
+            : event.deltaMode === 2
+              ? view.clientHeight
+              : 1;
+        onPan(-event.deltaX * unit, -event.deltaY * unit);
+      } else {
+        const bounds = view.getBoundingClientRect();
+        onScale(wheelZoom(event.deltaY, event.deltaMode, view.clientHeight), {
+          x: event.clientX - bounds.left,
+          y: event.clientY - bounds.top,
+        });
       }
     };
     view?.addEventListener("wheel", wheel, { passive: false });
     return () => view?.removeEventListener("wheel", wheel);
-  }, [viewport, onZoom, zoom]);
+  }, [viewport, onScale, onPan, tool]);
   const gesture = useRef<
     | {
         x: number;
@@ -79,8 +90,6 @@ export function CanvasComments({
         id: number;
         moved: boolean;
         pan: boolean;
-        left: number;
-        top: number;
       }
     | undefined
   >(undefined);
@@ -139,8 +148,6 @@ export function CanvasComments({
             id: event.pointerId,
             moved: false,
             pan,
-            left: viewport.current?.scrollLeft ?? 0,
-            top: viewport.current?.scrollTop ?? 0,
           };
           if (pan && event.pointerType !== "touch") {
             event.preventDefault();
@@ -156,7 +163,9 @@ export function CanvasComments({
           if (start.pan && event.pointerType !== "touch") {
             start.pan = true;
             event.preventDefault();
-            viewport.current?.scrollTo(start.left - dx, start.top - dy);
+            onPan(event.clientX - start.x, event.clientY - start.y);
+            start.x = event.clientX;
+            start.y = event.clientY;
           }
         }}
         onPointerUpCapture={(event) => {
@@ -202,29 +211,17 @@ export function CanvasComments({
               onAdd(target);
             }
           } else if (
-            mode === "sections" &&
             !(event.target as Element).closest(".item-frame, .plan-sheet") &&
             viewport.current?.contains(event.target as Element)
           ) {
             event.currentTarget.focus({ preventScroll: true });
             onAdd({
               kind: "canvas",
-              x:
-                Number(
-                  viewport.current.querySelector<HTMLElement>(".plan-layout")
-                    ?.dataset.originX ?? 0,
-                ) +
-                event.clientX -
-                viewport.current.getBoundingClientRect().left +
-                viewport.current.scrollLeft,
-              y:
-                Number(
-                  viewport.current.querySelector<HTMLElement>(".plan-layout")
-                    ?.dataset.originY ?? 0,
-                ) +
-                event.clientY -
-                viewport.current.getBoundingClientRect().top +
-                viewport.current.scrollTop,
+              ...toWorld({
+                x:
+                  event.clientX - viewport.current.getBoundingClientRect().left,
+                y: event.clientY - viewport.current.getBoundingClientRect().top,
+              }),
             });
           }
         }}

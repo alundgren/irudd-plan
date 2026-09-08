@@ -17,9 +17,24 @@ export async function panTo(page: Page, target: Locator) {
     throw new Error("Missing canvas content");
   await page.locator(".plan-viewport").evaluate(
     (view, delta) => {
-      view.scrollTop += delta;
+      view.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          shiftKey: true,
+          deltaY: delta.y,
+          deltaX: delta.x,
+        }),
+      );
     },
-    bounds.y - canvas.y - 100,
+    {
+      y: bounds.y - canvas.y - 100,
+      x:
+        bounds.x +
+        Math.min(bounds.width, canvas.width) / 2 -
+        canvas.x -
+        canvas.width / 2,
+    },
   );
   if (
     !(await target.evaluate((el) =>
@@ -35,4 +50,12 @@ export async function openReference(page: Page, caption: string) {
   await panTo(page, link);
   await link.click();
   await expect(page.locator(".reference-sheet.selected")).toBeInViewport();
+}
+
+export async function chooseItem(page: Page, title = "Work item 1") {
+  await page
+    .getByRole("button", { name: "Read work item", exact: true })
+    .click();
+  await page.getByRole("combobox", { name: "Find work item" }).fill(title);
+  await page.getByRole("option", { name: title, exact: true }).click();
 }

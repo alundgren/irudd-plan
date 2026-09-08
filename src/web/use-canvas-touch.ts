@@ -1,62 +1,76 @@
 import { useEffect, useRef, type RefObject } from "react";
+import type { Point } from "./canvas-camera.js";
 
-export function useCanvasTouch(viewport: RefObject<HTMLDivElement | null>) {
+export function useCanvasTouch(
+  viewport: RefObject<HTMLDivElement | null>,
+  onPan: (x: number, y: number) => void,
+  onScale: (factor: number, point?: Point) => void,
+) {
   const container = useRef<HTMLDivElement>(null);
+  const actions = useRef({ onPan, onScale });
+  actions.current = { onPan, onScale };
   useEffect(() => {
-    const element = container.current;
-    let start: { x: number; y: number; left: number; top: number } | undefined;
+    const element = viewport.current;
+    let previous: { x: number; y: number; distance: number } | undefined;
     let selecting = false;
     const stop = () => {
-      start = undefined;
+      previous = undefined;
+    };
+    const point = (event: TouchEvent) => {
+      const first = event.touches[0],
+        second = event.touches[1];
+      if (!first) return undefined;
+      return {
+        x: second ? (first.clientX + second.clientX) / 2 : first.clientX,
+        y: second ? (first.clientY + second.clientY) / 2 : first.clientY,
+        distance: second
+          ? Math.hypot(
+              first.clientX - second.clientX,
+              first.clientY - second.clientY,
+            )
+          : 0,
+      };
     };
     const begin = (event: TouchEvent) => {
       selecting = false;
-      const point = event.touches[0];
-      start =
-        event.touches.length === 1 &&
-        point !== undefined &&
-        !(event.target as Element).closest(
+      previous =
+        (event.target as Element).closest(
           "button, a, input, textarea, select, summary, iframe, [contenteditable]",
-        )
-          ? {
-              x: point.clientX,
-              y: point.clientY,
-              left: viewport.current?.scrollLeft ?? 0,
-              top: viewport.current?.scrollTop ?? 0,
-            }
-          : undefined;
+        ) && event.touches.length === 1
+          ? undefined
+          : point(event);
     };
-    const pan = (event: TouchEvent) => {
+    const move = (event: TouchEvent) => {
       if (selecting || window.getSelection()?.isCollapsed === false) {
         event.preventDefault();
         stop();
         return;
       }
-      if (
-        event.touches.length !== 1 ||
-        window.getSelection()?.isCollapsed === false
-      )
-        stop();
-      const point = event.touches[0];
-      if (start === undefined || point === undefined) return;
+      const next = point(event);
+      if (!previous || !next || !element) return;
       event.preventDefault();
-      viewport.current?.scrollTo(
-        start.left + start.x - point.clientX,
-        start.top + start.y - point.clientY,
-      );
+      const bounds = element.getBoundingClientRect();
+      if (previous.distance && next.distance) {
+        actions.current.onScale(next.distance / previous.distance, {
+          x: previous.x - bounds.left,
+          y: previous.y - bounds.top,
+        });
+      }
+      actions.current.onPan(next.x - previous.x, next.y - previous.y);
+      previous = next;
     };
-    element?.addEventListener("touchstart", begin);
-    element?.addEventListener("touchmove", pan, { passive: false });
     const select = () => {
       selecting = true;
       stop();
     };
+    element?.addEventListener("touchstart", begin);
+    element?.addEventListener("touchmove", move, { passive: false });
     element?.addEventListener("selectstart", select);
     element?.addEventListener("touchend", stop);
     element?.addEventListener("touchcancel", stop);
     return () => {
       element?.removeEventListener("touchstart", begin);
-      element?.removeEventListener("touchmove", pan);
+      element?.removeEventListener("touchmove", move);
       element?.removeEventListener("selectstart", select);
       element?.removeEventListener("touchend", stop);
       element?.removeEventListener("touchcancel", stop);

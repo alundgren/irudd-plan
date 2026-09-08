@@ -1,3 +1,4 @@
+import { PanelsTopLeft } from "lucide-react";
 import { AssetThumbnail } from "./asset-thumbnail.js";
 import {
   addSectionFeedback,
@@ -5,7 +6,7 @@ import {
   FeedbackButton,
 } from "./feedback-target.js";
 import type { WorkItem } from "../contract/plan.js";
-import type { LayoutMode, PlanCanvasProps } from "./plan-canvas.js";
+import type { PlanCanvasProps } from "./plan-canvas.js";
 import { PlanSheet } from "./plan-sheet.js";
 import { ReferenceSheet, sheetNodeId } from "./reference-sheet.js";
 import { collectRequiredContent } from "./required-content.js";
@@ -13,13 +14,13 @@ import { collectRequiredContent } from "./required-content.js";
 export function ItemFrame(
   props: PlanCanvasProps & {
     readonly item: WorkItem;
-    readonly mode: LayoutMode;
+    readonly summary: boolean;
     readonly selected: boolean;
     readonly referenceId: string | undefined;
     readonly onReference: (itemId: string, assetId: string) => void;
   },
 ) {
-  const { item, plan, mode, onSelect, onReference } = props;
+  const { item, plan, summary, onSelect, onReference } = props;
   const assets = collectRequiredContent(plan, item).assets;
   const count = props.feedbackItems.filter(
     (note) => note.target.kind !== "canvas" && note.target.itemId === item.id,
@@ -42,7 +43,7 @@ export function ItemFrame(
             <span aria-hidden="true">↗</span>
           </button>
         </h2>
-        {mode !== "overview" && (
+        {!summary && (
           <FeedbackButton
             label="Work item heading"
             count={feedbackCount(props.feedbackItems, item.id, "header")}
@@ -59,69 +60,68 @@ export function ItemFrame(
           />
         )}
       </div>
-      {mode === "reading" && assets.length > 0 && (
+      {!summary && assets.length > 0 && (
         <button
           type="button"
-          className="jump-reference"
+          className="jump-reference canvas-link-icon"
+          aria-label="Jump to reference"
+          title="Jump to reference"
           onClick={() => onReference(item.id, assets[0]!.id)}
         >
-          Jump to reference
+          <PanelsTopLeft size={18} aria-hidden="true" />
         </button>
       )}
-      {mode === "overview" ? (
-        <button
-          className="item-summary"
-          type="button"
-          onClick={() => onSelect(item.id)}
-          aria-label={`Read ${item.title}`}
-        >
-          {assets[0] && (
-            <AssetThumbnail
-              key={`${assets[0].id}:${assets[0].digest}`}
-              planId={plan.planId}
-              asset={assets[0]}
-            />
-          )}
-          <span>{item.shortGoal}</span>
-          <span className="summary-meta">
-            {assets.length} visual{" "}
-            {assets.length === 1 ? "reference" : "references"} · {count}{" "}
-            {count === 1 ? "comment" : "comments"}
-          </span>
-          {assets.map((asset) => (
-            <span className="summary-reference" key={asset.id}>
-              {asset.caption}
-              {!asset.available ? " · Unavailable" : ""}
-            </span>
-          ))}
-        </button>
-      ) : (
-        <div className="item-body">
-          <PlanSheet
-            {...props}
-            selected={props.selected && props.referenceId === undefined}
+      <button
+        className="item-summary"
+        type="button"
+        onClick={() => onSelect(item.id)}
+        aria-label={`Read ${item.title}`}
+      >
+        {assets[0] && (
+          <AssetThumbnail
+            key={`${assets[0].id}:${assets[0].digest}`}
+            planId={plan.planId}
+            asset={assets[0]}
           />
-          {assets.length > 0 && (
-            <div className="item-references">
-              {assets.map((asset) => (
-                <ReferenceSheet
-                  key={asset.id}
-                  planId={plan.planId}
-                  item={item}
-                  asset={asset}
-                  selected={props.selected && props.referenceId === asset.id}
-                  changed={props.changedSections.has(
-                    sheetNodeId(item.id, asset.id),
-                  )}
-                  feedbackItems={props.feedbackItems}
-                  onReturn={() => onSelect(item.id)}
-                  onAddFeedback={props.onAddFeedback}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        <span>{item.shortGoal}</span>
+        <span className="summary-meta">
+          {assets.length} visual{" "}
+          {assets.length === 1 ? "reference" : "references"} · {count}{" "}
+          {count === 1 ? "comment" : "comments"}
+        </span>
+        {assets.map((asset) => (
+          <span className="summary-reference" key={asset.id}>
+            {asset.caption}
+            {!asset.available ? " · Unavailable" : ""}
+          </span>
+        ))}
+      </button>
+      <div className="item-body" inert={summary}>
+        <PlanSheet
+          {...props}
+          selected={props.selected && props.referenceId === undefined}
+        />
+        {assets.length > 0 && (
+          <div className="item-references">
+            {assets.map((asset) => (
+              <ReferenceSheet
+                key={asset.id}
+                planId={plan.planId}
+                item={item}
+                asset={asset}
+                selected={props.selected && props.referenceId === asset.id}
+                changed={props.changedSections.has(
+                  sheetNodeId(item.id, asset.id),
+                )}
+                feedbackItems={props.feedbackItems}
+                onReturn={() => onSelect(item.id)}
+                onAddFeedback={props.onAddFeedback}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

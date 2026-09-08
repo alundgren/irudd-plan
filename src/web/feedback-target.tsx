@@ -77,7 +77,6 @@ export function addSectionFeedback(
     originalText,
     originalExcerpt: reference.excerpt,
     excerptOccurrence: reference.occurrence,
-    position: { x: 0.95, y: 0.1 },
   });
 }
 

@@ -185,15 +185,18 @@ test("normalized pins follow zoom and relayout; Fit and reset work with dock ope
   const checkPosition = async () => {
     const section = (await goal.boundingBox())!;
     const marker = (await pin.boundingBox())!;
-    expect(marker.width).toBeCloseTo(32, 0);
-    expect(marker.height).toBeCloseTo(32, 0);
-    expect((marker.x + 6 - section.x) / section.width).toBeCloseTo(
-      stored.target.position.x,
-      2,
+    const zoom = Number(
+      await page.locator(".plan-viewport").getAttribute("data-zoom"),
     );
-    expect((marker.y + marker.height - section.y) / section.height).toBeCloseTo(
-      stored.target.position.y,
-      2,
+    expect(marker.width).toBeCloseTo(32 * zoom, 0);
+    expect(marker.height).toBeCloseTo(32 * zoom, 0);
+    expect(marker.x).toBeGreaterThanOrEqual(section.x - 1);
+    expect(marker.y).toBeGreaterThanOrEqual(section.y - 1);
+    expect(marker.x + marker.width).toBeLessThanOrEqual(
+      section.x + section.width + 1,
+    );
+    expect(marker.y + marker.height).toBeLessThanOrEqual(
+      section.y + section.height + 1,
     );
   };
   await expect(pin).toBeVisible();

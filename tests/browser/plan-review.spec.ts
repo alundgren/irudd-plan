@@ -12,7 +12,9 @@ test.describe.serial("plan review canvas", () => {
   }) => {
     await page.goto("/plans/browser-plan/items/item-1");
     const selected = page.locator(".plan-sheet.selected");
-    await expect(page.locator(".item-title-bar")).toBeVisible();
+    await expect(
+      page.locator('[data-frame-item="item-1"] .item-title-bar'),
+    ).toBeVisible();
     await expect(page.getByText("Live · r1")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /edit|publish/i }),
@@ -23,7 +25,11 @@ test.describe.serial("plan review canvas", () => {
     await panTo(page, selected.locator('[data-section="item-1:requirements"]'));
     const heightBefore = await selected.evaluate((sheet) => sheet.clientHeight);
     const viewportBefore = await viewport.evaluate((el) =>
-      String(el.scrollTop),
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
     );
     await selected
       .getByText("Keep the current committed requirements")
@@ -37,9 +43,15 @@ test.describe.serial("plan review canvas", () => {
     await expect
       .poll(() => page.evaluate(() => window.getSelection()?.toString()))
       .toContain("current committed requirements");
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
-      viewportBefore,
-    );
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(viewportBefore);
 
     const client = new IruddMcpClient(
       new URL("http://127.0.0.1:4173/mcp"),
@@ -111,15 +123,21 @@ test.describe.serial("plan review canvas", () => {
       .first()
       .boundingBox();
     const currentSheet = await selected.boundingBox();
-    expect(nextSheet!.y).toBeGreaterThanOrEqual(
-      currentSheet!.y + currentSheet!.height,
+    expect(nextSheet!.x).toBeGreaterThanOrEqual(
+      currentSheet!.x + currentSheet!.width,
     );
     await expect(selected.locator("details")).toHaveCount(0);
     await expect(selected.getByText("Authentication rules")).toBeVisible();
     await expect(selected.getByText("Service boundary")).toBeVisible();
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
-      viewportBefore,
-    );
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(viewportBefore);
 
     await page.screenshot({
       path: "docs/captures/plan-canvas-desktop.png",
@@ -141,7 +159,11 @@ test.describe.serial("plan review canvas", () => {
 
     await panTo(page, page.locator(".overview-index"));
     const overviewReadingPosition = await viewport.evaluate((el) =>
-      String(el.scrollTop),
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
     );
     await context.setOffline(true);
     await expect(page.getByText("reconnecting")).toBeVisible();
@@ -165,9 +187,15 @@ test.describe.serial("plan review canvas", () => {
     });
     await context.setOffline(false);
     await expect(page.getByText("Live · r4")).toBeVisible();
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
-      overviewReadingPosition,
-    );
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(overviewReadingPosition);
     await expect(
       page
         .locator(".overview-sheet")
@@ -260,7 +288,13 @@ test.describe.serial("plan review canvas", () => {
     );
     const viewport = await page
       .locator(".plan-viewport")
-      .evaluate((el) => String(el.scrollTop));
+      .evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      );
     await page.getByRole("button", { name: "Pan", exact: true }).click();
     await mockup.getByRole("button", { name: "Fail one interaction" }).click();
     await mockup.getByRole("button", { name: "Reviewed 0 times" }).click();
@@ -270,7 +304,13 @@ test.describe.serial("plan review canvas", () => {
     expect(
       await page
         .locator(".plan-viewport")
-        .evaluate((el) => String(el.scrollTop)),
+        .evaluate((el) =>
+          String(
+            new DOMMatrix(
+              getComputedStyle(el.querySelector(".plan-layout")!).transform,
+            ).f,
+          ),
+        ),
     ).toBe(viewport);
     await expect(page).toHaveURL(/\/plans\/browser-plan\/items\/item-1$/);
     expect(unexpectedPlanListRequests).toBe(0);
@@ -382,12 +422,19 @@ test.describe.serial("plan review canvas", () => {
   });
 
   test("shows loading, empty, and unavailable states", async ({ page }) => {
+    const response = await page.request.get("/api/plans/browser-plan");
+    const document = await response.json();
+    let release: () => void = () => undefined;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     await page.route("**/api/plans/browser-plan", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      await route.continue();
+      await pending;
+      await route.fulfill({ json: document });
     });
     const opening = page.goto("/plans/browser-plan");
     await expect(page.getByText("Loading current plan")).toBeVisible();
+    release();
     await opening;
     await expect(page.locator(".overview-sheet.selected")).toBeVisible();
     await page.unroute("**/api/plans/browser-plan");

@@ -1,92 +1,42 @@
-import { readFile } from "node:fs/promises";
+import { chooseItem } from "./canvas.js";
 import { expect, test } from "@playwright/test";
-import type { PlanDocument } from "../../src/web/client-api.js";
 
-test("compares revised C and the application with equivalent content", async ({
+test("captures the continuous canvas and checks attached non-overlapping headers", async ({
   page,
-  context,
-}) => {
-  test.setTimeout(60_000);
-  const prototype = await context.newPage();
-  await prototype.setViewportSize({ width: 1440, height: 1000 });
-  const html = await readFile("docs/adaptive-sections/revised-c.html", "utf8");
-  await prototype.route("**/revised-c", (route) =>
-    route.fulfill({ contentType: "text/html", body: html }),
-  );
-  await prototype.goto("http://127.0.0.1:4173/revised-c");
-  const samples = (await prototype.evaluate("items")) as {
-    title: string;
-    goal: string;
-    detail: string;
-    checks: string[];
-  }[];
-  const image = await prototype
-    .locator(".summary img")
-    .first()
-    .getAttribute("src");
+}, info) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.route("**/api/plans/browser-plan", async (route) => {
-    const response = await route.fetch();
-    const document = (await response.json()) as PlanDocument;
-    const asset = {
-      ...document.plan.assets[0]!,
-      caption: "Shared decision guide for this item.",
-      available: true,
-    };
-    await route.fulfill({
-      json: {
-        ...document,
-        plan: {
-          ...document.plan,
-          epicGoal: "Remove prose-only test assertions",
-          assets: [asset],
-          items: samples.map((sample, index) => ({
-            ...document.plan.items[0]!,
-            id: `sample-${index}`,
-            title: sample.title,
-            shortGoal: sample.goal,
-            goal: sample.detail,
-            requirements: sample.checks,
-            checks: [
-              "Run the affected tests and review the retained behavioral evidence.",
-            ],
-            acceptanceCriteria: [],
-            requiredContextIds: [],
-            requiredDecisionIds: [],
-            requiredAssetIds: [asset.id],
-            relatedItemIds: [],
-          })),
-        },
-      },
-    });
-  });
-  await page.route("**/api/plans/browser-plan/assets/**", (route) =>
-    route.fulfill({ json: { bytesBase64: image!.split(",")[1] } }),
-  );
   await page.goto("/plans/browser-plan");
-  await expect(page.locator(".asset-thumbnail")).toHaveCount(4);
-  for (const [mode, label] of [
-    ["overview", "Overview"],
-    ["sections", "Sections"],
-    ["reading", "Read"],
-  ] as const) {
-    await prototype.getByRole("button", { name: label, exact: true }).click();
-    await prototype.screenshot({
-      path: `docs/adaptive-sections/reference-${mode}.png`,
-    });
-    if (mode === "sections") {
-      await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-      await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-    }
-    if (mode === "reading")
-      await page.locator(".item-title-bar").first().click();
-    await expect(page.locator(".plan-viewport")).toHaveAttribute(
-      "data-mode",
-      mode,
+  await page.screenshot({ path: info.outputPath("fit.png") });
+  await chooseItem(page);
+  await page.screenshot({ path: info.outputPath("reading.png") });
+  for (let i = 0; i < 8; i++) {
+    await page.getByRole("button", { name: "Zoom out", exact: true }).click();
+    const frames = await page.locator(".item-frame").evaluateAll((elements) =>
+      elements.map((element) => ({
+        frame: element.getBoundingClientRect().toJSON(),
+        header: element
+          .querySelector(".item-title-bar")!
+          .getBoundingClientRect()
+          .toJSON(),
+      })),
     );
-    await page.screenshot({
-      path: `docs/adaptive-sections/application-${mode}.png`,
-    });
+    for (const { frame, header } of frames) {
+      expect(header.left).toBeGreaterThanOrEqual(frame.left);
+      expect(header.right).toBeLessThanOrEqual(frame.right + 1);
+      expect(header.top).toBeGreaterThanOrEqual(frame.top);
+      expect(header.bottom).toBeLessThanOrEqual(frame.bottom);
+    }
+    for (let a = 0; a < frames.length; a++)
+      for (let b = a + 1; b < frames.length; b++) {
+        const x = frames[a]!.frame,
+          y = frames[b]!.frame;
+        expect(
+          x.right <= y.left ||
+            y.right <= x.left ||
+            x.bottom <= y.top ||
+            y.bottom <= x.top,
+        ).toBe(true);
+      }
   }
-  await prototype.close();
+  await page.screenshot({ path: info.outputPath("zoomed-out.png") });
 });

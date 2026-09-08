@@ -1,14 +1,7 @@
-import { canvasExtent } from "./canvas-coordinates.js";
-import { collectRequiredContent } from "./required-content.js";
-import {
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Plan } from "../contract/plan.js";
 import { CanvasComments } from "./canvas-comments.js";
+import { WorkItemChooser } from "./work-item-chooser.js";
 import { CanvasTools } from "./canvas-tools.js";
 import { feedbackElement, FeedbackPins } from "./feedback-pins.js";
 import {
@@ -18,6 +11,7 @@ import {
 } from "./feedback.js";
 import { PlanSheet } from "./plan-sheet.js";
 import { ItemFrame } from "./item-frame.js";
+import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 
 export interface PlanCanvasProps {
   readonly plan: Plan;
@@ -30,133 +24,37 @@ export interface PlanCanvasProps {
   readonly selectedFeedbackId?: string;
   readonly onSelectFeedback: (item: FeedbackItem) => void;
 }
-export type LayoutMode = "overview" | "sections" | "reading";
-export function layoutMode(zoom: number): LayoutMode {
-  return zoom < 0.35 ? "overview" : zoom < 0.85 ? "sections" : "reading";
-}
 
 export function PlanCanvas(props: PlanCanvasProps) {
   const { plan, selectedItemId, onSelect, focusedFeedback } = props;
-  const viewport = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(selectedItemId === undefined ? 0.25 : 1);
+  const camera = useCanvasCamera();
+  const { viewport, world, focus, fit } = camera;
   const [selected, setSelected] = useState(selectedItemId);
   const [referenceId, setReferenceId] = useState<string>();
-  const mode = layoutMode(zoom);
-  const extent = canvasExtent(props.feedbackItems);
-  useLayoutEffect(() => {
-    const item = plan.items.find((item) => item.id === selected);
-    if (
-      referenceId !== undefined &&
-      (!item ||
-        !collectRequiredContent(plan, item).assets.some(
-          (asset) => asset.id === referenceId,
-        ))
-    ) {
-      setReferenceId(undefined);
-      if (viewport.current) viewport.current.scrollTop = 0;
-    }
-  }, [plan, selected, referenceId]);
-  const positions = useRef(new Map<string, { top: number; left: number }>());
-  const positionKey =
-    mode === "reading" ? `reading:${selected ?? "epic"}` : mode;
-  const currentKey = useRef(positionKey);
-  const previousRoute = useRef(selectedItemId);
+  const [reading, setReading] = useState(selectedItemId !== undefined);
+  const previousRoute = useRef<string | undefined | null>(null);
   const requestedRoute = useRef<string | undefined | null>(null);
-  const navigate = (id?: string) => {
-    requestedRoute.current = id;
-    onSelect(id);
-  };
-  const pending = useRef<(() => void) | undefined>(undefined);
-  const appliedFeedback = useRef<FeedbackItem | undefined>(undefined);
-  const stopFeedbackTracking = useRef<(() => void) | undefined>(undefined);
-  useLayoutEffect(() => {
-    appliedFeedback.current = undefined;
-    return () => {
-      stopFeedbackTracking.current?.();
-      stopFeedbackTracking.current = undefined;
-    };
-  }, [focusedFeedback]);
-  const [request, setRequest] = useState(0);
-  const savePosition = () => {
-    stopFeedbackTracking.current?.();
-    if (viewport.current)
-      positions.current.set(currentKey.current, {
-        top: viewport.current.scrollTop,
-        left: viewport.current.scrollLeft,
-      });
-  };
-  const reveal = useCallback((element?: HTMLElement) => {
-    const view = viewport.current;
-    if (element?.closest("details")) element.closest("details")!.open = true;
-    if (view && element)
-      view.scrollTop +=
-        element.getBoundingClientRect().top -
-        view.getBoundingClientRect().top -
-        24;
-  }, []);
-  const itemElement = (id: string) =>
+  const stoppedFeedback = useRef<FeedbackItem | undefined>(undefined);
+  const targetElement = (id?: string, assetId?: string) =>
     Array.from(
-      viewport.current?.querySelectorAll<HTMLElement>(".item-frame") ?? [],
-    ).find((el) => el.dataset.frameItem === id);
-  const selectItem = (id?: string) => {
-    setReferenceId(undefined);
-    savePosition();
-    if (id !== undefined) setSelected(id);
-    setZoom(id === undefined ? 0.25 : 1);
-    if (id !== selectedItemId) navigate(id);
-    else {
-      pending.current = () => {
-        if (viewport.current) viewport.current.scrollTop = 0;
-      };
-      setRequest((n) => n + 1);
+      world.current?.querySelectorAll<HTMLElement>(".plan-sheet") ?? [],
+    ).find(
+      (element) =>
+        element.dataset.itemId === id && element.dataset.assetId === assetId,
+    );
+  const navigate = (id?: string) => {
+    if (id !== selectedItemId) {
+      requestedRoute.current = id;
+      onSelect(id);
     }
   };
-  const changeZoom = (value: number, itemId?: string) => {
-    savePosition();
-    const next = Math.max(0.25, Math.min(2, value));
-    let nextSelected =
-      itemId ??
-      (plan.items.some((item) => item.id === selected) ? selected : undefined);
-    if (itemId !== undefined) setSelected(itemId);
-    if (layoutMode(next) === "reading" && nextSelected === undefined) {
-      const view = viewport.current;
-      const center = view
-        ? view.getBoundingClientRect().top + view.clientHeight / 2
-        : 0;
-      const nearest =
-        plan.items.reduce<{ id?: string; distance: number }>(
-          (best, item) => {
-            const bounds = itemElement(item.id)?.getBoundingClientRect();
-            const distance = bounds
-              ? Math.abs((bounds.top + bounds.bottom) / 2 - center)
-              : Infinity;
-            return distance < best.distance ? { id: item.id, distance } : best;
-          },
-          { distance: Infinity },
-        ).id ?? plan.items[0]?.id;
-      setSelected(nearest);
-      nextSelected = nearest;
-    }
-    if (layoutMode(next) === "reading" && nextSelected !== selectedItemId)
-      navigate(nextSelected);
-    setZoom(next);
-  };
-  const selectReference = (itemId: string, assetId: string) => {
+  const selectItem = (id?: string, assetId?: string) => {
+    setSelected(id);
     setReferenceId(assetId);
-    savePosition();
-    setSelected(itemId);
-    setZoom(1);
-    if (itemId !== selectedItemId) navigate(itemId);
-    pending.current = () => {
-      const element = Array.from(
-        viewport.current?.querySelectorAll<HTMLElement>(".reference-sheet") ??
-          [],
-      ).find(
-        (el) => el.dataset.itemId === itemId && el.dataset.assetId === assetId,
-      );
-      reveal(element);
-    };
-    setRequest((n) => n + 1);
+    setReading(true);
+    navigate(id);
+    const element = targetElement(id, assetId);
+    if (element) focus(element);
   };
   useLayoutEffect(() => {
     if (previousRoute.current === selectedItemId) return;
@@ -165,221 +63,255 @@ export function PlanCanvas(props: PlanCanvasProps) {
       requestedRoute.current = null;
       return;
     }
-    savePosition();
-    if (selectedItemId !== undefined) setSelected(selectedItemId);
-    setZoom(selectedItemId === undefined ? 0.25 : 1);
-  }, [selectedItemId]);
+    stoppedFeedback.current = focusedFeedback;
+    setSelected(selectedItemId);
+    setReferenceId(undefined);
+    setReading(selectedItemId !== undefined);
+    const element = targetElement(selectedItemId);
+    if (selectedItemId !== undefined && element) focus(element);
+    else fit();
+  }, [selectedItemId, focus, fit]);
+
+  // Keep the selected document at the same camera position when a revision moves its row.
+  const anchor = useRef<
+    { element: HTMLElement; x: number; y: number } | undefined
+  >(undefined);
   useLayoutEffect(() => {
-    const view = viewport.current;
-    if (!view) return;
-    if (currentKey.current !== positionKey) {
-      currentKey.current = positionKey;
-      view.scrollTop =
-        positions.current.get(positionKey)?.top ??
-        (mode === "sections" ? -extent.top : 0);
-      view.scrollLeft =
-        positions.current.get(positionKey)?.left ??
-        (mode === "sections" ? -extent.left : 0);
+    const element =
+      targetElement(selected, referenceId) ?? targetElement(selected);
+    if (!element) return;
+    if (referenceId && !targetElement(selected, referenceId)) {
+      setReferenceId(undefined);
+      focus(element);
     }
-    pending.current?.();
-    pending.current = undefined;
-  }, [positionKey, request, selectedItemId]);
+    let width = viewport.current!.clientWidth;
+    const track = () => {
+      const origin = elementPoint(element, world.current!);
+      const point = { x: origin.x + element.offsetWidth / 2, y: origin.y };
+      if (camera.fitting.current) fit();
+      else if (width !== viewport.current!.clientWidth) {
+        camera.move({
+          ...camera.current.current,
+          x:
+            viewport.current!.clientWidth / 2 -
+            point.x * camera.current.current.zoom,
+          y:
+            camera.current.current.y +
+            ((anchor.current?.y ?? point.y) - point.y) *
+              camera.current.current.zoom,
+        });
+      } else if (anchor.current?.element === element) {
+        camera.pan(
+          (anchor.current.x - point.x) * camera.current.current.zoom,
+          (anchor.current.y - point.y) * camera.current.current.zoom,
+        );
+      }
+      width = viewport.current!.clientWidth;
+      anchor.current = { element, ...point };
+    };
+    track();
+    const observer = new ResizeObserver(track);
+    if (world.current) observer.observe(world.current);
+    if (viewport.current) observer.observe(viewport.current);
+    return () => observer.disconnect();
+  }, [plan, selected, referenceId]);
+
   useLayoutEffect(() => {
     if (
       !focusedFeedback ||
-      appliedFeedback.current === focusedFeedback ||
+      stoppedFeedback.current === focusedFeedback ||
       targetStatus(focusedFeedback, plan) !== "current"
     )
       return;
     const target = focusedFeedback.target;
+    let observer: ResizeObserver | undefined;
     if (target.kind === "canvas") {
-      if (mode !== "sections") {
-        savePosition();
-        setZoom(0.6);
-        return;
-      }
       const view = viewport.current;
-      if (view) {
-        view.scrollTop = Math.max(0, target.y - extent.top - 120);
-        view.scrollLeft = Math.max(
-          0,
-          target.x - extent.left - view.clientWidth / 2,
-        );
-      }
+      camera.fitting.current = false;
+      if (view)
+        camera.move({
+          x: view.clientWidth / 2 - target.x,
+          y: view.clientHeight / 2 - target.y,
+          zoom: 1,
+        });
     } else {
-      if (mode !== "reading" || selected !== target.itemId) {
-        savePosition();
-        setSelected(target.itemId);
-        if (target.itemId !== selectedItemId) navigate(target.itemId);
-        setReferenceId(target.kind === "asset" ? target.assetId : undefined);
-        setZoom(1);
-        return;
-      }
+      setSelected(target.itemId);
+      setReferenceId(target.kind === "asset" ? target.assetId : undefined);
+      setReading(true);
+      navigate(target.itemId);
       const element = feedbackElement(target);
-      if (element?.querySelector(".asset-loading")) {
-        const observer = new MutationObserver(() => setRequest((n) => n + 1));
-        observer.observe(element, { childList: true, subtree: true });
-        return () => observer.disconnect();
-      }
-      const view = viewport.current;
-      if (element && view) {
-        const focus = () => {
-          reveal(element);
-          view.scrollTop += element.offsetHeight * (target.position?.y ?? 0);
-        };
-        focus();
-        appliedFeedback.current = focusedFeedback;
-        // Earlier references can finish loading after this target is available.
-        const observer = new ResizeObserver(focus);
-        observer.observe(element);
-        observer.observe(element.closest(".item-frame") ?? element);
-        const stop = () => {
-          observer.disconnect();
-          for (const event of ["wheel", "pointerdown", "touchstart", "keydown"])
-            view.removeEventListener(event, stop);
-        };
-        for (const event of ["wheel", "pointerdown", "touchstart", "keydown"])
-          view.addEventListener(event, stop, { once: true });
-        stopFeedbackTracking.current = stop;
-      }
+      if (!element) return;
+      const reveal = () => {
+        if (stoppedFeedback.current === focusedFeedback) {
+          observer?.disconnect();
+          return;
+        }
+        focus(element, target.position);
+      };
+      reveal();
+      observer = new ResizeObserver(reveal);
+      observer.observe(element);
+      if (world.current) observer.observe(world.current);
     }
-    appliedFeedback.current = focusedFeedback;
-  });
-  const visibleItems =
-    mode === "reading"
-      ? plan.items.filter((item) => item.id === selected)
-      : plan.items;
+    const view = viewport.current?.parentElement;
+    const stop = () => {
+      stoppedFeedback.current = focusedFeedback;
+      observer?.disconnect();
+    };
+    const events = ["wheel", "pointerdown", "touchstart", "keydown"];
+    events.forEach((event) =>
+      view?.addEventListener(event, stop, { once: true }),
+    );
+    return () => {
+      observer?.disconnect();
+      events.forEach((event) => view?.removeEventListener(event, stop));
+    };
+  }, [focusedFeedback, plan]);
+  const summary = !reading && camera.camera.zoom < 0.45;
+  const changeZoom = (zoom: number, point?: { x: number; y: number }) => {
+    setReading(false);
+    camera.zoom(zoom, point);
+  };
   return (
     <CanvasComments
       plan={plan}
       onAdd={props.onAddFeedback}
       viewport={viewport}
-      mode={mode}
-      onZoom={changeZoom}
-      zoom={zoom}
+      onScale={(factor, point) =>
+        changeZoom(camera.current.current.zoom * factor, point)
+      }
+      onPan={camera.pan}
+      toWorld={camera.toWorld}
     >
       {(tool, onTool) => (
         <>
           <nav className="canvas-navigation" aria-label="Plan navigation">
-            <button type="button" onClick={() => selectItem()}>
+            <button
+              type="button"
+              onClick={() => {
+                navigate();
+                setSelected(undefined);
+                setReading(false);
+                fit();
+              }}
+            >
               Overview
             </button>
-            <span>
-              {mode === "reading"
-                ? "Reading view"
-                : mode === "sections"
-                  ? "Section layout"
-                  : "Overview layout"}
-            </span>
+            <WorkItemChooser
+              items={plan.items}
+              selected={selected}
+              onSelect={selectItem}
+            />
+            <span>Scroll to zoom · Pan to move</span>
           </nav>
           <div
             ref={viewport}
-            className={`plan-viewport ${mode}-mode`}
-            data-mode={mode}
+            className="plan-viewport"
             aria-label="Plan canvas"
             tabIndex={0}
-            onScroll={() => {
-              if (viewport.current)
-                positions.current.set(currentKey.current, {
-                  top: viewport.current.scrollTop,
-                  left: viewport.current.scrollLeft,
-                });
+            data-zoom={camera.camera.zoom}
+            onFocusCapture={(event) => {
+              if (event.target === event.currentTarget) return;
+              const target = event.target.getBoundingClientRect();
+              const view = event.currentTarget.getBoundingClientRect();
+              const x =
+                target.left < view.left + 16
+                  ? view.left + 16 - target.left
+                  : Math.min(0, view.right - 16 - target.right);
+              const y =
+                target.top < view.top + 16
+                  ? view.top + 16 - target.top
+                  : Math.min(0, view.bottom - 16 - target.bottom);
+              if (x || y) camera.pan(x, y);
             }}
-            style={
-              {
-                "--reading-font": `${Math.min(22, 16 + Math.max(0, zoom - 0.85) * 6)}px`,
-              } as CSSProperties
-            }
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              const step = event.shiftKey ? 300 : 80;
+              const moves: Record<string, [number, number]> = {
+                ArrowDown: [0, -step],
+                ArrowUp: [0, step],
+                ArrowLeft: [step, 0],
+                ArrowRight: [-step, 0],
+              };
+              if (moves[event.key]) {
+                event.preventDefault();
+                camera.pan(...moves[event.key]!);
+              }
+              if (event.key === "+" || event.key === "=" || event.key === "-") {
+                event.preventDefault();
+                changeZoom(
+                  camera.camera.zoom * (event.key === "-" ? 1 / 1.2 : 1.2),
+                );
+              }
+              if (event.key === "Home") {
+                event.preventDefault();
+                setReading(false);
+                fit();
+              }
+            }}
           >
             <div
-              className="plan-layout"
-              data-origin-x={mode === "sections" ? extent.left : 0}
-              data-origin-y={mode === "sections" ? extent.top : 0}
+              ref={world}
+              className={`plan-layout ${summary ? "show-summaries" : "show-details"}`}
               style={
-                mode === "sections"
-                  ? {
-                      minHeight: extent.height,
-                      width: `calc(100% + ${-extent.left}px)`,
-                      paddingTop: 24 - extent.top,
-                      paddingLeft: `calc(var(--layout-side) + ${-extent.left}px)`,
-                    }
-                  : undefined
+                {
+                  transform: `translate(${camera.camera.x}px, ${camera.camera.y}px) scale(${camera.camera.zoom})`,
+                  "--heading-size": `${Math.min(80, Math.max(18, 15 / camera.camera.zoom))}px`,
+                } as CSSProperties
               }
             >
-              {(mode !== "reading" || selected === undefined) && (
-                <PlanSheet
-                  {...props}
-                  selected={mode === "overview" || selected === undefined}
-                  onSelect={selectItem}
-                  onReference={selectReference}
-                />
-              )}
-              {mode === "overview" && (
-                <p className="overview-limit">
-                  Overview keeps a minimum readable size. Larger plans continue
-                  below.
-                </p>
-              )}
-              <div className="item-grid">
-                {visibleItems.map((item) => (
+              <PlanSheet
+                {...props}
+                selected={selected === undefined}
+                onSelect={selectItem}
+                onReference={selectItem}
+              />
+              <div
+                className="item-grid"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(Math.sqrt(plan.items.length)))}, 1200px)`,
+                }}
+              >
+                {plan.items.map((item) => (
                   <ItemFrame
                     key={item.id}
                     {...props}
                     item={item}
-                    mode={mode}
+                    summary={summary}
                     referenceId={referenceId}
                     selected={item.id === selected}
                     onSelect={selectItem}
-                    onReference={selectReference}
+                    onReference={selectItem}
                   />
                 ))}
               </div>
-              {mode === "sections" && (
-                <div
-                  aria-hidden="true"
-                  className="canvas-extent"
-                  style={{ width: extent.width, height: extent.height }}
-                />
-              )}
               <FeedbackPins
                 {...props}
-                mode={mode}
-                renderKey={positionKey}
                 selectedId={props.selectedFeedbackId}
                 onOpen={props.onSelectFeedback}
                 items={props.feedbackItems}
+                summary={summary}
               />
             </div>
           </div>
           <CanvasTools
             tool={tool}
             onTool={onTool}
-            zoom={zoom}
-            mode={mode}
+            zoom={camera.camera.zoom}
             onZoom={changeZoom}
             onFit={() => {
-              savePosition();
-              setZoom(0.25);
-              pending.current = () => {
-                if (viewport.current) viewport.current.scrollTop = 0;
-              };
-              setRequest((n) => n + 1);
+              setReading(false);
+              fit();
             }}
-            onAddCanvas={() => {
-              savePosition();
-              setZoom(0.6);
-              pending.current = () => {
-                props.onAddFeedback({
-                  kind: "canvas",
-                  x:
-                    extent.left +
-                    (viewport.current?.scrollLeft ?? 0) +
-                    (viewport.current?.clientWidth ?? 0) / 2,
-                  y: extent.top + (viewport.current?.scrollTop ?? 0) + 150,
-                });
-              };
-              setRequest((n) => n + 1);
-            }}
+            onAddCanvas={() =>
+              props.onAddFeedback({
+                kind: "canvas",
+                ...camera.toWorld({
+                  x: (viewport.current?.clientWidth ?? 0) / 2,
+                  y: (viewport.current?.clientHeight ?? 0) / 2,
+                }),
+              })
+            }
           />
         </>
       )}

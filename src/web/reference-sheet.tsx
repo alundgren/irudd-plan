@@ -1,3 +1,4 @@
+import { FileText } from "lucide-react";
 import type { AssetDescriptor, WorkItem } from "../contract/plan.js";
 import type { FeedbackItem, FeedbackTarget } from "./feedback.js";
 import { assetFeedbackCount } from "./feedback-target.js";
@@ -40,8 +41,14 @@ export function ReferenceSheet({
             : "Illustration"}
         </p>
         <h2>Reference for {item.title}</h2>
-        <button type="button" className="reference-link" onClick={onReturn}>
-          Return to {item.title}
+        <button
+          type="button"
+          className="reference-link canvas-link-icon"
+          aria-label={`Return to ${item.title}`}
+          title={`Return to ${item.title}`}
+          onClick={onReturn}
+        >
+          <FileText size={18} aria-hidden="true" />
         </button>
       </header>
       <div

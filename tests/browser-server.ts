@@ -41,7 +41,7 @@ const github = new GitHubConnection(
 
 const running = await startTestServer(
   undefined,
-  4173,
+  Number(process.env.BROWSER_PORT ?? 4173),
   async (service) => {
     const assets = await Promise.all(
       browserAssetUploads("browser-plan").map((request) =>

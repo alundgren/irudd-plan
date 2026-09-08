@@ -119,20 +119,61 @@ test("keyboard heading feedback retains the original item target", async ({
   });
 });
 
-test("tool shortcuts ignore focused controls", async ({ page }) => {
+test("tool shortcuts work after using the chooser and canvas controls", async ({
+  page,
+}) => {
   await page.goto("/plans/browser-plan");
   const comment = page.getByRole("button", { name: "Comment", exact: true });
-  await comment.focus();
+  const pan = page.getByRole("button", { name: "Pan", exact: true });
+  await chooseItem(page, "Work item 1");
+  const chooser = page.getByRole("button", {
+    name: "Read work item",
+    exact: true,
+  });
+  await expect(chooser).toBeFocused();
   await page.keyboard.press("v");
+  await expect(pan).toHaveAttribute("aria-pressed", "true");
+  await expect(chooser).toBeFocused();
+  await page.keyboard.press("c");
   await expect(comment).toHaveAttribute("aria-pressed", "true");
-  await page.locator(".plan-viewport").focus();
+  await pan.click();
+  await page.keyboard.press("c");
+  await expect(comment).toHaveAttribute("aria-pressed", "true");
+  await comment.click();
   await page.keyboard.press("v");
-  await expect(comment).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: "Pan", exact: true }).focus();
+  await expect(pan).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Fit", exact: true }).click();
   await page.keyboard.press("c");
-  await expect(comment).toHaveAttribute("aria-pressed", "false");
-  await page.locator(".plan-viewport").focus();
-  await page.keyboard.press("c");
+  await expect(comment).toHaveAttribute("aria-pressed", "true");
+});
+
+test("tool shortcuts preserve typing, dialogs, and modified keys", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan");
+  const comment = page.getByRole("button", { name: "Comment", exact: true });
+  await page
+    .getByRole("button", { name: "Read work item", exact: true })
+    .click();
+  const search = page.getByRole("combobox", { name: "Find work item" });
+  await page.keyboard.type("cv");
+  await expect(search).toHaveValue("cv");
+  await expect(comment).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  for (const key of ["Control+v", "Meta+v", "Alt+v"]) {
+    await page.keyboard.press(key);
+    await expect(comment).toHaveAttribute("aria-pressed", "true");
+  }
+  await page.getByRole("button", { name: "Comment on canvas center" }).focus();
+  await page.keyboard.press("Enter");
+  const feedback = page.getByRole("textbox", {
+    name: "Your feedback",
+    exact: true,
+  });
+  await feedback.fill("cv");
+  await expect(feedback).toHaveValue("cv");
+  await page.getByRole("button", { name: "Cancel", exact: true }).focus();
+  await page.keyboard.press("v");
   await expect(comment).toHaveAttribute("aria-pressed", "true");
 });
 

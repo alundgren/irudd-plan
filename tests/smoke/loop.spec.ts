@@ -86,21 +86,25 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         "data-version",
         "1",
       );
-      await expect(
-        page
-          .locator(".plan-sheet.selected")
-          .getByRole("heading", { name: "Work item 1" }),
-      ).toBeVisible();
+      await expect(page.locator(".item-sheet.selected")).toHaveAttribute(
+        "aria-label",
+        "Work item 1",
+      );
+      await expect(page.locator(".item-sheet.selected")).toBeInViewport();
       await expect(page.locator("figure.asset-view")).toHaveCount(1);
       await context.grantPermissions(["clipboard-read", "clipboard-write"]);
       await page
         .locator(".plan-sheet.selected")
         .getByRole("button", { name: "Add feedback to Requirements" })
-        .click();
+        .focus();
+      await page.keyboard.press("Enter");
       await page
-        .getByRole("textbox", { name: "Requested change for feedback 1" })
+        .getByRole("textbox", { name: "Your feedback", exact: true })
         .fill("Add a retry check to this requirement.");
-      await page.getByRole("button", { name: "Copy agent prompt (1)" }).click();
+      await page
+        .getByRole("button", { name: "Add comment", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Copy feedback (1)" }).click();
       const feedback = await page.evaluate(() =>
         navigator.clipboard.readText(),
       );
@@ -133,9 +137,10 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         page.getByText(revised.items[0]!.requirements[0]!),
       ).toBeVisible();
       await context.setOffline(true);
-      await expect(
-        page.getByText("reconnecting", { exact: false }),
-      ).toBeVisible();
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-connection",
+        "reconnecting",
+      );
       await context.setOffline(false);
       await expect(page.locator(".review-app")).toHaveAttribute(
         "data-version",
@@ -156,8 +161,8 @@ test("private/public review, local feedback, MCP revision and reconnect", async 
         "2",
       );
       await expect(
-        publicPage.getByText("Published", { exact: true }),
-      ).toBeVisible();
+        publicPage.locator(".review-header").getByRole("button"),
+      ).toHaveCount(3);
       await expect(publicPage.locator("figure.asset-view")).toHaveCount(1);
       const asset = revised.assets[0]!;
       expect(

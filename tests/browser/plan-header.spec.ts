@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const width of [1440, 390]) {
+for (const width of [1440, 390, 320]) {
   for (const publicView of [false, true]) {
     test(`compact ${publicView ? "public" : "owner"} header at ${width}px`, async ({
       page,
@@ -39,11 +39,11 @@ for (const width of [1440, 390]) {
         x: 0,
         y: 0,
         width,
-        height: width === 1440 ? 68 : 95,
+        height: width === 1440 ? 68 : 58,
       });
       for (const control of [
-        header.getByRole("button", { name: publicView ? "Overview" : "Plans" }),
-        header.locator(".plan-details-toggle"),
+        header.getByRole("button", { name: "Plans" }),
+        header.getByRole("button", { name: "Read work item" }),
         header.getByRole("button", { name: "Feedback 0", exact: true }),
       ]) {
         const box = await control.boundingBox();
@@ -88,24 +88,27 @@ for (const width of [1440, 390]) {
         .locator(".feedback-panel")
         .getByRole("button", { name: /close/i })
         .click();
-      await header.locator(".plan-details-toggle").focus();
-      await page.keyboard.press("Enter");
-      await expect(page.locator(".plan-details-content")).toBeVisible();
-      if (publicView) {
-        await expect(page.locator(".retention-notice")).toHaveCount(0);
-        await expect(header).not.toContainText("Last checked");
-      }
-      await page.keyboard.press("Enter");
+      await expect(header.getByRole("button")).toHaveCount(3);
+      await header.getByRole("button", { name: "Read work item" }).click();
+      const menu = await page.locator(".work-item-menu").boundingBox();
+      expect(menu!.x).toBeGreaterThanOrEqual(0);
+      expect(menu!.x + menu!.width).toBeLessThanOrEqual(width);
+      expect(menu!.width).toBeGreaterThanOrEqual(Math.min(300, width - 16));
+      await page
+        .getByRole("combobox", { name: "Find work item" })
+        .fill("Work item 2");
+      await expect(
+        page.getByRole("option", { name: "Work item 2", exact: true }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
       await context.setOffline(true);
-      await expect(header.locator(".connection")).toContainText("reconnecting");
-      await expect(header.locator(".connection")).toBeVisible();
-      await expect(header.locator(".connection")).toHaveCSS(
-        "color",
-        "rgb(143, 58, 45)",
+      await expect(page.locator(".review-app")).toHaveAttribute(
+        "data-connection",
+        "reconnecting",
       );
-      await page.screenshot({
-        path: testInfo.outputPath("connection-failure.png"),
-      });
+      await expect(header.getByRole("button")).toHaveCount(3);
+      await expect(header).toHaveText(/Plans.*Epic goal.*Feedback 0/);
+      expect(await header.boundingBox()).toEqual(bounds);
       await context.setOffline(false);
     });
   }

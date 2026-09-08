@@ -97,9 +97,6 @@ export function sectionText(
   target: Pick<SectionTarget, "itemId" | "sectionId">,
 ): string | undefined {
   if (target.sectionId === "epic-goal") return plan.epicGoal;
-  if (target.sectionId === "overview-items") {
-    return plan.items.map((item) => `${item.id}: ${item.title}`).join("\n");
-  }
   if (target.itemId === undefined) return undefined;
   const item = plan.items.find((candidate) => candidate.id === target.itemId);
   if (item === undefined) return undefined;

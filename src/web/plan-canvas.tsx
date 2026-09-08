@@ -51,6 +51,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
     }
   };
   const selectItem = (id?: string, assetId?: string) => {
+    stoppedFeedback.current = focusedFeedback;
     setSelected(id);
     setReferenceId(assetId);
     setReading(true);

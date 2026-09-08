@@ -1,3 +1,4 @@
+import { chooseItem } from "./canvas.js";
 import { expect, test } from "@playwright/test";
 import type { PlanDocument } from "../../src/web/client-api.js";
 
@@ -233,4 +234,43 @@ test("browser Back cancels feedback tracking before a viewport resize", async ({
   await expect(
     page.getByRole("button", { name: "Read work item", exact: true }),
   ).toContainText("Epic goal");
+});
+
+test("chooser navigation cancels feedback tracking across live revisions", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan/items/item-1");
+  await page
+    .locator('[data-section="item-1:requirements"]')
+    .getByRole("button", { name: "Add feedback to Requirements" })
+    .focus();
+  await page.keyboard.press("Enter");
+  await page
+    .getByRole("textbox", { name: "Your feedback", exact: true })
+    .fill("Review this requirement");
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  await page.locator(".feedback-location").first().click();
+  await chooseItem(page, "Work item 2");
+  const selected = page.locator(".item-sheet.selected");
+  await expect(selected).toHaveAttribute("data-item-id", "item-2");
+  const before = await selected.boundingBox();
+  await page.route("**/api/plans/browser-plan", async (route) => {
+    const response = await route.fetch();
+    const document = await response.json();
+    document.version += 1;
+    document.plan.epicGoal += " Updated.";
+    await route.fulfill({ response, json: document });
+  });
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("offline"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.locator(".review-app")).toHaveAttribute(
+    "data-version",
+    "2",
+  );
+  await expect(page).toHaveURL(/items\/item-2$/);
+  await expect(selected).toHaveAttribute("data-item-id", "item-2");
+  expect((await selected.boundingBox())!.y).toBeCloseTo(before!.y, 0);
+  await expect(selected).toBeInViewport();
 });

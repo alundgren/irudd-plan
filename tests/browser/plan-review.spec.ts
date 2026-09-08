@@ -171,7 +171,10 @@ test.describe.serial("plan review canvas", () => {
       ),
     );
     await context.setOffline(true);
-    await expect(page.getByText("reconnecting")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-connection",
+      "reconnecting",
+    );
     const revisionThree = {
       ...revisionTwo,
       epicGoal: "The latest revision after a missed update",
@@ -428,7 +431,10 @@ test.describe.serial("plan review canvas", () => {
       expectedVersion: 7,
       plan: revisionEight,
     });
-    await expect(page.getByText("reconnecting")).toBeVisible();
+    await expect(page.locator(".review-app")).toHaveAttribute(
+      "data-connection",
+      "reconnecting",
+    );
     await expect(page.locator(".review-app")).not.toHaveAttribute(
       "data-version",
       "8",

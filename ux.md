@@ -40,9 +40,9 @@ Replacing an asset remounts only its visual, while saved feedback retains the or
 An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated documents.
 
 Items and references retain their stable React keys during live updates. The camera compensates when a live update moves the selected document to another grid row. Width changes keep its center in view and retain its vertical position. Unchanged text stays mounted so selection can survive. Update highlighting does not alter section spacing and clears after five seconds.
-Connection failures remain visible in the header. Normal live status and the revision number appear in Plan details. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
+The review header does not show connection status or revision metadata. Reconnection continues automatically. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
-Plan details shows `Private` or `Published` and repository verification status. The signed-in plan list also
+The signed-in plan list
 shows whether the repository still needs verification or cannot be published
 because it is private. Published routes omit the private plan list and return to
 the published overview. Publication remains an explicit authenticated MCP action,
@@ -54,11 +54,11 @@ The bottom toolbar retains Comment and Pan, C/V shortcuts, zoom out/in, a percen
 
 Selecting text alone does nothing. Each section and visual has a keyboard comment action that appears on focus, so repeated buttons do not occupy the reading layout. The section action captures the selected excerpt and its occurrence, or the complete section when nothing is selected. A focus-only toolbar action comments on the canvas centre. Pointer movement beyond five pixels suppresses comment creation. Text selection remains available in Comment mode. Pan mode, middle-button dragging and touch swipes move the canvas; wheel movement in Pan mode remains usable throughout long documents.
 
-An app-owned overlay captures visual points in Comment mode. Pan removes it so supported isolated HTML interactions work. The iframe sandbox, Worker and CSP restrictions remain in force. Section and visual notes store optional normalized positions; blank notes use canvas coordinates. Numbered pins follow their original full targets through zoom and unchanged-content relayout. Summarized targets are revealed by selecting their note in Feedback. Free-canvas notes retain their original world coordinates, including negative coordinates, at every zoom. Selecting one centers its position. Changed or missing targets lose their pins and retain warnings in the list; selecting them does not focus replacement content. Old unpositioned notes appear at the top-right of their section heading. Keyboard section actions also create heading notes without a synthetic normalized position. Positioned pins remain inside their targets, including at the edges. Stored identities and positions are never rewritten. Old notes remain readable, editable and copyable. Optional subject and position fields extend browser storage only; the server plan contract is unchanged.
+An app-owned overlay captures visual points in Comment mode. Pan removes it so supported isolated HTML interactions work. The iframe sandbox, Worker and CSP restrictions remain in force. Section and visual notes store optional normalized positions; blank notes use canvas coordinates. Numbered pins follow their original full targets through zoom and unchanged-content relayout. Summarized targets are revealed by selecting their note in Feedback. Free-canvas notes retain their original world coordinates, including negative coordinates, at every zoom. Selecting one centers its position. Changed or missing targets lose their pins and retain warnings in the list; selecting them does not focus replacement content. Old unpositioned notes appear at the top-right of their section heading. Keyboard section actions also create heading notes without a synthetic normalized position. Positioned pins remain inside their targets, including at the edges. Stored identities and positions are never rewritten. Old notes remain readable, editable and copyable. Notes about the removed work-item index report a missing target. Optional subject and position fields extend browser storage only; the server plan contract is unchanged.
 
 The Feedback control toggles a 330px right-hand column below the header on desktop. The canvas uses the remaining width, including for Fit. The column follows the pinned prototype: Next refinement, Pending feedback with a count, readable locations and comment text, and Edit/Remove actions. Its heading and Copy feedback footer stay visible while the list scrolls. Comments remain text until Edit is chosen. Unsaved dialog text stays separate from saved notes; cancelling an edit restores the saved wording.
 
-At widths up to 760px, the column becomes a toggleable 330px panel over the canvas, bounded by the available width and positioned below the actual header. Close feedback remains available in its heading. This follows the prototype phone panel while keeping the existing two-row phone header and plan navigation.
+At widths up to 760px, the column becomes a toggleable 330px panel over the canvas, bounded by the available width and positioned below the actual header. Close feedback remains available in its heading. This follows the prototype phone panel while keeping the single-row phone header and plan navigation.
 
 Selecting a listed location or numbered pin selects its note and reveals its unchanged target. Changed and missing targets retain their warnings without focusing replacement content. The ordinary list hides internal IDs, revision numbers, coordinate values and asset digests. Changed/missing warnings retain the original-reference explanation. The panel copies described notes as one self-contained MCP revision prompt. It records the plan, work item and section or asset digest, subject, section/visual position or canvas location, original reference and observed internal revision. Changing About does not change this reference. Copying the prompt is not submission, approval or agreement. The application never sends feedback text to the server.
 
@@ -74,15 +74,7 @@ Raster images are owner-authenticated reads. Uploaded SVG and HTML never execute
 
 ## Retention status
 
-The private plan list and open-plan view distinguish retained open work,
-scheduled expiry and unknown GitHub status in plain text. In the open-plan view, retention status appears in Plan details. One Plan details disclosure holds retention, repository verification
-and check timestamps. It opens with Enter or Space and pushes the canvas down.
-Scheduled expiry inside the disclosure shows the UTC date and explains that deleted content is lost. Unknown status includes
-the verification failure reason; completed checks show last and next check
-dates. The header occupies its own row above the canvas so status text does not
-cover plan content on narrow screens. Public views omit these owner details. When a live document becomes
-unavailable, the browser removes its cached document from the view and shows the
-unavailable page at the same URL.
+The private plan list distinguishes retained open work, scheduled expiry and unknown GitHub status. The review view has no retention or repository-details disclosure. When a live document becomes unavailable, the browser removes its cached document and shows the unavailable page at the same URL.
 
 ## Visual reference and compact header
 
@@ -101,6 +93,6 @@ review area is flat with a 20px dotted grid. The grid remains in viewport pixels
 Existing section labels, order and organization remain in place. Sheet sizing
 and navigation follow the continuous canvas rules above. Relationship arrows from the previous canvas are no longer drawn.
 
-The desktop header is 68px high when Plan details is closed. It contains Plans or public Overview, the searchable work-item chooser, Plan details and Feedback. The epic goal stays on the canvas, and there is no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again.
+The header contains exactly three controls: the Plans icon and text, the searchable work-item chooser, and Feedback with its count. There is no Plan details option, status text, revision, repository or retention metadata in the review header. The epic goal stays on the canvas, with no separate item index or inner navigation bar. The chooser keeps its camera selection behavior even when selecting the current item again. On public routes, Plans retains the existing return-to-published-overview destination.
 
-At widths up to 640px the header uses two rows totalling 95px. Navigation and the chooser occupy the first row; Plan details and Feedback occupy the second. Connection failures appear below the desktop controls or in the available phone row. Plan details contains normal live status, revision, repository and owner retention information. It expands in document flow and scrolls within a bounded height. The chooser menu can extend over the canvas without being clipped by the header.
+The header stays on one row, 68px high on desktop and 58px at widths up to 640px. The chooser uses the space between Plans and Feedback and truncates its selected title when necessary. On phones the open menu spans the viewport with 8px margins so search and item names remain readable. Choosing an item cancels tracking of a previously selected feedback note. Its menu can extend over the canvas without being clipped by the header.

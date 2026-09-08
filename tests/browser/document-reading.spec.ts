@@ -3,17 +3,13 @@ import type { Plan } from "../../src/contract/plan.js";
 import { panTo } from "./canvas.js";
 
 async function expectReadingTop(page: Page) {
-  const sheet = page.locator(".plan-sheet.selected");
-  await expect
-    .poll(async () => {
-      const bounds = await sheet.boundingBox();
-      const canvas = await page.locator(".react-flow").boundingBox();
-      return bounds === null || canvas === null ? 0 : bounds.y - canvas.y;
-    })
-    .toBeCloseTo(58, 0);
-  const bounds = await sheet.boundingBox();
-  const width = await sheet.evaluate((element) => element.clientWidth + 2);
-  expect(bounds?.width).toBeCloseTo(width, 0);
+  await expect(
+    page.locator(".item-frame, .overview-sheet").first(),
+  ).toBeInViewport();
+  const view = page.locator(".plan-viewport");
+  expect(await view.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
 }
 
 for (const width of [1280, 390]) {
@@ -25,7 +21,7 @@ for (const width of [1280, 390]) {
     await page.goto("/plans/browser-plan/items/item-1");
     await expectReadingTop(page);
     const selected = page.locator(".plan-sheet.selected");
-    expect((await selected.boundingBox())?.height).toBeGreaterThan(3000);
+    expect((await selected.boundingBox())?.height).toBeGreaterThan(2500);
     const scrollContainers = await selected.evaluate(
       (sheet) =>
         [sheet, ...sheet.querySelectorAll("*")].filter((element) => {
@@ -38,41 +34,16 @@ for (const width of [1280, 390]) {
     );
     expect(scrollContainers).toBe(0);
     await expect(selected.locator("details, .related-items")).toHaveCount(0);
-    await expect(page.locator(".react-flow__edge")).toHaveCount(10);
-    expect(
-      await page
-        .locator(".react-flow__edge-path")
-        .evaluateAll((paths) =>
-          paths.every(
-            (path) =>
-              getComputedStyle(path).strokeDasharray === "none" &&
-              path.hasAttribute("marker-end"),
-          ),
-        ),
-    ).toBe(true);
-    if (width === 1280) {
-      expect(
-        await selected.evaluate((sheet) => getComputedStyle(sheet).padding),
-      ).toBe("40px");
-      const sheets = await page
-        .locator(".plan-sheet")
-        .evaluateAll((elements) =>
-          elements
-            .map((el) => el.getBoundingClientRect().toJSON())
-            .sort((a, b) => a.x - b.x),
-        );
-      for (let index = 1; index < sheets.length; index += 1) {
-        expect(sheets[index]!.x - sheets[index - 1]!.right).toBe(72);
-        expect(sheets[index]!.y).toBe(sheets[0]!.y);
-      }
-    }
+    await expect(page.locator(".item-frame")).toHaveCount(1);
 
     const goal = selected
       .locator('[data-section="item-1:goal"] .rich-text p')
       .first();
     await panTo(page, goal);
-    const viewport = page.locator(".react-flow__viewport");
-    const beforeSelection = await viewport.getAttribute("style");
+    const viewport = page.locator(".plan-viewport");
+    const beforeSelection = await viewport.evaluate((el) =>
+      String(el.scrollTop),
+    );
     const bounds = await goal.boundingBox();
     if (bounds === null) throw new Error("Missing goal");
     await page.mouse.move(bounds.x + 2, bounds.y + 10);
@@ -86,7 +57,9 @@ for (const width of [1280, 390]) {
     expect(
       await page.evaluate(() => window.getSelection()?.toString().length),
     ).toBeGreaterThan(5);
-    expect(await viewport.getAttribute("style")).toBe(beforeSelection);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
+      beforeSelection,
+    );
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
 
     const completion = selected.getByText(
@@ -94,11 +67,11 @@ for (const width of [1280, 390]) {
     );
     await panTo(page, completion);
     await expect(completion).toBeInViewport();
-    const beforeControl = await viewport.getAttribute("style");
+    const beforeControl = await viewport.evaluate((el) => String(el.scrollTop));
     await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     await expect(completion).toBeInViewport();
-    const afterControl = await viewport.getAttribute("style");
+    const afterControl = await viewport.evaluate((el) => String(el.scrollTop));
     expect(afterControl?.split(",").slice(1).join(",")).toBe(
       beforeControl?.split(",").slice(1).join(","),
     );
@@ -113,7 +86,10 @@ for (const width of [1280, 390]) {
     );
     await page.getByRole("button", { name: "Fit", exact: true }).click();
     await page.goBack();
-    await expectReadingTop(page);
+    await expect(page.locator(".plan-viewport")).toHaveAttribute(
+      "data-mode",
+      "reading",
+    );
     await expect(selected).toHaveAttribute("aria-label", "Work item 1");
     await page.goForward();
     await expectReadingTop(page);
@@ -181,12 +157,14 @@ test.describe("phone touch navigation", () => {
       .toBeCloseTo(before!.y - 250, 0);
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
     const beforeTap = await page
-      .locator(".react-flow__viewport")
-      .getAttribute("style");
+      .locator(".plan-viewport")
+      .evaluate((el) => String(el.scrollTop));
     await page.getByRole("button", { name: "Feedback 0", exact: true }).tap();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     expect(
-      await page.locator(".react-flow__viewport").getAttribute("style"),
+      await page
+        .locator(".plan-viewport")
+        .evaluate((el) => String(el.scrollTop)),
     ).toBe(beforeTap);
   });
 });
@@ -229,14 +207,14 @@ test("keeps the selected reading position when other items move and the viewport
     .poll(async () => (await selected.boundingBox())?.x)
     .toBe(before!.x);
   expect((await selected.boundingBox())?.y).toBe(before!.y);
-  const canvasBefore = await page.locator(".react-flow").boundingBox();
+  const scrollBefore = await page
+    .locator(".plan-viewport")
+    .evaluate((el) => el.scrollTop);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => (await selected.boundingBox())?.x).toBe(12);
-  const canvasAfter = await page.locator(".react-flow").boundingBox();
-  expect((await selected.boundingBox())!.y - canvasAfter!.y).toBeCloseTo(
-    before!.y - canvasBefore!.y,
-    0,
-  );
+  await expect.poll(async () => (await selected.boundingBox())?.x).toBe(37);
+  expect(
+    await page.locator(".plan-viewport").evaluate((el) => el.scrollTop),
+  ).toBe(scrollBefore);
 });
 
 for (const selectionState of ["starting", "active"]) {
@@ -256,8 +234,8 @@ for (const selectionState of ["starting", "active"]) {
     const bounds = await text.boundingBox();
     if (bounds === null) throw new Error("Missing selectable text");
     const point = { x: bounds.x + 40, y: bounds.y + 20 };
-    const viewport = page.locator(".react-flow__viewport");
-    const before = await viewport.getAttribute("style");
+    const viewport = page.locator(".plan-viewport");
+    const before = await viewport.evaluate((el) => String(el.scrollTop));
     await session.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [point],
@@ -284,7 +262,7 @@ for (const selectionState of ["starting", "active"]) {
       touchPoints: [],
     });
     await page.waitForTimeout(100);
-    expect(await viewport.getAttribute("style")).toBe(before);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(before);
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
   });
 }

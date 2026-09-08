@@ -160,19 +160,6 @@ summary {
   }
 }
 
-.react-flow {
-  background-color: var(--panel);
-  --xy-controls-button-background-color: var(--bg);
-  --xy-controls-button-background-color-hover: var(--raised);
-  --xy-controls-button-color: var(--text);
-  --xy-controls-button-border-color: var(--line);
-}
-
-.react-flow__node-sheet {
-  width: 600px;
-  cursor: default;
-}
-
 .plan-sheet {
   width: 600px;
   padding: 40px;
@@ -476,7 +463,7 @@ summary {
   color: var(--danger);
 }
 
-.pinning-feedback .react-flow__pane {
+.pinning-feedback .plan-viewport {
   cursor: crosshair;
 }
 
@@ -892,7 +879,6 @@ summary {
     padding-left: 8px;
   }
 
-  .react-flow__node-sheet,
   .plan-sheet {
     width: min(440px, calc(100vw - 24px));
   }
@@ -964,14 +950,14 @@ summary {
   position: relative;
 }
 
-.comment-mode .react-flow__pane,
-.comment-mode .react-flow__node-sheet,
+.comment-mode .plan-viewport,
+.comment-mode .item-frame,
 .comment-mode .visual-comment-overlay {
   cursor: crosshair;
 }
 
-.pan-mode .react-flow__node-sheet,
-.pan-mode .react-flow__pane {
+.pan-mode .item-frame,
+.pan-mode .plan-viewport {
   cursor: grab;
 }
 
@@ -1025,20 +1011,6 @@ summary {
 .canvas-feedback-pin:hover,
 .canvas-feedback-pin.selected {
   background: var(--link);
-}
-
-.react-flow__panel.canvas-tools {
-  bottom: 24px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--bg);
-  box-shadow: 0 4px 16px #60493912;
-  white-space: nowrap;
 }
 
 .canvas-tools button {
@@ -1124,13 +1096,309 @@ summary {
 }
 
 @media (max-width: 440px) {
-  .react-flow__panel.canvas-tools {
-    bottom: 18px;
-  }
   .canvas-tools button {
     padding: 8px;
   }
   .canvas-tools kbd {
     display: none;
   }
+}
+
+/* Documents use normal flow so image and text heights determine row spacing. */
+.canvas-comments {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+}
+.canvas-navigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+}
+.canvas-navigation button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  background: var(--bg);
+}
+.plan-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  background-image: radial-gradient(var(--line) 0.7px, transparent 0.7px);
+  background-size: 20px 20px;
+}
+.plan-layout {
+  position: relative;
+  padding: 24px 36px 90px;
+}
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 36px;
+  max-width: 1120px;
+  margin: auto;
+  align-items: start;
+}
+.item-frame {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.item-title-bar {
+  display: flex;
+  align-items: start;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--raised);
+  color: var(--text);
+  text-align: left;
+  line-height: 1.4;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.item-title-bar span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.item-title-bar span:first-child {
+  font-weight: 400;
+}
+.item-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 24px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.summary-meta,
+.summary-reference {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.overview-limit {
+  max-width: 1120px;
+  margin: 20px auto;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.plan-layout .plan-sheet {
+  width: 100%;
+  min-width: 0;
+  padding: 24px;
+  border: 0;
+  box-shadow: none;
+  touch-action: auto;
+}
+.plan-layout > .overview-sheet {
+  max-width: 1120px;
+  margin: 0 auto 30px;
+  background: var(--bg);
+}
+.plan-layout .item-sheet > .sheet-header {
+  display: none;
+}
+.item-body {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 22px;
+}
+.item-body:has(> .item-sheet:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.item-references {
+  min-width: 0;
+}
+.item-references .reference-sheet {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 35px;
+}
+.item-references .asset-view {
+  margin-left: 0;
+  margin-right: 0;
+}
+.sections-mode .item-grid {
+  max-width: 1500px;
+  gap: 60px;
+}
+.reading-mode .item-grid {
+  display: block;
+  max-width: 860px;
+}
+.reading-mode .item-body {
+  display: block;
+  max-width: 740px;
+  margin: auto;
+  padding: 30px 32px;
+  font-size: var(--reading-font);
+}
+.reading-mode .item-sheet {
+  padding: 0;
+  background: transparent;
+}
+.reading-mode .item-references {
+  margin-top: 35px;
+  padding-top: 25px;
+  border-top: 1px solid var(--line);
+}
+.reading-mode .jump-reference {
+  display: block;
+  margin: 0 32px 24px;
+}
+.canvas-tools {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+  position: relative;
+}
+@media (max-width: 800px) {
+  .plan-layout {
+    padding: 22px 12px 70px;
+  }
+  .item-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .item-body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+  .reading-mode .item-body {
+    padding: 24px;
+  }
+  .item-title-bar {
+    padding: 14px;
+  }
+  .canvas-tools kbd {
+    display: none;
+  }
+  .canvas-tools button {
+    padding: 9px 7px;
+  }
+}
+@container (max-width: 1000px) {
+  .item-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.plan-viewport {
+  container-type: inline-size;
+}
+.frame-heading {
+  position: relative;
+}
+.reading-mode .jump-reference {
+  margin: 16px 32px 0;
+  color: var(--link);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+}
+@container (max-width: 800px) {
+  .item-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.plan-viewport {
+  overflow-anchor: none;
+}
+.overview-index-disclosure {
+  margin-top: 24px;
+}
+.overview-index-disclosure summary {
+  cursor: pointer;
+  color: var(--link);
+}
+.plan-viewport {
+  background-color: var(--panel);
+}
+.reading-mode .plan-layout {
+  padding-bottom: calc(100dvh - 160px);
+}
+.item-summary {
+  display: block;
+}
+.item-summary > span {
+  display: block;
+  margin-bottom: 16px;
+}
+.asset-thumbnail {
+  float: right;
+  width: 150px;
+  max-width: 35%;
+  max-height: 120px;
+  object-fit: contain;
+  margin: 0 0 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.item-summary::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+.canvas-extent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.plan-layout {
+  --layout-side: 36px;
+}
+.plan-layout > .overview-sheet {
+  padding: 0;
+  background: transparent;
+}
+.overview-sheet h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.reference-sheet h2 {
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 500;
+  margin: 12px 0;
+}
+.reference-sheet .eyebrow {
+  margin: 0;
+}
+@media (max-width: 800px) {
+  .plan-layout {
+    --layout-side: 12px;
+  }
+}
+.item-references .asset-frame {
+  margin: 0;
+}
+
+.frame-heading > h2 {
+  margin: 0;
+  font: inherit;
 }

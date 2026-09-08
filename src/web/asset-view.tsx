@@ -15,6 +15,15 @@ interface AssetViewProps {
 const svgCsp =
   "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'none'; connect-src 'none'; form-action 'none'";
 
+export function assetSource(planId: string, asset: AssetDescriptor): string {
+  const publicRoute = window.location.pathname.match(
+    /^\/public\/plans\/([^/]+)\/([^/]+)/,
+  );
+  return publicRoute?.[1] === undefined
+    ? `/api/plans/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`
+    : `/public/plans/${publicRoute[1]}/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`;
+}
+
 export function AssetView({
   planId,
   asset,
@@ -22,13 +31,7 @@ export function AssetView({
   onAddFeedback,
 }: AssetViewProps) {
   const tool = useContext(CanvasToolContext);
-  const publicRoute = window.location.pathname.match(
-    /^\/public\/plans\/([^/]+)\/([^/]+)/,
-  );
-  const source =
-    publicRoute?.[1] === undefined
-      ? `/api/plans/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`
-      : `/public/plans/${publicRoute[1]}/${encodeURIComponent(planId)}/assets/${encodeURIComponent(asset.id)}?digest=${encodeURIComponent(asset.digest)}`;
+  const source = assetSource(planId, asset);
   const isolated =
     asset.mediaType === "text/html" || asset.mediaType === "image/svg+xml";
   const [document, setDocument] = useState<string | undefined>(undefined);

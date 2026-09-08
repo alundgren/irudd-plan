@@ -205,7 +205,7 @@ test("normalized pins follow zoom and relayout; Fit and reset work with dock ope
   );
   await checkPosition();
   await page.getByRole("button", { name: "Fit", exact: true }).click();
-  const canvas = (await page.locator(".react-flow").boundingBox())!;
+  const canvas = (await page.locator(".plan-viewport").boundingBox())!;
   for (const sheet of await page.locator(".plan-sheet").all()) {
     const bounds = (await sheet.boundingBox())!;
     expect(bounds.x).toBeGreaterThanOrEqual(canvas.x);
@@ -270,7 +270,7 @@ test("blank canvas coordinates and subjects survive mixed old/new storage and ma
   });
   await page.goto("/plans/browser-plan/items/item-1");
   await page.getByRole("button", { name: "Zoom out", exact: true }).click();
-  const canvas = (await page.locator(".react-flow").boundingBox())!;
+  const canvas = (await page.locator(".plan-viewport").boundingBox())!;
   const click = { x: canvas.x + 5, y: canvas.y + canvas.height / 2 };
   await page.mouse.click(click.x, click.y);
   await page

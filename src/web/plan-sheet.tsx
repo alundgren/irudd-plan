@@ -51,12 +51,6 @@ function OverviewSheet({
       className={`plan-sheet overview-sheet nodrag nopan ${selected ? "selected" : ""}`}
       aria-label="Epic overview"
     >
-      <SheetHeader
-        eyebrow="Epic overview"
-        title={plan.epicGoal}
-        selected={selected}
-        changed={false}
-      />
       <section
         className={changedSections.has("epic-goal") ? "changed" : ""}
         data-section="epic-goal"
@@ -76,39 +70,42 @@ function OverviewSheet({
             )
           }
         />
-        <RichText text={plan.epicGoal} />
+        <h2>{plan.epicGoal}</h2>
       </section>
-      <div
-        className={`overview-index ${changedSections.has("overview-items") ? "changed" : ""}`}
-        data-section="overview-items"
-        data-feedback-container
-      >
-        <FeedbackSectionTitle
-          label={`${plan.items.length} work items`}
-          count={feedbackCount(feedbackItems, undefined, "overview-items")}
-          onAdd={(event) =>
-            addSectionFeedback(
-              event,
-              plan,
-              undefined,
-              "overview-items",
-              "Work item index",
-              onAddFeedback,
-            )
-          }
-        />
-        {plan.items.map((item) => (
-          <button
-            type="button"
-            className={`index-row nodrag nopan ${changedSections.has(`${item.id}:header`) ? "changed" : ""}`}
-            key={item.id}
-            onClick={() => onSelect(item.id)}
-          >
-            <span>{item.title}</span>
-            <ArrowRight aria-hidden="true" size={14} />
-          </button>
-        ))}
-      </div>
+      <details className="overview-index-disclosure">
+        <summary>Work item index</summary>
+        <div
+          className={`overview-index ${changedSections.has("overview-items") ? "changed" : ""}`}
+          data-section="overview-items"
+          data-feedback-container
+        >
+          <FeedbackSectionTitle
+            label={`${plan.items.length} work items`}
+            count={feedbackCount(feedbackItems, undefined, "overview-items")}
+            onAdd={(event) =>
+              addSectionFeedback(
+                event,
+                plan,
+                undefined,
+                "overview-items",
+                "Work item index",
+                onAddFeedback,
+              )
+            }
+          />
+          {plan.items.map((item) => (
+            <button
+              type="button"
+              className={`index-row nodrag nopan ${changedSections.has(`${item.id}:header`) ? "changed" : ""}`}
+              key={item.id}
+              onClick={() => onSelect(item.id)}
+            >
+              <span>{item.title}</span>
+              <ArrowRight aria-hidden="true" size={14} />
+            </button>
+          ))}
+        </div>
+      </details>
     </article>
   );
 }

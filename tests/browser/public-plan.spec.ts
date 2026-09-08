@@ -11,8 +11,9 @@ test("renders a selected published item without private browser credentials", as
       "http://127.0.0.1:4173/public/plans/owner-a/browser-plan/items/item-1",
     );
     await expect(
-      page.locator(".plan-sheet.selected").getByRole("heading", {
-        name: "Work item 1",
+      page.locator('[data-frame-item="item-1"]').getByRole("heading", {
+        name: "01 Work item 1",
+        exact: true,
       }),
     ).toBeVisible();
     await page.locator(".plan-details-toggle").click();

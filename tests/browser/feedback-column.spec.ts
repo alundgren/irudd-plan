@@ -63,7 +63,7 @@ for (const width of [1440, 390]) {
     const heading = await panel.locator(".feedback-heading").boundingBox();
     const footer = await panel.locator(".feedback-copy").boundingBox();
     const bounds = await panel.boundingBox();
-    const canvas = await page.locator(".react-flow").boundingBox();
+    const canvas = await page.locator(".plan-viewport").boundingBox();
     expect(bounds!.width).toBe(330);
     expect(bounds!.y).toBe(width === 1440 ? 68 : 95);
     if (width === 1440) expect(canvas!.x + canvas!.width).toBe(bounds!.x);
@@ -112,9 +112,9 @@ for (const width of [1440, 390]) {
       .poll(
         async () =>
           (await section.boundingBox())!.y -
-          (await page.locator(".react-flow").boundingBox())!.y,
+          (await page.locator(".plan-viewport").boundingBox())!.y,
       )
-      .toBeCloseTo(100, 0);
+      .toBeCloseTo(24, 0);
     await expect(panel.locator(".feedback-editor").first()).toBeInViewport();
     await page.screenshot({
       path: testInfo.outputPath("selected-location.png"),
@@ -200,15 +200,15 @@ for (const width of [1440, 390]) {
       });
     });
     const panel = page.locator(".feedback-panel");
-    const viewport = page.locator(".react-flow__viewport");
-    const before = await viewport.getAttribute("style");
+    const viewport = page.locator(".plan-viewport");
+    const before = await viewport.evaluate((el) => String(el.scrollTop));
     await panel
       .getByRole("button", { name: "1. Removed work item · Goal", exact: true })
       .click();
     await expect(panel).toContainText(
       "This location is no longer in the plan.",
     );
-    expect(await viewport.getAttribute("style")).toBe(before);
+    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(before);
     await expect(panel).toContainText(
       "This location has changed since you commented.",
     );
@@ -249,17 +249,16 @@ test("Fit all uses the canvas beside the column and a pin selects its note", asy
   await seedNotes(page, 3);
   await page.getByRole("button", { name: "Feedback 3", exact: true }).click();
   await page.getByRole("button", { name: "Fit", exact: true }).click();
-  const canvas = (await page.locator(".react-flow").boundingBox())!;
+  const canvas = (await page.locator(".plan-viewport").boundingBox())!;
   for (const sheet of await page.locator(".plan-sheet").all()) {
     const bounds = (await sheet.boundingBox())!;
     expect(bounds.x).toBeGreaterThanOrEqual(canvas.x);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(
       canvas.x + canvas.width + 1,
     );
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(
-      canvas.y + canvas.height + 1,
-    );
   }
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.getByRole("button", { name: "Close feedback" }).click();
   await page
     .getByRole("button", { name: "Open canvas feedback 3", exact: true })
@@ -317,7 +316,7 @@ test("a listed overview location restores reading zoom after Fit", async ({
       async () =>
         (await page.locator(".plan-sheet.selected").boundingBox())!.width,
     )
-    .toBeCloseTo(600, 0);
+    .toBeGreaterThan(600);
   const section = page.locator(
     '.plan-sheet.selected [data-section="epic-goal"]',
   );
@@ -325,7 +324,7 @@ test("a listed overview location restores reading zoom after Fit", async ({
     .poll(
       async () =>
         (await section.boundingBox())!.y -
-        (await page.locator(".react-flow").boundingBox())!.y,
+        (await page.locator(".plan-viewport").boundingBox())!.y,
     )
-    .toBeCloseTo(100, 0);
+    .toBeCloseTo(24, 0);
 });

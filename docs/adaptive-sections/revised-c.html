@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>C · Adaptive plan sections</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #f2eade;
+      color: #604939;
+      font:
+        16px/1.6 system-ui,
+        sans-serif;
+    }
+    button,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+    button {
+      cursor: pointer;
+      background: #f9f6f0;
+      border: 1px solid #c1af9a;
+      border-radius: 6px;
+      padding: 7px 13px;
+    }
+    button:hover {
+      background: #e0d2bd;
+    }
+    button:focus-visible,
+    select:focus-visible {
+      outline: 3px solid #3d5d71;
+      outline-offset: 3px;
+    }
+    header.app {
+      height: 62px;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      border-bottom: 1px solid #c1af9a;
+    }
+    .muted {
+      color: #66574d;
+      font-size: 13.5px;
+    }
+    .app .muted {
+      margin-left: auto;
+    }
+    .study {
+      padding: 14px 28px;
+      background: #eadfcd;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .study strong {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .study p {
+      margin: 0;
+      max-width: 1000px;
+      font-size: 13.5px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 28px;
+      align-items: center;
+      border-bottom: 1px solid #c1af9a;
+    }
+    .toolbar select {
+      margin-left: auto;
+      background: #f9f6f0;
+      border: 1px solid #c1af9a;
+      border-radius: 6px;
+      padding: 8px;
+      max-width: 270px;
+    }
+    .toolbar output {
+      width: 55px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    button[aria-pressed="true"] {
+      background: #784f26;
+      color: #f9f6f0;
+      border-color: #784f26;
+    }
+    .viewport {
+      height: calc(100dvh - 212px);
+      min-height: 350px;
+      overflow: auto;
+      background-color: #eadfcd;
+      background-image: radial-gradient(#c1af9a 0.7px, transparent 0.7px);
+      background-size: 20px 20px;
+      padding: 30px 36px 70px;
+      scrollbar-gutter: stable;
+    }
+    .context {
+      max-width: 1120px;
+      margin: 0 auto 25px;
+      display: flex;
+      gap: 24px;
+      align-items: baseline;
+    }
+    .context h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .context span {
+      font-size: 13.5px;
+    }
+    .grid {
+      max-width: 1120px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 36px;
+    }
+    .frame {
+      background: #f2eade;
+      border: 1px solid #c1af9a;
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .bar {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid #c1af9a;
+      border-radius: 0;
+      background: #e0d2bd;
+      text-align: left;
+      padding: 16px 20px;
+      line-height: 1.4;
+      font-weight: 600;
+      min-height: 78px;
+    }
+    .bar .number {
+      font-weight: 400;
+      color: #66574d;
+    }
+    .bar .title {
+      flex: 1;
+      min-width: 0;
+    }
+    .bar .arrow {
+      flex: none;
+    }
+    .body {
+      padding: 24px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px;
+      gap: 20px;
+      align-items: start;
+    }
+    .summary p {
+      margin: 0 0 16px;
+    }
+    .summary img {
+      width: 100%;
+      border: 1px solid #c1af9a;
+      border-radius: 5px;
+    }
+    .meta {
+      font-size: 13.5px;
+      color: #66574d;
+    }
+    .reading .grid {
+      display: block;
+      max-width: 860px;
+    }
+    .reading .bar {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      min-height: 0;
+    }
+    .reading .frame {
+      overflow: visible;
+    }
+    .reading .body {
+      max-width: 740px;
+      margin: auto;
+      padding: 30px 32px;
+      font-size: var(--reading-font, 16px);
+    }
+    h2 {
+      font-weight: 600;
+      font-size: 22px;
+      margin: 0 0 12px;
+    }
+    h3 {
+      font-size: 13.5px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      margin: 30px 0 10px;
+    }
+    p {
+      margin: 0 0 18px;
+    }
+    li {
+      margin: 10px 0;
+    }
+    .decision {
+      padding: 18px;
+      background: #eadfcd;
+      border-left: 3px solid #784f26;
+    }
+    .reference {
+      margin-top: 35px;
+      border-top: 1px solid #c1af9a;
+      padding-top: 25px;
+    }
+    .reference img {
+      width: 100%;
+      display: block;
+      margin: 18px 0;
+    }
+    .reference h3 {
+      margin-top: 0;
+    }
+    .reading .context {
+      max-width: 860px;
+    }
+    .sheet {
+      background: #f9f6f0;
+      padding: 24px;
+      border-radius: 6px;
+    }
+    .canvas-mode .grid {
+      max-width: 1500px;
+      gap: 60px;
+    }
+    .canvas-mode .body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 22px;
+      font-size: 14px;
+    }
+    .canvas-mode .reference {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .canvas-mode .reference img {
+      margin-top: 10px;
+    }
+    .canvas-mode .body h3 {
+      font-size: 12px;
+    }
+    .canvas-mode .body h2 {
+      font-size: 18px;
+    }
+    .canvas-mode .sheet {
+      padding: 18px;
+    }
+    .reading .sheet {
+      background: transparent;
+      padding: 0;
+    }
+    .reading .context a {
+      color: #3d5d71;
+    }
+    .state {
+      padding: 5px 10px;
+      border-radius: 5px;
+      background: #f2eade;
+      font-size: 13.5px;
+    }
+    .note {
+      margin: 20px auto 0;
+      max-width: 1120px;
+      font-size: 13.5px;
+      color: #66574d;
+    }
+    @media (max-width: 800px) {
+      header.app {
+        padding: 10px 16px;
+      }
+      .app .muted {
+        display: none;
+      }
+      .study {
+        display: block;
+        padding: 10px 16px;
+      }
+      .toolbar {
+        padding: 10px 16px;
+      }
+      .toolbar select {
+        max-width: 180px;
+      }
+      .viewport {
+        padding: 22px 16px 70px;
+        height: calc(100dvh - 260px);
+      }
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .context {
+        display: block;
+      }
+      .canvas-mode .body {
+        grid-template-columns: 1fr;
+      }
+      .summary {
+        grid-template-columns: minmax(0, 1fr) 100px;
+      }
+      .reading .body {
+        padding: 24px;
+      }
+      .bar {
+        padding: 14px;
+        min-height: 0;
+      }
+      .state {
+        display: none;
+      }
+    }
+  </style>
+  <header class="app">
+    <strong>irudd plan</strong><span>Text-test cleanup</span
+    ><span class="muted">C · Revised design study · Local mockup</span>
+  </header>
+  <div class="study">
+    <strong>Sections at every distance</strong>
+    <p>
+      Full-width title bars. A readable overview below 35%. A centered reading
+      column from 85%, with the reference below the description.
+    </p>
+  </div>
+  <nav class="toolbar" aria-label="Zoom and navigation">
+    <button id="minus" aria-label="Zoom out">−</button
+    ><output id="zoom">25%</output
+    ><button id="plus" aria-label="Zoom in">+</button
+    ><button data-zoom="8">Far out</button
+    ><button data-zoom="25">Overview</button
+    ><button data-zoom="60">Sections</button
+    ><button data-zoom="100">Read</button><span class="state" id="state"></span
+    ><select id="jump" aria-label="Select item"></select>
+  </nav>
+  <main id="view" class="viewport">
+    <div class="context">
+      <h1 id="heading"></h1>
+      <span id="context"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="note" id="note"></p>
+  </main>
+  <script>
+    const items = [
+      {
+        title: "Remove prose-only assertions from fleet tests",
+        short: "Fleet tests",
+        goal: "Keep fleet tests focused on structured results and real effects.",
+        detail:
+          "Remove assertions that pass only because fleet output contains expected English wording while retaining structured state, command, security, and failure checks.",
+        checks: [
+          "Keep reasonCode, checkId, status, command ID, argv and observation assertions.",
+          "Keep security non-leakage, refusal, no-write and no-fetch checks.",
+          "Do not change fleet runtime behavior or diagnostic wording.",
+        ],
+        note: "1 open comment",
+      },
+      {
+        title: "Remove prose-only assertions from local workflow tests",
+        short: "Local workflow tests",
+        goal: "Test installer and vault behavior through state changes.",
+        detail:
+          "Remove human-wording searches from installer, guidance synchronization, vault alias, and vault synchronization tests while preserving their behavioral evidence.",
+        checks: [
+          "Keep exit status, byte equality, checksums, file modes and backups.",
+          "Keep alias targets, idempotency, Git propagation and commit survival.",
+          "Do not modify generated guidance or runtime scripts.",
+        ],
+        note: "1 visual reference",
+      },
+      {
+        title:
+          "Remove prose-only assertions from Repo Control publishing tests",
+        short: "Repo Control publishing tests",
+        goal: "Test publishing failures through types and protocol behavior.",
+        detail:
+          "Remove assertions over human exception wording while preserving the behavior that makes publishing safe and recoverable.",
+        checks: [
+          "Keep exception types, HTTP methods, URLs and request counts.",
+          "Keep retry behavior, exit status and connection cleanup.",
+          "Keep secret, script and private-response non-leakage checks.",
+        ],
+        note: "1 visual reference",
+      },
+      {
+        title: "Design evidence for agent interpretation",
+        short: "Agent interpretation",
+        goal: "Define credible trials for how agents use repository guidance.",
+        detail:
+          "Record the unresolved work needed to test whether agents interpret guidance correctly in real tasks.",
+        checks: [
+          "Identify representative tasks, runtimes and a scoring rubric.",
+          "Decide repeatability requirements, cost limits and failure evidence.",
+          "Keep implementation outside the current cleanup scope.",
+        ],
+        note: "Needs refinement",
+      },
+    ];
+  </script>
+  <script>
+    let zoom = 25,
+      selected = 0;
+    const view = document.querySelector("#view"),
+      grid = document.querySelector("#grid");
+    const steps = [8, 15, 25, 40, 60, 85, 100, 150, 200];
+    items.forEach((x, i) =>
+      document.querySelector("#jump").add(new Option(x.short, i)),
+    );
+    function detail(x, i) {
+      return `<div class="sheet"><h2>Goal</h2><p>${x.detail}</p><h3>OPEN DECISION</h3><div class="decision">${i === 3 ? "Track agent evaluation as nonblocking refinement." : "Remove prose-only tests without replacement. Preserve machine and behavioral checks."}</div><h3>REQUIREMENTS</h3><ul>${x.checks.map((c) => "<li>" + c + "</li>").join("")}</ul><h3>CHECKS</h3><p>${i === 3 ? "Record the tasks, runtimes, rubric, costs and failure evidence needed for future refinement." : "Run the affected tests and review the retained behavioral evidence."}</p></div><aside class="reference" id="reference-${i}"><h3>ACCEPTANCE REFERENCE</h3><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgdmlld0JveD0iMCAwIDEyMDAgNzAwIj4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9IiNmNmYxZTciLz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6IHVpLXNhbnMtc2VyaWYsIHN5c3RlbS11aSwgc2Fucy1zZXJpZjsgZmlsbDogIzE3MjEyYjsgfQogICAgLnRpdGxlIHsgZm9udC1zaXplOiA0MnB4OyBmb250LXdlaWdodDogNzAwOyB9CiAgICAuaGVhZGluZyB7IGZvbnQtc2l6ZTogMjdweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLmJvZHkgeyBmb250LXNpemU6IDIycHg7IH0KICAgIC5zbWFsbCB7IGZvbnQtc2l6ZTogMThweDsgfQogICAgLmJveCB7IHN0cm9rZTogIzE3MjEyYjsgc3Ryb2tlLXdpZHRoOiAzOyByeDogMTg7IH0KICAgIC5hcnJvdyB7IHN0cm9rZTogIzE3MjEyYjsgc3Ryb2tlLXdpZHRoOiA1OyBmaWxsOiBub25lOyBtYXJrZXItZW5kOiB1cmwoI2hlYWQpOyB9CiAgPC9zdHlsZT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImhlYWQiIG1hcmtlcldpZHRoPSIxMiIgbWFya2VySGVpZ2h0PSIxMiIgcmVmWD0iMTAiIHJlZlk9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEyLDYgTDAsMTIgWiIgZmlsbD0iIzE3MjEyYiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDx0ZXh0IHg9IjYwMCIgeT0iNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ0aXRsZSI+V2hhdCBzaG91bGQgYSB0ZXN0IHByb3ZlPzwvdGV4dD4KICA8cmVjdCB4PSIzOTAiIHk9IjExNSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIxMDUiIGZpbGw9IiNmZmZmZmYiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI2MDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkV4aXN0aW5nIGFzc2VydGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjE5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImJvZHkiPldoYXQgZXZpZGVuY2UgZG9lcyBpdCBpbnNwZWN0PzwvdGV4dD4KICA8cGF0aCBkPSJNNTAwIDIyMCBDNDMwIDI3NSAzMjAgMjcwIDI0NSAzMTUiIGNsYXNzPSJhcnJvdyIvPgogIDxwYXRoIGQ9Ik03MDAgMjIwIEM3NzAgMjc1IDg4MCAyNzAgOTU1IDMxNSIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjUiIHk9IjMxNSIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIyMDUiIGZpbGw9IiNkOWVmZTQiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSIyODAiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPk1hY2hpbmUgZXZpZGVuY2U8L3RleHQ+CiAgPHRleHQgeD0iOTUiIHk9IjQwNSIgY2xhc3M9ImJvZHkiPkpTT04gZmllbGRzLCBleGl0IHN0YXR1cywgZmlsZXMsIG1vZGVzLDwvdGV4dD4KICA8dGV4dCB4PSI5NSIgeT0iNDM5IiBjbGFzcz0iYm9keSI+R2l0IHN0YXRlLCBjb21tYW5kcywgcmVkYWN0aW9uLCBIVFRQPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iNDg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iaGVhZGluZyI+S0VFUDwvdGV4dD4KICA8cmVjdCB4PSI3MDUiIHk9IjMxNSIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIyMDUiIGZpbGw9IiNmM2Q0Y2UiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI5MjAiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkh1bWFuIHByb3NlIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSI0MDUiIGNsYXNzPSJib2R5Ij5TdWJzdHJpbmcsIHByZWZpeCwgb3IgZXhhY3Qgd29yZGluZzwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjQzOSIgY2xhc3M9ImJvZHkiPndpdGggbm8gbWFjaGluZS1yZWFkYWJsZSBjb250cmFjdDwvdGV4dD4KICA8dGV4dCB4PSI5MjAiIHk9IjQ4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPlJFTU9WRTwvdGV4dD4KICA8cGF0aCBkPSJNOTIwIDUyMCBMOTIwIDU3NSIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjU1IiB5PSI1NzUiIHdpZHRoPSI1MzAiIGhlaWdodD0iOTAiIGZpbGw9IiNlOGRlZjQiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI5MjAiIHk9IjYxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkZ1dHVyZSByZWZpbmVtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjkyMCIgeT0iNjQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPlRlc3QgaG93IGFnZW50cyBpbnRlcnByZXQgZ3VpZGFuY2UgaW4gcmVhbCB0YXNrczwvdGV4dD4KICA8dGV4dCB4PSI2NSIgeT0iNjM1IiBjbGFzcz0ic21hbGwiPlNjb3BlOiB0ZXN0cyBvbmx5LiBSdW50aW1lIGJlaGF2aW9yIGFuZCBnZW5lcmF0ZWQgZ3VpZGFuY2UgZG8gbm90IGNoYW5nZS48L3RleHQ+Cjwvc3ZnPgo=" alt="Test decision guide: keep machine evidence, remove prose-only assertions, defer agent interpretation trials."><p class="meta">Shared decision guide for this item.</p></aside>`;
+    }
+    function render() {
+      const reading = zoom >= 85,
+        overview = zoom < 35;
+      view.className =
+        "viewport " +
+        (reading ? "reading" : overview ? "overview-mode" : "canvas-mode");
+      view.style.setProperty(
+        "--reading-font",
+        Math.min(22, 16 + (zoom - 85) / 20) + "px",
+      );
+      document.querySelector("#zoom").textContent = zoom + "%";
+      document.querySelector("#state").textContent = reading
+        ? "Reading view"
+        : overview
+          ? "Overview layout"
+          : "Section layout";
+      document.querySelector("#heading").textContent = reading
+        ? items[selected].short
+        : "Remove prose-only test assertions";
+      document.querySelector("#context").innerHTML = reading
+        ? '<a href="#reference-' + selected + '">Jump to reference ↓</a>'
+        : "4 items · 3 cleanup items · 1 future refinement";
+      document.querySelector("#note").textContent = overview
+        ? "Overview keeps a minimum readable size. Zooming further out preserves this layout; larger plans continue vertically."
+        : reading
+          ? "Text size increases up to 22px. The description stays centered and wraps within the frame. Scroll to read the reference."
+          : "Click a title bar to read that item. Descriptions and references share the same frame.";
+      grid.innerHTML = "";
+      items.forEach((x, i) => {
+        if (reading && i !== selected) return;
+        const frame = document.createElement("section");
+        frame.className = "frame";
+        frame.setAttribute("aria-label", x.title);
+        frame.innerHTML = `<button class="bar" aria-label="Read ${x.title}"><span class="number">${String(i + 1).padStart(2, "0")}</span><span class="title">${x.title}</span><span class="arrow" aria-hidden="true">${reading ? "•" : "↗"}</span></button><div class="body">${overview ? `<div class="summary"><div><p>${x.goal}</p><div class="meta">${x.note}</div></div><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgdmlld0JveD0iMCAwIDEyMDAgNzAwIj4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9IiNmNmYxZTciLz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6IHVpLXNhbnMtc2VyaWYsIHN5c3RlbS11aSwgc2Fucy1zZXJpZjsgZmlsbDogIzE3MjEyYjsgfQogICAgLnRpdGxlIHsgZm9udC1zaXplOiA0MnB4OyBmb250LXdlaWdodDogNzAwOyB9CiAgICAuaGVhZGluZyB7IGZvbnQtc2l6ZTogMjdweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLmJvZHkgeyBmb250LXNpemU6IDIycHg7IH0KICAgIC5zbWFsbCB7IGZvbnQtc2l6ZTogMThweDsgfQogICAgLmJveCB7IHN0cm9rZTogIzE3MjEyYjsgc3Ryb2tlLXdpZHRoOiAzOyByeDogMTg7IH0KICAgIC5hcnJvdyB7IHN0cm9rZTogIzE3MjEyYjsgc3Ryb2tlLXdpZHRoOiA1OyBmaWxsOiBub25lOyBtYXJrZXItZW5kOiB1cmwoI2hlYWQpOyB9CiAgPC9zdHlsZT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImhlYWQiIG1hcmtlcldpZHRoPSIxMiIgbWFya2VySGVpZ2h0PSIxMiIgcmVmWD0iMTAiIHJlZlk9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEyLDYgTDAsMTIgWiIgZmlsbD0iIzE3MjEyYiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDx0ZXh0IHg9IjYwMCIgeT0iNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ0aXRsZSI+V2hhdCBzaG91bGQgYSB0ZXN0IHByb3ZlPzwvdGV4dD4KICA8cmVjdCB4PSIzOTAiIHk9IjExNSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIxMDUiIGZpbGw9IiNmZmZmZmYiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI2MDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkV4aXN0aW5nIGFzc2VydGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjE5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImJvZHkiPldoYXQgZXZpZGVuY2UgZG9lcyBpdCBpbnNwZWN0PzwvdGV4dD4KICA8cGF0aCBkPSJNNTAwIDIyMCBDNDMwIDI3NSAzMjAgMjcwIDI0NSAzMTUiIGNsYXNzPSJhcnJvdyIvPgogIDxwYXRoIGQ9Ik03MDAgMjIwIEM3NzAgMjc1IDg4MCAyNzAgOTU1IDMxNSIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjUiIHk9IjMxNSIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIyMDUiIGZpbGw9IiNkOWVmZTQiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSIyODAiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPk1hY2hpbmUgZXZpZGVuY2U8L3RleHQ+CiAgPHRleHQgeD0iOTUiIHk9IjQwNSIgY2xhc3M9ImJvZHkiPkpTT04gZmllbGRzLCBleGl0IHN0YXR1cywgZmlsZXMsIG1vZGVzLDwvdGV4dD4KICA8dGV4dCB4PSI5NSIgeT0iNDM5IiBjbGFzcz0iYm9keSI+R2l0IHN0YXRlLCBjb21tYW5kcywgcmVkYWN0aW9uLCBIVFRQPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iNDg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iaGVhZGluZyI+S0VFUDwvdGV4dD4KICA8cmVjdCB4PSI3MDUiIHk9IjMxNSIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIyMDUiIGZpbGw9IiNmM2Q0Y2UiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI5MjAiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkh1bWFuIHByb3NlIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSI0MDUiIGNsYXNzPSJib2R5Ij5TdWJzdHJpbmcsIHByZWZpeCwgb3IgZXhhY3Qgd29yZGluZzwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjQzOSIgY2xhc3M9ImJvZHkiPndpdGggbm8gbWFjaGluZS1yZWFkYWJsZSBjb250cmFjdDwvdGV4dD4KICA8dGV4dCB4PSI5MjAiIHk9IjQ4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPlJFTU9WRTwvdGV4dD4KICA8cGF0aCBkPSJNOTIwIDUyMCBMOTIwIDU3NSIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjU1IiB5PSI1NzUiIHdpZHRoPSI1MzAiIGhlaWdodD0iOTAiIGZpbGw9IiNlOGRlZjQiIGNsYXNzPSJib3giLz4KICA8dGV4dCB4PSI5MjAiIHk9IjYxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPkZ1dHVyZSByZWZpbmVtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjkyMCIgeT0iNjQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPlRlc3QgaG93IGFnZW50cyBpbnRlcnByZXQgZ3VpZGFuY2UgaW4gcmVhbCB0YXNrczwvdGV4dD4KICA8dGV4dCB4PSI2NSIgeT0iNjM1IiBjbGFzcz0ic21hbGwiPlNjb3BlOiB0ZXN0cyBvbmx5LiBSdW50aW1lIGJlaGF2aW9yIGFuZCBnZW5lcmF0ZWQgZ3VpZGFuY2UgZG8gbm90IGNoYW5nZS48L3RleHQ+Cjwvc3ZnPgo=" alt="Test evidence decision guide thumbnail"></div>` : detail(x, i)}</div>`;
+        frame.querySelector("button").onclick = () => {
+          selected = i;
+          setZoom(100);
+        };
+        grid.append(frame);
+      });
+      document.querySelector("#jump").value = selected;
+      document
+        .querySelectorAll("[data-zoom]")
+        .forEach((b) =>
+          b.setAttribute("aria-pressed", Number(b.dataset.zoom) === zoom),
+        );
+      document.querySelector("#minus").disabled = zoom === 8;
+      document.querySelector("#plus").disabled = zoom === 200;
+    }
+    function setZoom(n) {
+      zoom = Math.max(8, Math.min(200, n));
+      render();
+      view.scrollTop = 0;
+    }
+    document
+      .querySelectorAll("[data-zoom]")
+      .forEach((b) => (b.onclick = () => setZoom(+b.dataset.zoom)));
+    document.querySelector("#minus").onclick = () =>
+      setZoom([...steps].reverse().find((s) => s < zoom) ?? 8);
+    document.querySelector("#plus").onclick = () =>
+      setZoom(steps.find((s) => s > zoom) ?? 200);
+    document.querySelector("#jump").onchange = (e) => {
+      selected = +e.target.value;
+      setZoom(100);
+    };
+    view.addEventListener(
+      "wheel",
+      (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        setZoom(
+          e.deltaY > 0
+            ? ([...steps].reverse().find((s) => s < zoom) ?? 8)
+            : (steps.find((s) => s > zoom) ?? 200),
+        );
+      },
+      { passive: false },
+    );
+    render();
+  </script>
+</html>

@@ -74,6 +74,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
       onSelect(id);
     }
   };
+  const pendingFocus = useRef(false);
   const selectItem = (id?: string, assetId?: string) => {
     setOrderOpen(false);
     setDependencyItemId(undefined);
@@ -84,10 +85,16 @@ export function PlanCanvas(props: PlanCanvasProps) {
     navigate(id);
     const element = targetElement(id, assetId);
     if (element) {
+      pendingFocus.current = true;
       focus(element);
-      requestAnimationFrame(() => focus(element));
     }
   };
+  useLayoutEffect(() => {
+    if (!pendingFocus.current) return;
+    pendingFocus.current = false;
+    const element = targetElement(selected, referenceId);
+    if (element) focus(element);
+  });
   useLayoutEffect(() => {
     if (previousRoute.current === selectedItemId) return;
     previousRoute.current = selectedItemId;
@@ -206,7 +213,11 @@ export function PlanCanvas(props: PlanCanvasProps) {
       events.forEach((event) => view?.removeEventListener(event, stop));
     };
   }, [focusedFeedback, plan]);
-  const summary = !reading && camera.camera.zoom < 0.45;
+  const summary =
+    !reading && (camera.fitting.current || camera.camera.zoom < 0.45);
+  const itemCount = Math.max(1, plan.items.length);
+  const rows = Math.ceil(itemCount / Math.ceil(Math.sqrt(itemCount * 1.5)));
+  const columns = Math.ceil(itemCount / rows);
   const changeZoom = (zoom: number, point?: { x: number; y: number }) => {
     setReading(false);
     camera.zoom(zoom, point);
@@ -330,7 +341,8 @@ export function PlanCanvas(props: PlanCanvasProps) {
                   style={
                     {
                       transform: `translate(${camera.camera.x}px, ${camera.camera.y}px) scale(${camera.camera.zoom})`,
-                      "--heading-size": `${Math.min(80, Math.max(18, 16 / camera.camera.zoom))}px`,
+                      "--canvas-width": `${columns * 1600 + (columns - 1) * 100}px`,
+                      "--heading-size": `${Math.min(100, Math.max(18, 16 / camera.camera.zoom))}px`,
                     } as CSSProperties
                   }
                 >
@@ -343,7 +355,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
                   <div
                     className="item-grid"
                     style={{
-                      gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(Math.sqrt(plan.items.length)))}, 1200px)`,
+                      gridTemplateColumns: `repeat(${columns}, 1600px)`,
                     }}
                   >
                     {plan.items.map((item) => (

@@ -1027,7 +1027,7 @@ summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   position: relative;
-  width: 1200px;
+  width: 1600px;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1078,7 +1078,8 @@ summary {
   align-self: start;
   padding: 40px;
   overflow-wrap: anywhere;
-  font-size: calc(var(--heading-size) * 0.8);
+  font-size: max(16px, calc(var(--heading-size) * 0.9));
+  line-height: 1.5;
 }
 .summary-goal,
 .summary-reference {
@@ -1103,6 +1104,12 @@ summary {
   margin-top: 24px;
   color: var(--link);
 }
+.summary-reference span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
 .summary-reference:hover span {
   text-decoration: underline;
 }
@@ -1122,8 +1129,8 @@ summary {
   box-shadow: none;
 }
 .plan-layout > .overview-sheet {
-  width: clamp(280px, calc(100cqw - 48px), 640px);
-  margin: 0 0 80px;
+  width: clamp(280px, calc(100cqw - 48px), 1000px);
+  margin: 0 0 32px;
   padding: 24px;
   background: transparent;
 }
@@ -1156,12 +1163,46 @@ summary {
 .item-references .asset-frame {
   margin: 0;
 }
+.show-details .item-frame {
+  width: 1200px;
+}
 .show-details .item-summary {
-  visibility: hidden;
+  display: none;
 }
 .show-summaries .item-body {
-  grid-area: 2 / 1;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
   visibility: hidden;
+}
+.show-summaries .frame-heading {
+  padding-right: 0;
+}
+.show-summaries .item-title-bar {
+  padding: 24px;
+}
+.show-summaries .item-summary {
+  padding: 24px;
+}
+.show-summaries .asset-thumbnail {
+  width: 25%;
+  max-height: 200px;
+}
+.show-summaries > .overview-sheet {
+  width: var(--canvas-width);
+}
+.plan-layout > .overview-sheet h2 {
+  font-size: max(22px, var(--heading-size));
+  overflow-wrap: anywhere;
+  max-width: 65ch;
+  margin: 12px 0 0;
+}
+.plan-layout > .overview-sheet h3 {
+  font-size: max(13.5px, calc(var(--heading-size) * 0.85));
+  color: var(--text);
+  letter-spacing: 0;
+  text-transform: none;
 }
 .canvas-link-icon {
   display: inline-flex;
@@ -1562,9 +1603,4 @@ summary {
     padding: 4px 8px;
     height: auto;
   }
-}
-
-.plan-layout > .overview-sheet h2 {
-  font-size: max(22px, var(--heading-size));
-  overflow-wrap: anywhere;
 }

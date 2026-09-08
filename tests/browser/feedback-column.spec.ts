@@ -202,6 +202,7 @@ for (const width of [1440, 390]) {
     });
     const panel = page.locator(".feedback-panel");
     const viewport = page.locator(".plan-viewport");
+    await viewport.press("ArrowRight");
     const before = await viewport.evaluate((el) =>
       String(
         new DOMMatrix(

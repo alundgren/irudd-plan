@@ -65,7 +65,10 @@ for (const width of [1440, 390]) {
         element.getBoundingClientRect().width /
         (element as HTMLElement).offsetWidth,
     );
-    expect(nativeWidth).toBeCloseTo(1, 2);
+    expect(nativeWidth).toBeCloseTo(
+      Number(await page.locator(".plan-viewport").getAttribute("data-zoom")),
+      2,
+    );
     await panTo(
       page,
       sheet.getByRole("button", { name: /Add feedback to visual/ }),
@@ -112,13 +115,28 @@ for (const width of [1440, 390]) {
     await page.mouse.move(htmlBounds!.x + 40, htmlBounds!.y + 40);
     const beforeWheel = await page
       .locator(".plan-viewport")
-      .evaluate((el) => String(el.scrollTop));
+      .evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      );
     await page.mouse.wheel(0, 1300);
     await expect
       .poll(() =>
-        page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
+        page
+          .locator(".plan-viewport")
+          .evaluate((el) =>
+            String(
+              new DOMMatrix(
+                getComputedStyle(el.querySelector(".plan-layout")!).transform,
+              ).f,
+            ),
+          ),
       )
       .not.toBe(beforeWheel);
+    await panTo(page, html.getByRole("button", { name: "Show detail" }));
     await html.getByRole("button", { name: "Show detail" }).click();
     await expect(html.getByText("The detail is now visible.")).toBeVisible();
     await expectNoOverlap(page);
@@ -143,10 +161,7 @@ for (const width of [1440, 390]) {
       .getByRole("button", { name: "Overview" })
       .click();
     await page.getByRole("button", { name: "Fit", exact: true }).click();
-    await expect(page.locator(".plan-viewport")).toHaveAttribute(
-      "data-mode",
-      "overview",
-    );
+    await expect(page.locator(".plan-layout")).toHaveClass(/show-summaries/);
     await expect(page.locator(".item-summary").first()).toContainText(
       "visual references",
     );
@@ -207,7 +222,8 @@ test("shared visual feedback retains each item and original digest across replac
             .boundingBox())!.y +
           (await page
             .getByRole("button", { name: `Open asset feedback ${item}` })
-            .boundingBox())!.height -
+            .boundingBox())!.height /
+            2 -
           (await page.locator(".plan-viewport").boundingBox())!.y,
       )
       .toBeCloseTo(24, 0);
@@ -221,7 +237,13 @@ test("shared visual feedback retains each item and original digest across replac
     .toBeGreaterThan(300);
   const viewport = await page
     .locator(".plan-viewport")
-    .evaluate((el) => String(el.scrollTop));
+    .evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
+    );
   await fixture.update();
   const changedSheet = page.locator(".reference-sheet.selected");
   await expect(changedSheet.locator("[data-section]")).toHaveClass("changed");
@@ -233,7 +255,15 @@ test("shared visual feedback retains each item and original digest across replac
   );
   await expectNoOverlap(page);
   expect(
-    await page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
+    await page
+      .locator(".plan-viewport")
+      .evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
   ).toBe(viewport);
   await page.getByRole("button", { name: "Zoom out", exact: true }).click();
   await expect(
@@ -313,13 +343,27 @@ test("bounds viewport-relative HTML and keeps overflow scrollable inside its iso
   await page.mouse.move(bounds!.x + 40, bounds!.y + 40);
   const viewport = await page
     .locator(".plan-viewport")
-    .evaluate((el) => String(el.scrollTop));
+    .evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
+    );
   await page.mouse.wheel(0, 200);
   await expect
     .poll(() => html.locator("html").evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
   expect(
-    await page.locator(".plan-viewport").evaluate((el) => String(el.scrollTop)),
+    await page
+      .locator(".plan-viewport")
+      .evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
   ).toBe(viewport);
 });
 
@@ -356,7 +400,7 @@ test("return from a reference preserves the previous browser-history destination
     .locator(".reference-sheet.selected")
     .getByRole("button", { name: "Return to Work item 1" })
     .click();
-  await expect(page.locator(".item-title-bar")).toBeInViewport();
+  await expect(page.locator(".item-sheet.selected")).toBeInViewport();
   await page.goBack();
   await expect(page).toHaveURL(/\/plans\/browser-plan$/);
   await expect(page.locator(".overview-sheet.selected")).toBeVisible();

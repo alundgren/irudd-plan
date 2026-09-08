@@ -1,11 +1,9 @@
 import type { CanvasTool } from "./canvas-comments.js";
-import type { LayoutMode } from "./plan-canvas.js";
 
 export function CanvasTools({
   tool,
   onTool,
   zoom,
-  mode,
   onZoom,
   onFit,
   onAddCanvas,
@@ -13,7 +11,6 @@ export function CanvasTools({
   readonly tool: CanvasTool;
   readonly onTool: (tool: CanvasTool) => void;
   readonly zoom: number;
-  readonly mode: LayoutMode;
   readonly onZoom: (zoom: number) => void;
   readonly onFit: () => void;
   readonly onAddCanvas: () => void;
@@ -40,23 +37,23 @@ export function CanvasTools({
       <button
         type="button"
         aria-label="Zoom out"
-        disabled={mode === "overview"}
+        disabled={zoom <= 0.001}
         onClick={() => onZoom(zoom / 1.2)}
       >
         −
       </button>
       <button type="button" title="Reset to 100%" onClick={() => onZoom(1)}>
-        {mode === "overview" ? "Overview" : `${Math.round(zoom * 100)}%`}
+        {`${Math.round(zoom * 1000) / 10}%`}
       </button>
       <button
         type="button"
         aria-label="Zoom in"
-        disabled={zoom === 2}
+        disabled={zoom >= 2}
         onClick={() => onZoom(zoom * 1.2)}
       >
         +
       </button>
-      <button type="button" title="Fit complete overview" onClick={onFit}>
+      <button type="button" title="Fit all" onClick={onFit}>
         Fit
       </button>
       <button type="button" className="keyboard-comment" onClick={onAddCanvas}>

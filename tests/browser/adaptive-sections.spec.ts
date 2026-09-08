@@ -1,177 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import type { PlanDocument } from "../../src/web/client-api.js";
-
-async function zoomToMode(page: Page, mode: string, direction: "in" | "out") {
-  for (let index = 0; index < 12; index++) {
-    if (
-      (await page.locator(".plan-viewport").getAttribute("data-mode")) === mode
-    )
-      return;
-    await page
-      .getByRole("button", { name: `Zoom ${direction}`, exact: true })
-      .click();
-  }
-  await expect(page.locator(".plan-viewport")).toHaveAttribute(
-    "data-mode",
-    mode,
-  );
-}
-async function assertFrames(page: Page) {
-  const frames = await page.locator(".item-frame").evaluateAll((elements) =>
-    elements.map((element) => ({
-      frame: element.getBoundingClientRect().toJSON(),
-      bar: element
-        .querySelector(".item-title-bar")!
-        .getBoundingClientRect()
-        .toJSON(),
-    })),
-  );
-  expect(
-    frames.every(
-      ({ frame, bar }) =>
-        Math.abs(bar.left - frame.left - 1) < 1 &&
-        Math.abs(bar.right - frame.right + 1) < 1 &&
-        Math.abs(bar.top - frame.top - 1) < 1,
-    ),
-  ).toBe(true);
-  const overlaps: number[][] = [];
-  for (let i = 0; i < frames.length; i++)
-    for (let j = i + 1; j < frames.length; j++) {
-      const a = frames[i]!.frame,
-        b = frames[j]!.frame;
-      if (
-        !(
-          a.right <= b.left ||
-          b.right <= a.left ||
-          a.bottom <= b.top ||
-          b.bottom <= a.top
-        )
-      )
-        overlaps.push([i, j]);
-    }
-  expect(overlaps).toEqual([]);
-}
-for (const width of [1440, 390]) {
-  test(`adaptive sections preserve long content at ${width}px`, async ({
-    page,
-  }, info) => {
-    test.setTimeout(60_000);
-    await page.setViewportSize({ width, height: 1000 });
-    await page.route("**/api/plans/browser-plan", async (route) => {
-      const response = await route.fetch();
-      const doc = (await response.json()) as PlanDocument;
-      const item = doc.plan.items[0]!;
-      await route.fulfill({
-        json: {
-          ...doc,
-          plan: {
-            ...doc.plan,
-            items: Array.from({ length: 50 }, (_, i) => ({
-              ...item,
-              requiredContextIds: i < 2 ? item.requiredContextIds : [],
-              requiredDecisionIds: i < 2 ? item.requiredDecisionIds : [],
-              requiredAssetIds: i < 2 ? item.requiredAssetIds : [],
-              id: `long-${i}`,
-              title: `${i + 1} ${"A long title that wraps without covering another item. ".repeat(3)}`,
-              goal: `${item.goal}\n\n${"Complete prose remains readable. ".repeat(20)}`,
-            })),
-          },
-        },
-      });
-    });
-    await page.goto("/plans/browser-plan");
-    await expect(page.locator(".item-frame")).toHaveCount(50);
-    await assertFrames(page);
-    await page.locator(".item-frame").first().scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath(`overview-${width}.png`) });
-    await zoomToMode(page, "sections", "in");
-    await assertFrames(page);
-    await page.locator(".item-frame").first().scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath(`sections-${width}.png`) });
-    await page.locator(".item-title-bar").first().click();
-    await expect(page).toHaveURL(/items\/long-0$/);
-    await expect(page.locator(".plan-viewport")).toHaveAttribute(
-      "data-mode",
-      "reading",
-    );
-    await expect(page.locator(".item-frame")).toHaveCount(1);
-    for (let i = 0; i < 4; i++)
-      await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-    const view = await page.locator(".plan-viewport").boundingBox();
-    const gutter = await page
-      .locator(".plan-viewport")
-      .evaluate((el) => (el as HTMLElement).offsetWidth - el.clientWidth);
-    const frame = await page.locator(".item-frame").boundingBox();
-    expect(
-      Math.abs(
-        frame!.x + frame!.width / 2 - view!.x - (view!.width - gutter) / 2,
-      ),
-    ).toBeLessThan(10);
-    expect(
-      await page
-        .locator(".item-sheet")
-        .evaluate((el) => el.scrollWidth <= el.clientWidth),
-    ).toBe(true);
-    await page.screenshot({ path: info.outputPath(`reading-${width}.png`) });
-    await page.locator(".plan-viewport").evaluate((el) => (el.scrollTop = 500));
-    const before = await page
-      .locator(".plan-viewport")
-      .evaluate((el) => el.scrollTop);
-    await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
-    expect(
-      await page.locator(".plan-viewport").evaluate((el) => el.scrollTop),
-    ).toBe(before);
-    await page
-      .getByRole("button", { name: "Close feedback", exact: true })
-      .click();
-    await zoomToMode(page, "sections", "out");
-    await zoomToMode(page, "reading", "in");
-    expect(
-      await page.locator(".plan-viewport").evaluate((el) => el.scrollTop),
-    ).toBe(before);
-    await page.getByRole("button", { name: "Fit", exact: true }).click();
-    await expect(page.locator(".item-frame")).toHaveCount(50);
-    await expect(page.locator(".plan-viewport")).toHaveAttribute(
-      "data-mode",
-      "overview",
-    );
-  });
-}
-
-test("summary and title navigation never create a comment", async ({
-  page,
-}) => {
-  await page.goto("/plans/browser-plan");
-  await page
-    .getByRole("button", { name: "Read Work item 1", exact: true })
-    .click();
-  await expect(page.locator(".item-sheet.selected")).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Jump to reference", exact: true })
-    .click();
-  await expect(page.locator(".reference-sheet.selected")).toBeInViewport();
-  await page
-    .locator(".reference-sheet.selected")
-    .getByRole("button", { name: "Return to Work item 1", exact: true })
-    .click();
-  await expect(page.locator(".item-title-bar")).toBeInViewport();
-  await page
-    .locator(".canvas-navigation")
-    .getByRole("button", { name: "Overview", exact: true })
-    .click();
-  await page.goBack();
-  await expect(page.locator(".plan-viewport")).toHaveAttribute(
-    "data-mode",
-    "reading",
-  );
-  await page.goForward();
-  await expect(page.locator(".plan-viewport")).toHaveAttribute(
-    "data-mode",
-    "overview",
-  );
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-});
 
 test("reveals legacy notes from summaries and retains negative canvas coordinates", async ({
   page,
@@ -212,21 +40,13 @@ test("reveals legacy notes from summaries and retains negative canvas coordinate
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Open canvas feedback 2" }),
-  ).toHaveCount(0);
+  ).toBeInViewport();
   await page.getByRole("button", { name: "Feedback 2", exact: true }).click();
   await page.locator(".feedback-location").first().click();
-  await expect(page.locator(".plan-viewport")).toHaveAttribute(
-    "data-mode",
-    "reading",
-  );
   await expect(
     page.locator('[data-section="item-1:requirements"]'),
   ).toBeInViewport();
   await page.locator(".feedback-location").nth(1).click();
-  await expect(page.locator(".plan-viewport")).toHaveAttribute(
-    "data-mode",
-    "sections",
-  );
   await expect(
     page.getByRole("button", { name: "Open canvas feedback 2" }),
   ).toBeInViewport();
@@ -236,53 +56,29 @@ test("reveals legacy notes from summaries and retains negative canvas coordinate
       key,
     ),
   ).toEqual(notes);
+  await page
+    .locator(".plan-viewport")
+    .dispatchEvent("wheel", { shiftKey: true, deltaY: 160 });
+  const position = () =>
+    page
+      .locator(".plan-layout")
+      .evaluate((element) => getComputedStyle(element).transform);
+  const beforeRevision = await position();
+  await page.route("**/api/plans/browser-plan", async (route) => {
+    const response = await route.fetch();
+    const current = await response.json();
+    await route.fulfill({ json: { ...current, version: current.version + 1 } });
+  });
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("offline"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.getByText("Live · r2")).toBeVisible();
+  expect(await position()).toBe(beforeRevision);
   await page.getByRole("button", { name: "Fit", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Open canvas feedback 2" }),
-  ).toHaveCount(0);
-});
-
-test("zooms into the nearest visible item and keeps explicit section selection", async ({
-  page,
-}) => {
-  await page.goto("/plans/browser-plan");
-  await zoomToMode(page, "sections", "in");
-  await page.locator('[data-frame-item="item-7"]').scrollIntoViewIfNeeded();
-  const nearest = await page.locator(".plan-viewport").evaluate((view) => {
-    const center = view.getBoundingClientRect().top + view.clientHeight / 2;
-    return Array.from(view.querySelectorAll<HTMLElement>(".item-frame"))
-      .map((element) => ({
-        id: element.dataset.frameItem,
-        distance: Math.abs(
-          (element.getBoundingClientRect().top +
-            element.getBoundingClientRect().bottom) /
-            2 -
-            center,
-        ),
-      }))
-      .sort((a, b) => a.distance - b.distance)[0]!.id;
-  });
-  await page.getByTitle("Reset to 100%", { exact: true }).click();
-  await expect(page.locator(".item-frame")).toHaveAttribute(
-    "data-frame-item",
-    nearest!,
-  );
-  await zoomToMode(page, "sections", "out");
-  const next = page.locator('[data-frame-item="item-2"]');
-  await next.scrollIntoViewIfNeeded();
-  await next.dispatchEvent("wheel", { ctrlKey: true, deltaY: -100 });
-  await expect(page.locator(".item-frame")).toHaveCount(1);
-  await expect(page.locator(".item-frame")).toHaveAttribute(
-    "data-frame-item",
-    "item-2",
-  );
-  await expect(page).toHaveURL(/items\/item-2$/);
-  await page.getByRole("button", { name: "Fit", exact: true }).click();
-  await page.getByTitle("Reset to 100%", { exact: true }).click();
-  await expect(page.locator(".item-frame")).toHaveAttribute(
-    "data-frame-item",
-    "item-2",
-  );
+  ).toBeInViewport();
 });
 
 test("item index opens and closes without starting feedback", async ({
@@ -303,10 +99,12 @@ test("keyboard heading feedback retains the original item target", async ({
   page,
 }) => {
   await page.goto("/plans/browser-plan/items/item-1");
-  const action = page.locator(".frame-heading").getByRole("button", {
-    name: "Add feedback to Work item heading",
-    exact: true,
-  });
+  const action = page
+    .locator('[data-frame-item="item-1"] .frame-heading')
+    .getByRole("button", {
+      name: "Add feedback to Work item heading",
+      exact: true,
+    });
   await action.focus();
   await page.keyboard.press("Enter");
   await expect(
@@ -348,40 +146,6 @@ test("tool shortcuts ignore focused controls", async ({ page }) => {
   await expect(comment).toHaveAttribute("aria-pressed", "true");
 });
 
-for (const mode of ["overview", "reading"]) {
-  test(`canvas comment uses restored sections position from ${mode}`, async ({
-    page,
-  }) => {
-    await page.goto("/plans/browser-plan/items/item-1");
-    await zoomToMode(page, "sections", "out");
-    const view = page.locator(".plan-viewport");
-    await view.evaluate((el) => (el.scrollTop = 700));
-    if (mode === "overview")
-      await page.getByRole("button", { name: "Fit", exact: true }).click();
-    else await page.getByTitle("Reset to 100%", { exact: true }).click();
-    const action = page.getByRole("button", {
-      name: "Comment on canvas center",
-    });
-    await action.focus();
-    await page.keyboard.press("Enter");
-    await expect(view).toHaveAttribute("data-mode", "sections");
-    await page
-      .getByRole("textbox", { name: "Your feedback", exact: true })
-      .fill("Canvas position");
-    await page
-      .getByRole("button", { name: "Add comment", exact: true })
-      .click();
-    const target = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((entry) =>
-        entry.endsWith(":browser-plan"),
-      )!;
-      return JSON.parse(localStorage.getItem(key)!).items[0].target;
-    });
-    expect(target.kind).toBe("canvas");
-    expect(target.y).toBe(850);
-  });
-}
-
 test("feedback tracking survives a render and stops after user navigation", async ({
   page,
 }) => {
@@ -419,4 +183,62 @@ test("feedback tracking survives a render and stops after user navigation", asyn
     (el) => ((el as HTMLElement).style.paddingBottom = "800px"),
   );
   await expect.poll(offset).toBeGreaterThan(300);
+  const beforeRevision = await offset();
+  await page.route("**/api/plans/browser-plan", async (route) => {
+    const response = await route.fetch();
+    const document = await response.json();
+    await route.fulfill({
+      json: {
+        ...document,
+        version: document.version + 1,
+        plan: {
+          ...document.plan,
+          epicGoal: `${document.plan.epicGoal} Updated.`,
+        },
+      },
+    });
+  });
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("offline"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.getByText("Live · r2")).toBeVisible();
+  expect(await offset()).toBeCloseTo(beforeRevision, 0);
+});
+
+test("browser Back cancels feedback tracking before a viewport resize", async ({
+  page,
+}) => {
+  await page.goto("/plans/browser-plan");
+  await page
+    .getByRole("button", { name: "Read work item", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Work item 1", exact: true }).click();
+  await expect(page).toHaveURL(/\/items\/item-1$/);
+  await page
+    .locator('[data-section="item-1:goal"]')
+    .getByRole("button", { name: "Add feedback to Goal" })
+    .focus();
+  await page.keyboard.press("Enter");
+  await page
+    .getByRole("textbox", { name: "Your feedback", exact: true })
+    .fill("Track this goal");
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  await page.locator(".feedback-location").first().click();
+  await page
+    .getByRole("button", { name: "Close feedback", exact: true })
+    .click();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/plans\/browser-plan$/);
+  await page.setViewportSize({ width: 800, height: 900 });
+  const zoom = () =>
+    page
+      .locator(".plan-layout")
+      .evaluate(
+        (element) => new DOMMatrix(getComputedStyle(element).transform).a,
+      );
+  await expect.poll(zoom).toBeLessThan(0.45);
+  await expect(
+    page.getByRole("button", { name: "Read work item", exact: true }),
+  ).toContainText("Epic goal");
 });

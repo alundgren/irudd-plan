@@ -3,13 +3,10 @@ import type { Plan } from "../../src/contract/plan.js";
 import { panTo } from "./canvas.js";
 
 async function expectReadingTop(page: Page) {
-  await expect(
-    page.locator(".item-frame, .overview-sheet").first(),
-  ).toBeInViewport();
-  const view = page.locator(".plan-viewport");
-  expect(await view.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
-    true,
-  );
+  await expect(page.locator(".plan-sheet.selected").first()).toBeInViewport();
+  const selected = (await page.locator(".plan-sheet.selected").boundingBox())!;
+  const view = (await page.locator(".plan-viewport").boundingBox())!;
+  expect(selected.width).toBeLessThanOrEqual(view.width);
 }
 
 for (const width of [1280, 390]) {
@@ -34,7 +31,7 @@ for (const width of [1280, 390]) {
     );
     expect(scrollContainers).toBe(0);
     await expect(selected.locator("details, .related-items")).toHaveCount(0);
-    await expect(page.locator(".item-frame")).toHaveCount(1);
+    await expect(page.locator(".item-frame")).toHaveCount(10);
 
     const goal = selected
       .locator('[data-section="item-1:goal"] .rich-text p')
@@ -42,7 +39,11 @@ for (const width of [1280, 390]) {
     await panTo(page, goal);
     const viewport = page.locator(".plan-viewport");
     const beforeSelection = await viewport.evaluate((el) =>
-      String(el.scrollTop),
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
     );
     const bounds = await goal.boundingBox();
     if (bounds === null) throw new Error("Missing goal");
@@ -57,9 +58,15 @@ for (const width of [1280, 390]) {
     expect(
       await page.evaluate(() => window.getSelection()?.toString().length),
     ).toBeGreaterThan(5);
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(
-      beforeSelection,
-    );
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(beforeSelection);
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
 
     const completion = selected.getByText(
@@ -67,14 +74,24 @@ for (const width of [1280, 390]) {
     );
     await panTo(page, completion);
     await expect(completion).toBeInViewport();
-    const beforeControl = await viewport.evaluate((el) => String(el.scrollTop));
+    const beforeControl = await viewport.evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
+    );
     await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     await expect(completion).toBeInViewport();
-    const afterControl = await viewport.evaluate((el) => String(el.scrollTop));
-    expect(afterControl?.split(",").slice(1).join(",")).toBe(
-      beforeControl?.split(",").slice(1).join(","),
+    const afterControl = await viewport.evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
     );
+    expect(Number(afterControl)).toBeCloseTo(Number(beforeControl), 1);
     await page.getByRole("button", { name: "Close feedback" }).click();
     await page
       .locator(".canvas-navigation")
@@ -86,10 +103,7 @@ for (const width of [1280, 390]) {
     );
     await page.getByRole("button", { name: "Fit", exact: true }).click();
     await page.goBack();
-    await expect(page.locator(".plan-viewport")).toHaveAttribute(
-      "data-mode",
-      "reading",
-    );
+    await expect(page.locator(".item-sheet.selected")).toBeInViewport();
     await expect(selected).toHaveAttribute("aria-label", "Work item 1");
     await page.goForward();
     await expectReadingTop(page);
@@ -158,13 +172,25 @@ test.describe("phone touch navigation", () => {
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
     const beforeTap = await page
       .locator(".plan-viewport")
-      .evaluate((el) => String(el.scrollTop));
+      .evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      );
     await page.getByRole("button", { name: "Feedback 0", exact: true }).tap();
     await expect(page.locator(".feedback-panel")).toBeVisible();
     expect(
       await page
         .locator(".plan-viewport")
-        .evaluate((el) => String(el.scrollTop)),
+        .evaluate((el) =>
+          String(
+            new DOMMatrix(
+              getComputedStyle(el.querySelector(".plan-layout")!).transform,
+            ).f,
+          ),
+        ),
     ).toBe(beforeTap);
   });
 });
@@ -205,16 +231,20 @@ test("keeps the selected reading position when other items move and the viewport
   await expect(page.getByText("Live · r2")).toBeVisible();
   await expect
     .poll(async () => (await selected.boundingBox())?.x)
-    .toBe(before!.x);
-  expect((await selected.boundingBox())?.y).toBe(before!.y);
-  const scrollBefore = await page
-    .locator(".plan-viewport")
-    .evaluate((el) => el.scrollTop);
+    .toBeCloseTo(before!.x, 1);
+  expect((await selected.boundingBox())?.y).toBeCloseTo(before!.y, 1);
+  const relativeTop = async () =>
+    (await selected.boundingBox())!.y -
+    (await page.locator(".plan-viewport").boundingBox())!.y;
+  const topBefore = await relativeTop();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => (await selected.boundingBox())?.x).toBe(37);
-  expect(
-    await page.locator(".plan-viewport").evaluate((el) => el.scrollTop),
-  ).toBe(scrollBefore);
+  await expect
+    .poll(async () => {
+      const b = (await selected.boundingBox())!;
+      return b.x + b.width / 2;
+    })
+    .toBeCloseTo(195, 0);
+  expect(await relativeTop()).toBeCloseTo(topBefore, 1);
 });
 
 for (const selectionState of ["starting", "active"]) {
@@ -235,7 +265,13 @@ for (const selectionState of ["starting", "active"]) {
     if (bounds === null) throw new Error("Missing selectable text");
     const point = { x: bounds.x + 40, y: bounds.y + 20 };
     const viewport = page.locator(".plan-viewport");
-    const before = await viewport.evaluate((el) => String(el.scrollTop));
+    const before = await viewport.evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
+    );
     await session.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [point],
@@ -262,7 +298,15 @@ for (const selectionState of ["starting", "active"]) {
       touchPoints: [],
     });
     await page.waitForTimeout(100);
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(before);
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(before);
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
   });
 }

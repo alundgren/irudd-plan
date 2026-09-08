@@ -201,14 +201,28 @@ for (const width of [1440, 390]) {
     });
     const panel = page.locator(".feedback-panel");
     const viewport = page.locator(".plan-viewport");
-    const before = await viewport.evaluate((el) => String(el.scrollTop));
+    const before = await viewport.evaluate((el) =>
+      String(
+        new DOMMatrix(
+          getComputedStyle(el.querySelector(".plan-layout")!).transform,
+        ).f,
+      ),
+    );
     await panel
       .getByRole("button", { name: "1. Removed work item · Goal", exact: true })
       .click();
     await expect(panel).toContainText(
       "This location is no longer in the plan.",
     );
-    expect(await viewport.evaluate((el) => String(el.scrollTop))).toBe(before);
+    expect(
+      await viewport.evaluate((el) =>
+        String(
+          new DOMMatrix(
+            getComputedStyle(el.querySelector(".plan-layout")!).transform,
+          ).f,
+        ),
+      ),
+    ).toBe(before);
     await expect(panel).toContainText(
       "This location has changed since you commented.",
     );

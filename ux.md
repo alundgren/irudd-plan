@@ -4,11 +4,16 @@ The browser application is a read-only review tool. It has no controls for editi
 
 ## Layout and navigation
 
-The first page lists plans owned by the signed-in person. Opening a plan shows a readable overview. Requested zoom chooses one of three layouts, replacing the old always-horizontal React Flow canvas. Below 35%, a stable plan-order grid shows each item's title, shortGoal, reference thumbnails, count and captions, and comment count. The overview has a minimum readable size and reports "Overview" instead of a shrinking percentage. Larger plans scroll vertically. The epic goal and a Work item index disclosure remain accessible above the grid.
+The first page lists plans owned by the signed-in person. Opening a plan fits a continuous canvas containing the epic goal and every work item. Each item keeps its complete description beside its required references. A measured grid places rows below actual text and asset heights. Camera scale never changes those positions or removes the selected item.
 
-From 35% to below 85%, each item owns a frame containing its complete description and every required reference. Description and references appear alongside each other when the available width permits. CSS grid measures actual text and image heights before placing the next row. Frames and titles grow together; every title bar occupies the entire top edge. At narrow widths, both the item grid and each frame's contents use one column.
+Wheel movement zooms around the pointer using gesture magnitude. Ctrl/Cmd-wheel also zooms, including trackpad pinch events. Pan mode uses wheel movement to pan; Shift-wheel pans in either tool. Dragging with Pan or the middle mouse button moves the camera. Touch supports one-finger panning and two-finger zoom. Text selection remains available in Comment mode and cancels touch panning. Arrow keys move the focused canvas, plus/minus zoom, and Home fits all content.
 
-At 85% and above, the selected item occupies a centered reading column, capped at 860px with a 740px inner column. Text grows to a maximum of 22px. Complete references follow the description. The reading view has one native scroll area. Its Jump to reference action and named return links keep the full description within reach.
+Below 45%, summaries cover each item's complete content without removing or resizing it. Title text grows relative to the document to stay readable at a distance. Title bars reserve a fixed height and limit visible text to two lines so zoom cannot move another frame or cause overlapping headers. Full titles remain available in the work-item chooser. Fit can shrink below a readable text size to include large plans and distant canvas comments. The searchable chooser provides readable navigation at any scale.
+
+Clicking a title, summary or chooser option centers the description column at up to 110%. Descriptions wrap to the available phone width with 16px text at their reading scale. References stay alongside the description in the same canvas. Icon buttons jump to the reference and return to its description, with hover labels and accessible names. Long documents remain fully expanded; Pan, touch or arrow keys reach their lower sections.
+
+The chooser uses the warm-paper palette, a search field and a scrollable list. Arrow keys move the active option, Enter opens it, and Escape closes the menu and restores focus. Clicking outside or tabbing away dismisses it. Search is useful for plans that cannot display readable titles when fitted.
+
 The URL identifies current content, not a historical revision:
 
 ```text
@@ -18,11 +23,9 @@ The URL identifies current content, not a historical revision:
 /public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
-A direct item URL opens its reading view. Clicking a title or summary opens complete content before any comment can be created. Ctrl-wheel zoom over a frame selects that item; toolbar zoom keeps the selected item. If nothing is selected, entering reading view uses the visible item nearest the viewport center, with plan order resolving equal distances. Threshold decisions use requested zoom alone, so resizing or content measurement cannot change the mode.
+Direct item URLs and browser history center the requested description. References use their owning item's URL. Zoom and pan preserve selection and do not add history entries. Overview opens the plan URL and fits the canvas. Fit keeps the current selection. Opening Feedback and resizing preserve the selected document's vertical position and recenter it in the remaining width.
 
-Each layout remembers its scroll position, with reading positions stored per item. Browser Back/Forward restores the route's layout. Overview navigates to the plan URL; Fit shows the complete overview and scrolls to its start while retaining the selected item for subsequent zoom. References use the same item URL. Opening or closing Feedback and resizing center the document in the remaining width and preserve the native vertical scroll offset.
-
-Each item presents its goal, required decisions, requirements, checks, visual-reference links and Technical detail as one continuous document. Required context, prior art, deferrals and completion are always expanded. Text selection and control clicks do not create feedback. At 390px, paragraphs wrap without horizontal text scrolling.
+Every item presents its goal, required decisions, requirements, checks, visual-reference links and Technical detail. Required context, prior art, deferrals and completion remain expanded. Text selection and control clicks do not create feedback.
 
 ## References
 
@@ -36,7 +39,7 @@ Replacing an asset remounts only its visual, while saved feedback retains the or
 
 An accepted MCP write publishes a revision notification only after its SQLite transaction commits. The browser then fetches the complete current plan. Reconnection does the same, so several missed notifications cannot produce duplicate or partially updated documents.
 
-Items and references retain their stable React keys during live updates. Reading renders only the selected item, so reordering other items cannot move that document. The viewport retains its scroll offset across updates and width changes. Unchanged text stays mounted so selection can survive. Update highlighting does not alter section spacing and clears after five seconds.
+Items and references retain their stable React keys during live updates. The camera compensates when a live update moves the selected document to another grid row. Width changes keep its center in view and retain its vertical position. Unchanged text stays mounted so selection can survive. Update highlighting does not alter section spacing and clears after five seconds.
 The header status shows `connecting`, `reconnecting`, or `Live`. An unavailable plan gets a dedicated recovery page. If the selected work item disappears in a revision, the application keeps the URL, explains that the item was deleted, and offers the overview.
 
 Plan details shows `Private` or `Published` and repository verification status. The signed-in plan list also
@@ -47,11 +50,11 @@ not a browser control.
 
 ## Local feedback
 
-The bottom toolbar retains Comment and Pan, C/V shortcuts, zoom out/in, a mode-aware zoom button that resets to 100%, and Fit. Comment is the default and summaries navigate to full content. Shortcuts ignore controls, dialogs and editable content. Comment clicks on full text, drawings or blank section-layout space open a focused dialog with editable About and Your feedback fields. Only Add comment saves a new note. Cancel and Escape leave notes and counts untouched and restore focus. A browser unload warning protects typed new feedback and unsaved edits from accidental reload or tab close. Clean dialogs do not warn. Edit uses the same dialog; Save comment changes wording while keeping the original target and revision.
+The bottom toolbar retains Comment and Pan, C/V shortcuts, zoom out/in, a percentage button that resets to 100%, and Fit. Comment is the default and summaries navigate to full content. Shortcuts ignore controls, dialogs and editable content. Comment clicks on full text, drawings or blank canvas space open a focused dialog with editable About and Your feedback fields. Only Add comment saves a new note. Cancel and Escape leave notes and counts untouched and restore focus. A browser unload warning protects typed new feedback and unsaved edits from accidental reload or tab close. Clean dialogs do not warn. Edit uses the same dialog; Save comment changes wording while keeping the original target and revision.
 
-Selecting text alone does nothing. Each section and visual has a keyboard comment action that appears on focus, so repeated buttons do not occupy the reading layout. The section action captures the selected excerpt and its occurrence, or the complete section when nothing is selected. A focus-only toolbar action comments on the canvas centre. Pointer movement beyond five pixels suppresses comment creation. Text selection remains available in Comment mode. Pan mode, middle-button dragging and touch swipes move the canvas; wheel movement remains usable throughout long documents.
+Selecting text alone does nothing. Each section and visual has a keyboard comment action that appears on focus, so repeated buttons do not occupy the reading layout. The section action captures the selected excerpt and its occurrence, or the complete section when nothing is selected. A focus-only toolbar action comments on the canvas centre. Pointer movement beyond five pixels suppresses comment creation. Text selection remains available in Comment mode. Pan mode, middle-button dragging and touch swipes move the canvas; wheel movement in Pan mode remains usable throughout long documents.
 
-An app-owned overlay captures visual points in Comment mode. Pan removes it so supported isolated HTML interactions work. The iframe sandbox, Worker and CSP restrictions remain in force. Section and visual notes store optional normalized positions; blank notes use canvas coordinates. Numbered pins follow their original full targets through zoom and unchanged-content relayout. Summarized targets are revealed by selecting their note in Feedback. Free-canvas notes retain their original coordinates in the section layout, including negative coordinates; other layouts show them in Feedback, and selecting one returns to its section-layout position. Changed or missing targets lose their pins and retain warnings in the list; selecting them does not focus replacement content. Old unpositioned notes remain readable, editable and copyable. Optional subject and position fields extend browser storage only; the server plan contract is unchanged.
+An app-owned overlay captures visual points in Comment mode. Pan removes it so supported isolated HTML interactions work. The iframe sandbox, Worker and CSP restrictions remain in force. Section and visual notes store optional normalized positions; blank notes use canvas coordinates. Numbered pins follow their original full targets through zoom and unchanged-content relayout. Summarized targets are revealed by selecting their note in Feedback. Free-canvas notes retain their original world coordinates, including negative coordinates, at every zoom. Selecting one centers its position. Changed or missing targets lose their pins and retain warnings in the list; selecting them does not focus replacement content. Old unpositioned notes appear at the top-right of their section heading. Keyboard section actions also create heading notes without a synthetic normalized position. Positioned pins remain inside their targets, including at the edges. Stored identities and positions are never rewritten. Old notes remain readable, editable and copyable. Optional subject and position fields extend browser storage only; the server plan contract is unchanged.
 
 The Feedback control toggles a 330px right-hand column below the header on desktop. The canvas uses the remaining width, including for Fit. The column follows the pinned prototype: Next refinement, Pending feedback with a count, readable locations and comment text, and Edit/Remove actions. Its heading and Copy feedback footer stay visible while the list scrolls. Comments remain text until Edit is chosen. Unsaved dialog text stays separate from saved notes; cancelling an edit restores the saved wording.
 
@@ -85,8 +88,7 @@ unavailable page at the same URL.
 
 ## Visual reference and compact header
 
-The adaptive layout reference is revised C from issue #42, saved in
-`docs/adaptive-sections/revised-c.html`. The existing header reference is `docs/plan-feedback-canvas` in `alundgren/irudd-skills`
+The continuous canvas follows the interaction direction recorded in PR #48 and its continuous C trial. The retained `docs/adaptive-sections/revised-c.html` records the previous discrete layouts. The existing header reference is `docs/plan-feedback-canvas` in `alundgren/irudd-skills`
 at commit `754f9f4a08d8b6ba26ebde77531d028d30bed14e`. Its `canvas.html`,
 `canvas.css`, `canvas.js` and `ux.md` govern colours, typography and header
 presentation. The previous serif titles, cool cards and floating header no
@@ -97,9 +99,9 @@ Use the prototype's warm paper CSS values: background `#F2EADE`, canvas/panel
 `#F9F6F0`, text `#604939`, secondary text `#66574D`, accent `#784F26`, links
 `#3D5D71` and errors `#8F3A2D`. Text uses `system-ui, sans-serif` with weights
 400, 500 and 600. Item frames have 10px corners and a single warm border. The
-review area is flat with a 20px dotted grid. Spacing and dots remain readable across the adaptive layouts.
+review area is flat with a 20px dotted grid. The grid remains in viewport pixels while document content scales.
 Existing section labels, order and organization remain in place. Sheet sizing
-and navigation follow the adaptive layout rules above. Relationship arrows from the previous canvas are no longer drawn.
+and navigation follow the continuous canvas rules above. Relationship arrows from the previous canvas are no longer drawn.
 
 The full-width desktop header is 68px high when Plan details is closed. It shows
 `plan.epicGoal` on one ellipsized line, the revision and connection status, Plan

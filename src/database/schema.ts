@@ -167,6 +167,26 @@ export const planRevisions = sqliteTable(
   ],
 );
 
+export const planningEntries = sqliteTable(
+  "planning_entries",
+  {
+    ownerId: text("owner_id").notNull(),
+    planId: text("plan_id").notNull(),
+    id: text("id").notNull(),
+    revision: integer("revision").notNull(),
+    contentJson: text("content_json").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.planId, table.id] }),
+    uniqueIndex("planning_entries_revision_idx").on(
+      table.ownerId,
+      table.planId,
+      table.revision,
+    ),
+    planReference(table),
+  ],
+);
+
 export const operations = sqliteTable(
   "operations",
   {
@@ -302,6 +322,7 @@ export const acceptanceCriteria = sqliteTable(
 );
 
 export const schema = {
+  planningEntries,
   acceptanceCriteria,
   assetObjects,
   assets,

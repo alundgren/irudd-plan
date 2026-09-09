@@ -41,3 +41,33 @@ commits retention decisions against a saved mutation counter. Plan writes,
 repository updates and attachments advance that counter, preventing deletion
 based on an outdated verification. Final cleanup and deleted-ID reservation
 share one SQLite transaction. The server resumes due batches after restart.
+
+## Planning conversation
+
+`planning_entries` stores an append-only private discussion per owner and plan.
+Each entry has a stable ID, author, ordered revision, section, text and optional
+question reply or immutable visual descriptors. A batch transaction validates
+its expected conversation revision and stores its idempotency receipt with the
+entries. Plan deletion cascades to discussion entries. The existing plan
+retention policy also governs conversation lifetime.
+
+MCP `append_planning` creates agent questions, notes and resolutions. The
+browser's authenticated JSON endpoint creates human answers and notes, with
+cross-origin submission protection. `get_planning` supports a revision/digest cursor
+for active agent polling. The browser polls every two seconds. This protocol
+persists answers across sessions but does not launch an agent process.
+
+MCP `patch_plan` reconstructs a specification from the exact stored base revision
+and complete changed records, then uses ordinary validation and optimistic write
+transactions. Retrying the original delta returns its receipt even after later
+edits. Conversation entries never enter plan JSON or packet digests. Public
+asset access still requires membership in the published specification.
+
+Specification synchronization compares the selected stored base and target
+revisions and sends only changed records, removed IDs and changed ordering.
+Continuation tokens pin both revisions so concurrent edits cannot mix pages.
+Conversation synchronization hashes a chain of persisted entries. Every normal
+read includes the last verified cursor; missing or divergent cursors trigger
+explicit recovery through bounded pages. Cursors are stateless, with no session
+registry or additional infrastructure. `get_operation` reads an owner-scoped
+receipt to resolve uncertain writes without retransmitting their content.

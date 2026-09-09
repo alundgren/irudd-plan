@@ -1,3 +1,4 @@
+import { PlanningStore } from "./planning-store.js";
 import { and, eq, sql } from "drizzle-orm";
 import * as SQLiteNodeDrizzle from "drizzle-orm/effect-sqlite-node";
 import { migrate } from "drizzle-orm/effect-sqlite-node/migrator";
@@ -90,6 +91,7 @@ type Database = Effect.Success<
 >;
 
 export class PlanStore {
+  readonly planning: PlanningStore;
   private readonly assetStore: AssetStore;
   private readonly githubStore: GitHubStore;
 
@@ -98,6 +100,7 @@ export class PlanStore {
     private readonly migrationsFolder: string,
     private readonly now: () => Date = () => new Date(),
   ) {
+    this.planning = new PlanningStore(filename);
     this.assetStore = new AssetStore(filename);
     this.githubStore = new GitHubStore(filename);
   }
@@ -185,13 +188,14 @@ export class PlanStore {
   async write(
     ownerId: string,
     request: WritePlanRequest,
+    originalRequest: unknown = request,
   ): Promise<WriteResult> {
     if (request.operationId.trim().length === 0) {
       throw new PlanError("REQUEST_INVALID", "operationId cannot be empty");
     }
     validatePlan(request.plan);
     const createdAt = this.now().toISOString();
-    const requestDigest = digest(request);
+    const requestDigest = digest(originalRequest);
     const contentJson = canonicalJson(request.plan);
     const planDigest = digest(request.plan);
 
@@ -303,6 +307,16 @@ export class PlanStore {
                 ),
               )
               .limit(1);
+            if (
+              request.expectedDigest !== undefined &&
+              revisions[0]!.planDigest !== request.expectedDigest
+            )
+              return yield* Effect.fail(
+                new PlanError(
+                  "SYNC_REQUIRED",
+                  "Specification cursor is divergent",
+                ),
+              );
             const previous = JSON.parse(revisions[0]!.contentJson) as Plan;
             const replacements = new Map(
               request.plan.items.map((item) => [item.id, item]),
@@ -481,6 +495,57 @@ export class PlanStore {
           return response;
         }),
       ),
+    );
+  }
+
+  async operation(ownerId: string, operationId: string) {
+    return this.run((db) =>
+      Effect.gen(function* () {
+        const rows = yield* db
+          .select()
+          .from(operations)
+          .where(
+            and(
+              eq(operations.ownerId, ownerId),
+              eq(operations.id, operationId),
+            ),
+          )
+          .limit(1);
+        const row = rows[0];
+        return row === undefined
+          ? { status: "unknown" as const, operationId }
+          : {
+              status: "recorded" as const,
+              operationId,
+              requestDigest: row.requestDigest,
+              result: JSON.parse(row.responseJson) as Record<string, unknown>,
+            };
+      }),
+    );
+  }
+
+  async revision(
+    ownerId: string,
+    planId: string,
+    version: number,
+  ): Promise<Plan | undefined> {
+    return this.run((db) =>
+      Effect.gen(function* () {
+        const rows = yield* db
+          .select()
+          .from(planRevisions)
+          .where(
+            and(
+              eq(planRevisions.ownerId, ownerId),
+              eq(planRevisions.planId, planId),
+              eq(planRevisions.version, version),
+            ),
+          )
+          .limit(1);
+        return rows[0] === undefined
+          ? undefined
+          : (JSON.parse(rows[0].contentJson) as Plan);
+      }),
     );
   }
 

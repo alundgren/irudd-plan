@@ -1,3 +1,4 @@
+import { PlanningView } from "./planning-view.js";
 import { FeedbackDialog } from "./feedback-dialog.js";
 import {
   AlertTriangle,
@@ -115,6 +116,13 @@ function PlanWorkspace({
   const [navigationHost, setNavigationHost] = useState<HTMLDivElement | null>(
     null,
   );
+  const privateView = !window.location.pathname.startsWith("/public/");
+  const [planningOpen, setPlanningOpen] = useState(
+    () =>
+      privateView &&
+      (document.plan.items.length === 0 ||
+        new URLSearchParams(window.location.search).get("view") === "planning"),
+  );
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [composer, setComposer] = useState<{
     item: FeedbackItem;
@@ -163,6 +171,10 @@ function PlanWorkspace({
       data-connection={connection}
     >
       <ReviewHeader
+        planningOpen={planningOpen}
+        onTogglePlanning={
+          privateView ? () => setPlanningOpen(!planningOpen) : undefined
+        }
         navigationRef={setNavigationHost}
         feedbackCount={feedbackState.items.length}
         onShowPlans={onShowPlans}
@@ -174,7 +186,17 @@ function PlanWorkspace({
       {selectionDeleted ? (
         <DeletedNotice onOpenOverview={() => onSelect()} />
       ) : null}
+      {privateView ? (
+        <div className="planning-container" hidden={!planningOpen}>
+          <PlanningView
+            key={document.plan.planId}
+            planId={document.plan.planId}
+            goal={document.plan.epicGoal}
+          />
+        </div>
+      ) : null}
       <div
+        hidden={planningOpen}
         className={`review-content ${feedbackOpen ? "feedback-visible" : ""}`}
       >
         <PlanCanvas
@@ -326,12 +348,16 @@ function accessLabel(access: PlanListEntry["access"]): string {
 }
 
 function ReviewHeader({
+  planningOpen,
+  onTogglePlanning,
   navigationRef,
   feedbackCount,
   onShowPlans,
   onOpenFeedback,
   feedbackOpen,
 }: {
+  readonly planningOpen: boolean;
+  readonly onTogglePlanning: (() => void) | undefined;
   readonly navigationRef: (element: HTMLDivElement | null) => void;
   readonly feedbackCount: number;
   readonly onShowPlans: () => void;
@@ -344,17 +370,34 @@ function ReviewHeader({
         <ListTree aria-hidden="true" size={16} />
         Plans
       </Button>
-      <div className="header-navigation" ref={navigationRef} />
-      <Button
-        variant="outline"
-        size="sm"
-        className="feedback-open-button"
-        aria-expanded={feedbackOpen}
-        onClick={onOpenFeedback}
-      >
-        <MessageSquareText aria-hidden="true" size={15} />
-        Feedback {feedbackCount}
-      </Button>
+      <div
+        className="header-navigation"
+        hidden={planningOpen}
+        ref={navigationRef}
+      />
+      <div className="header-actions">
+        {onTogglePlanning ? (
+          <Button
+            size="sm"
+            variant="outline"
+            aria-pressed={planningOpen}
+            onClick={onTogglePlanning}
+          >
+            {planningOpen ? "View specification" : "Planning"}
+          </Button>
+        ) : null}
+        <Button
+          variant="outline"
+          size="sm"
+          hidden={planningOpen}
+          className="feedback-open-button"
+          aria-expanded={feedbackOpen}
+          onClick={onOpenFeedback}
+        >
+          <MessageSquareText aria-hidden="true" size={15} />
+          Feedback {feedbackCount}
+        </Button>
+      </div>
     </header>
   );
 }

@@ -1,6 +1,8 @@
+import { planningTools } from "./planning-catalog.js";
 import { CONTRACT_VERSION } from "../contract/plan.js";
 
 export const tools = [
+  ...planningTools,
   {
     name: "get_contract",
     description:

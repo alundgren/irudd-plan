@@ -1,3 +1,9 @@
+import { SyncPlanRequest, GetOperationRequest } from "../contract/sync.js";
+import {
+  AppendPlanningRequest,
+  GetPlanningRequest,
+  PatchPlanRequest,
+} from "../contract/planning.js";
 import {
   createServer,
   type IncomingMessage,
@@ -205,7 +211,12 @@ async function callTool(
         value = {
           contractVersion: CONTRACT_VERSION,
           skillVersion: SKILL_VERSION,
-          features: { itemDependencies: true },
+          features: {
+            itemDependencies: true,
+            planningConversation: true,
+            planDeltas: true,
+            incrementalSync: true,
+          },
           protocolVersion: MCP_PROTOCOL_VERSION,
           ownerId,
         };
@@ -218,6 +229,35 @@ async function callTool(
         value = { plan: stored.plan, internalRevision: stored.version };
         break;
       }
+      case "get_operation":
+        value = await service.operation(
+          ownerId,
+          decode(GetOperationRequest, args).operationId,
+        );
+        break;
+      case "sync_plan":
+        value = await service.syncPlan(ownerId, decode(SyncPlanRequest, args));
+        break;
+      case "get_planning": {
+        const request = decode(GetPlanningRequest, args);
+        value = await service.getPlanning(
+          ownerId,
+          request.planId,
+          request.cursor,
+          request.limit,
+        );
+        break;
+      }
+      case "append_planning":
+        value = await service.appendPlanning(
+          ownerId,
+          decode(AppendPlanningRequest, args),
+          "agent",
+        );
+        break;
+      case "patch_plan":
+        value = await service.patch(ownerId, decode(PatchPlanRequest, args));
+        break;
       case "write_plan":
         value = await service.write(ownerId, decode(WritePlanRequest, args));
         break;

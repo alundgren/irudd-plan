@@ -1,6 +1,6 @@
 # Plan review interface
 
-The browser application is a read-only review tool. It has no controls for editing stored plan content or publishing a plan. Local feedback drafts do not change that content.
+The browser reviews the implementation specification and supports a separate private planning conversation. It has no controls for editing the specification or publishing a plan. Local feedback drafts remain separate from saved planning answers.
 
 ## Layout and navigation
 
@@ -150,3 +150,28 @@ or unavailable dependencies show an error instead of invented steps, while
 legacy absent dependency fields and empty lists mean no declared prerequisites.
 An empty plan gets an explanatory empty state. Relationship lines and compact
 items create no new feedback targets.
+
+## Collaborative planning
+
+Private plans have a Planning control beside the specification navigation.
+Plans without implementation items start in Planning. The view groups questions
+into named sections at a readable scale, with responsive columns and ordinary
+scrolling. Suggested answers are buttons with no automatic selection. Each
+question also accepts free text. Save answers and notes submits the filled
+answers as one batch. Saved replies stay beside their original questions.
+
+The view checks for new questions every two seconds using its last verified
+revision/digest cursor. It appends only new entries, verifies their digest chain,
+and follows bounded pages immediately while catching up. A reset clears cached
+server content and reloads bounded pages while preserving drafts for review.
+Submission waits until the browser has caught up. Connection failure shows
+a disconnected state and retries. A failed save preserves drafts; an uncertain
+save freezes the submitted batch and offers an identical retry. Concurrent
+changes reject the batch so the person can read new content before resubmitting.
+Switching to the specification keeps the conversation mounted and drafts intact.
+Reloading restores saved conversation from the server; unsent drafts are in memory.
+
+Question visuals use the existing authenticated, isolated asset viewer. Human
+answers are attributed by the browser endpoint, never by agent-supplied fields.
+The private discussion is excluded from public views and implementation packets.
+A saved answer is available to an active polling agent, but does not start one.

@@ -1,6 +1,6 @@
 ---
 name: irudd-plan
-description: Create and revise irudd-plan canvases or implement a selected work item through its required authenticated MCP integration. Use when a task names an irudd-plan human link or MCP reference. Keep implementation retrieval focused on the selected packet.
+description: Create and revise irudd-plan canvases or implement a selected work item through its required authenticated MCP integration. Use when a task names an irudd-plan human link or MCP reference, or requests collaborative canvas planning. Keep implementation retrieval focused on the selected packet.
 metadata:
   version: v1
 ---
@@ -62,10 +62,19 @@ check each separately. Report reconnecting as disconnected, not live.
 
 ## Plan or revise
 
+For interactive planning from a direct prompt or an issue, read
+[canvas conversation](references/conversation.md). Start on the canvas, batch
+questions, collect browser answers, and keep discussion separate from the
+implementation specification. Require the advertised conversation and delta
+features plus `incrementalSync` for that workflow. Read
+[incremental synchronization](references/sync.md) and keep both stream cursors.
+Use bounded `sync_plan`/`get_planning` reads and `patch_plan`/`append_planning` writes
+during interaction. Full-plan reads are for deliberate export or legacy revision.
+
 Read [the contract](references/contract.md) and the
 [fresh session examples](references/sessions.md). Upload self-contained visuals
-before writing their returned descriptors into the plan. For an existing plan,
-call `get_plan` deliberately to get the complete document and `internalRevision`.
+before writing their returned descriptors into the plan. For a legacy full replacement, call `get_plan` deliberately to get the complete
+document and `internalRevision`. Interactive planning uses `sync_plan` instead.
 `write_plan` replaces the complete document. Preserve unrelated records and IDs;
 never reconstruct a full plan from one item packet. Use a new `operationId` and
 the current revision as `expectedVersion`. Use null only for creation.
@@ -82,8 +91,8 @@ suggestion is not human approval. Copied feedback identifies a requested change
 against an original item/section/asset; check its packet and retrieve current
 content before revising. Keep original references distinct from replacements.
 
-After a conflict, retrieve the current full plan and reconcile before writing
-with a new operation ID. After an uncertain response, stop dependent work;
+After a conflict, synchronize and reconcile before writing with a new operation ID.
+Only a legacy full replacement requires another complete `get_plan` read. After an uncertain response, stop dependent work;
 restore service, then retry the identical request and operation ID to learn its
 result. Never change input under a reused operation ID.
 

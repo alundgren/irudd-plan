@@ -1,3 +1,11 @@
+import { conversationPage } from "./conversation-sync.js";
+import { PlanSync } from "./plan-sync.js";
+import type { SyncCursor, SyncPlanRequest } from "../contract/sync.js";
+import type {
+  AppendPlanningRequest,
+  PatchPlanRequest,
+} from "../contract/planning.js";
+import { patchPlan } from "./patch-plan.js";
 import { PlanError } from "../contract/errors.js";
 import type {
   CheckPacketRequest,
@@ -37,9 +45,13 @@ export class PlanService {
     private readonly publicBaseUrl = "http://localhost:3000",
   ) {}
 
-  async write(ownerId: string, request: WritePlanRequest) {
+  async write(
+    ownerId: string,
+    request: WritePlanRequest,
+    originalRequest: unknown = request,
+  ) {
     await this.store.assertPlanAssets(ownerId, request.plan);
-    const result = await this.store.write(ownerId, request);
+    const result = await this.store.write(ownerId, request, originalRequest);
     if (!result.replayed) {
       this.updates.publish({
         ownerId,
@@ -48,6 +60,84 @@ export class PlanService {
       });
     }
     return result;
+  }
+
+  operation(ownerId: string, operationId: string) {
+    return this.store.operation(ownerId, operationId);
+  }
+
+  syncPlan(ownerId: string, request: SyncPlanRequest) {
+    return new PlanSync(this.store).read(ownerId, request);
+  }
+
+  async getPlanning(
+    ownerId: string,
+    planId: string,
+    cursor?: SyncCursor,
+    limit = 25,
+  ) {
+    const conversation = await this.store.planning.get(ownerId, planId);
+    return conversationPage(ownerId, conversation, cursor, limit);
+  }
+
+  async appendPlanning(
+    ownerId: string,
+    request: AppendPlanningRequest,
+    author: "agent" | "human",
+  ) {
+    if ((await this.store.get(ownerId, request.planId)) === undefined)
+      throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
+    for (const entry of request.entries) {
+      for (const asset of entry.assets ?? []) {
+        const stored = await this.store.getAsset(
+          ownerId,
+          request.planId,
+          asset.id,
+          asset.digest,
+        );
+        if (stored === undefined || digest(stored.descriptor) !== digest(asset))
+          throw new PlanError(
+            "ASSET_UNAVAILABLE",
+            "Conversation asset must match an uploaded descriptor",
+          );
+      }
+    }
+    return this.store.planning.append(ownerId, request, author);
+  }
+
+  async patch(ownerId: string, request: PatchPlanRequest) {
+    const base = await this.store.revision(
+      ownerId,
+      request.planId,
+      request.expectedVersion,
+    );
+    if (base === undefined)
+      throw new PlanError("PLAN_CONFLICT", "Plan revision is unavailable");
+    if (digest(base) !== request.expectedDigest)
+      throw new PlanError(
+        "SYNC_REQUIRED",
+        "Specification cursor is divergent; synchronize before revising",
+      );
+    const result = await this.write(
+      ownerId,
+      {
+        operationId: request.operationId,
+        expectedVersion: request.expectedVersion,
+        expectedDigest: request.expectedDigest,
+        plan: patchPlan(base, request),
+      },
+      { type: "patch_plan", request },
+    );
+    return {
+      ...result,
+      operationId: request.operationId,
+      requestDigest: digest({ type: "patch_plan", request }),
+      baseCursor: {
+        revision: request.expectedVersion,
+        digest: request.expectedDigest,
+      },
+      cursor: { revision: result.version, digest: result.planDigest },
+    };
   }
 
   list(ownerId: string) {

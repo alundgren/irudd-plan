@@ -1604,3 +1604,129 @@ summary {
     height: auto;
   }
 }
+
+.review-content[hidden],
+.planning-container[hidden] {
+  display: none;
+}
+.planning-container {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.planning-view {
+  padding: 28px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.planning-intro {
+  max-width: 75ch;
+  margin-bottom: 28px;
+}
+.planning-intro h1 {
+  font-size: 26px;
+  font-weight: 600;
+}
+.planning-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 28px;
+  align-items: start;
+}
+.planning-section h2 {
+  font-size: 22px;
+  font-weight: 600;
+}
+.planning-thread {
+  background: #f9f6f0;
+  border: 1px solid #c1af9a;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+.planning-message {
+  margin-bottom: 18px;
+}
+.planning-human {
+  border-left: 3px solid #c1af9a;
+  padding-left: 16px;
+}
+.planning-byline {
+  color: #66574d;
+  font-size: 13.5px;
+}
+.planning-thread fieldset {
+  border: 0;
+  padding: 0;
+  margin-top: 20px;
+}
+.planning-thread legend {
+  margin-bottom: 10px;
+}
+.planning-thread fieldset button {
+  margin: 0 8px 8px 0;
+  white-space: normal;
+  height: auto;
+  text-align: left;
+}
+.planning-view textarea {
+  display: block;
+  width: 100%;
+  min-height: 110px;
+  padding: 12px;
+  border: 1px solid #c1af9a;
+  border-radius: 8px;
+  background: #f9f6f0;
+  color: #604939;
+  font: inherit;
+  resize: vertical;
+}
+.planning-compose {
+  max-width: 75ch;
+  margin: 32px 0;
+}
+.planning-compose label {
+  display: block;
+  margin-bottom: 10px;
+}
+.planning-compose > button {
+  margin-top: 14px;
+}
+.planning-view .asset-view {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .planning-view {
+    padding: 16px;
+  }
+}
+
+.planning-thread fieldset button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 16px;
+}
+.planning-thread fieldset button[aria-pressed="true"] {
+  background: #e0d2bd;
+  border-color: #784f26;
+}
+.header-navigation[hidden],
+.feedback-open-button[hidden] {
+  display: none;
+}
+
+.header-actions {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+}

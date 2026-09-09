@@ -9,7 +9,7 @@ interface AssetViewProps {
   readonly planId: string;
   readonly asset: AssetDescriptor;
   readonly feedbackCount: number;
-  readonly onAddFeedback: () => void;
+  readonly onAddFeedback?: () => void;
 }
 
 const svgCsp =
@@ -92,19 +92,21 @@ export function AssetView({
             onError={() => setFailed(true)}
           />
         )}
-        {tool === "comment" ? (
+        {onAddFeedback !== undefined && tool === "comment" ? (
           <div className="visual-comment-overlay" aria-hidden="true" />
         ) : null}
-        <button
-          type="button"
-          className="feedback-target-control asset-feedback"
-          aria-label={`Add feedback to visual ${asset.caption}`}
-          title={`Add feedback to visual ${asset.caption}`}
-          onClick={onAddFeedback}
-        >
-          <MessageSquarePlus aria-hidden="true" size={14} />
-          Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
-        </button>
+        {onAddFeedback === undefined ? null : (
+          <button
+            type="button"
+            className="feedback-target-control asset-feedback"
+            aria-label={`Add feedback to visual ${asset.caption}`}
+            title={`Add feedback to visual ${asset.caption}`}
+            onClick={onAddFeedback}
+          >
+            <MessageSquarePlus aria-hidden="true" size={14} />
+            Add feedback{feedbackCount > 0 ? ` (${feedbackCount})` : ""}
+          </button>
+        )}
       </div>
     </figure>
   );

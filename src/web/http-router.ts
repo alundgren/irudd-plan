@@ -1,3 +1,4 @@
+import { handlePlanningRequest } from "./planning-router.js";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -30,6 +31,16 @@ export async function handleBrowserRequest(
     );
     return true;
   }
+  if (
+    await handlePlanningRequest(
+      request,
+      response,
+      service,
+      options.authenticator,
+      url,
+    )
+  )
+    return true;
   if (request.method !== "GET") return false;
 
   if (await handlePublicRequest(request, response, service, options, url)) {

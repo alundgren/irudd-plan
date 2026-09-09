@@ -114,6 +114,7 @@ export const Plan = Schema.Struct({
 export const WritePlanRequest = Schema.Struct({
   operationId: Identifier,
   expectedVersion: Schema.NullOr(PositiveInteger),
+  expectedDigest: Schema.optionalKey(Identifier),
   plan: Plan,
 });
 

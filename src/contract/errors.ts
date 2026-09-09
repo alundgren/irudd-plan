@@ -12,6 +12,7 @@ export type PlanErrorCode =
   | "ASSET_INVALID"
   | "ASSET_TOO_LARGE"
   | "STORAGE_LIMIT"
+  | "SYNC_REQUIRED"
   | "PLAN_CONFLICT"
   | "OPERATION_MISMATCH"
   | "PLAN_NOT_FOUND"

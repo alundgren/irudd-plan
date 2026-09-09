@@ -162,3 +162,33 @@ test("long item headers keep their layout through zoom and chooser navigation", 
   await expect(page.locator(".overview-sheet.selected")).toBeInViewport();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("item header centers both columns inside the available viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/plans/browser-plan");
+  const frame = page.locator('[data-frame-item="item-1"]');
+  await frame.locator(".item-title-bar").click();
+  const expectCentered = async () => {
+    await expect
+      .poll(async () => {
+        const item = (await frame.boundingBox())!;
+        const view = (await page.locator(".plan-viewport").boundingBox())!;
+        return Math.abs(item.x + item.width / 2 - view.x - view.width / 2);
+      })
+      .toBeLessThan(1);
+    const item = (await frame.boundingBox())!;
+    const view = (await page.locator(".plan-viewport").boundingBox())!;
+    expect(item.x).toBeGreaterThanOrEqual(view.x + 23);
+    expect(item.x + item.width).toBeLessThanOrEqual(view.x + view.width - 23);
+    expect(item.y).toBeCloseTo(view.y + 24, 0);
+  };
+  await expectCentered();
+  await frame.locator(".item-title-bar").click();
+  await expectCentered();
+  await page.getByRole("button", { name: "Feedback 0", exact: true }).click();
+  await expectCentered();
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await expectCentered();
+});

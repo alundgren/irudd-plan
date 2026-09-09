@@ -71,8 +71,7 @@ export function useCanvasCamera() {
       const height = element.offsetHeight;
       const nextZoom = Math.min(
         1.1,
-        Math.max(1, view.clientWidth - 48) /
-          (element.closest(".overview-sheet") ? width : Math.min(width, 640)),
+        Math.max(1, view.clientWidth - 48) / width,
       );
       move({
         x:

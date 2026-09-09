@@ -61,13 +61,19 @@ export function PlanCanvas(props: PlanCanvasProps) {
   const previousRoute = useRef<string | undefined | null>(null);
   const requestedRoute = useRef<string | undefined | null>(null);
   const stoppedFeedback = useRef<FeedbackItem | undefined>(undefined);
-  const targetElement = (id?: string, assetId?: string) =>
-    Array.from(
+  const targetElement = (id?: string, assetId?: string) => {
+    if (id && !assetId && (viewport.current?.clientWidth ?? 0) > 760) {
+      return Array.from(
+        world.current?.querySelectorAll<HTMLElement>(".item-frame") ?? [],
+      ).find((element) => element.dataset.frameItem === id);
+    }
+    return Array.from(
       world.current?.querySelectorAll<HTMLElement>(".plan-sheet") ?? [],
     ).find(
       (element) =>
         element.dataset.itemId === id && element.dataset.assetId === assetId,
     );
+  };
   const navigate = (id?: string) => {
     if (id !== selectedItemId) {
       requestedRoute.current = id;
@@ -117,7 +123,7 @@ export function PlanCanvas(props: PlanCanvasProps) {
     { element: HTMLElement; x: number; y: number } | undefined
   >(undefined);
   useLayoutEffect(() => {
-    const element =
+    let element =
       targetElement(selected, referenceId) ?? targetElement(selected);
     if (!element) return;
     if (referenceId && !targetElement(selected, referenceId)) {
@@ -127,19 +133,24 @@ export function PlanCanvas(props: PlanCanvasProps) {
     let width = viewport.current!.clientWidth;
     let scale = camera.current.current.zoom;
     const track = () => {
+      element = targetElement(selected, referenceId) ?? element;
+      if (!element) return;
       const origin = elementPoint(element, world.current!);
       const point = { x: origin.x + element.offsetWidth / 2, y: origin.y };
       if (camera.fitting.current) fit();
       else if (width !== viewport.current!.clientWidth) {
+        const previous = camera.current.current;
+        const zoom = Math.min(
+          previous.zoom,
+          Math.max(1, viewport.current!.clientWidth - 48) / element.offsetWidth,
+        );
         camera.move({
-          ...camera.current.current,
-          x:
-            viewport.current!.clientWidth / 2 -
-            point.x * camera.current.current.zoom,
+          x: viewport.current!.clientWidth / 2 - point.x * zoom,
           y:
-            camera.current.current.y +
-            ((anchor.current?.y ?? point.y) - point.y) *
-              camera.current.current.zoom,
+            previous.y +
+            (anchor.current?.y ?? point.y) * previous.zoom -
+            point.y * zoom,
+          zoom,
         });
       } else if (
         scale === camera.current.current.zoom &&

@@ -12,7 +12,7 @@ Fit shows summaries at every scale. Manual zoom shows summaries below 45%. Hidde
 
 The overview goal spans the grid, with text capped at 65 characters per line. Its reading view uses up to 1000px of the available width. Summary cards use 1600 canvas pixels, with smaller thumbnails and padding to give titles, goals and captions more horizontal room. The grid favors a landscape arrangement and removes columns that would not reduce the row count. One item uses one column, four use two, eight use four, and fifteen use five. Columns remain fixed during zoom; full reading frames retain their 1200px width. This keeps reading text at its existing line length and prevents items from changing columns under the pointer.
 
-Clicking a title, summary or chooser option centers the description column at up to 110%. Descriptions wrap to the available phone width with 16px text at their reading scale. References stay alongside the description in the same canvas. Visual-reference links in the description focus each reference. Each reference retains its return-to-description icon. Long documents remain fully expanded; Pan, touch or arrow keys reach their lower sections.
+Clicking a title, summary or chooser option centers the whole item in the viewport, fitting its width at up to 110% and keeping its heading at the top. At viewport widths up to 760px, navigation centers the description column to keep text readable. Descriptions wrap to the available phone width with 16px text at their reading scale. References stay alongside the description in the same canvas. Visual-reference links in the description focus each reference. Each reference retains its return-to-description icon. Long documents remain fully expanded; Pan, touch or arrow keys reach their lower sections.
 
 The chooser uses the warm-paper palette, a search field and a scrollable list. Arrow keys move the active option, Enter opens it, and Escape closes the menu and restores focus. Clicking outside or tabbing away dismisses it. Search is useful for plans that cannot display readable titles when fitted.
 
@@ -25,7 +25,7 @@ The URL identifies current content, not a historical revision:
 /public/plans/{ownerId}/{planId}/items/{itemId}
 ```
 
-Direct item URLs and browser history center the requested description. References use their owning item's URL. Zoom and pan preserve selection and do not add history entries. Epic goal in the chooser opens the plan URL and focuses the goal. Fit keeps the current selection. Opening Feedback and resizing preserve the selected document's vertical position and recenter it in the remaining width.
+Direct item URLs and browser history use the same item framing. References use their owning item's URL. Zoom and pan preserve selection and do not add history entries. Epic goal in the chooser opens the plan URL and focuses the goal. Fit keeps the current selection. Opening Feedback and resizing preserve the selected document's vertical position and recenter it in the remaining width.
 
 Every item presents its goal, required decisions, requirements, checks, visual-reference links and Technical detail. Required context, prior art, deferrals and completion remain expanded. Text selection and control clicks do not create feedback.
 

@@ -141,7 +141,12 @@ for (const width of [1440, 390]) {
     const bounds = (await sheet.boundingBox())!;
     expect(bounds.width).toBeLessThan(width);
     expect(bounds.height).toBeGreaterThan(2000);
-    expect(bounds.x + bounds.width / 2).toBeCloseTo(width / 2, 0);
+    const focusedBounds = (await page
+      .locator(
+        width > 760 ? '[data-frame-item="item-1"]' : ".item-sheet.selected",
+      )
+      .boundingBox())!;
+    expect(focusedBounds.x + focusedBounds.width / 2).toBeCloseTo(width / 2, 0);
     const font = await sheet.evaluate((element) =>
       parseFloat(getComputedStyle(element).fontSize),
     );

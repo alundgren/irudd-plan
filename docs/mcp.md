@@ -26,6 +26,19 @@ Send a valid Cloudflare Access assertion in `Cf-Access-Jwt-Assertion` or as a be
 | `publish_plan`             | Publishes a verified public-repository plan through stable anonymous URLs.                             |
 | `get_github_reference`     | Returns the short goal, human URL, MCP URI, body text and persisted associatedWork for an issue or PR. |
 
+Planning uses `sync_plan` / `patch_plan` for the specification and
+`get_planning` / `append_planning` for human conversation. With additive feature
+`agentContext: true`, `get_agent_context` / `append_agent_context` provide a
+separate private stream for findings and handoffs. `get_agent_context_entry`
+retrieves one exact note by `entryId`. See the authoritative skill's
+[incremental protocol](../skills/irudd-plan/references/sync.md) for pagination,
+corrections, independent cursors and `get_operation` receipt recovery.
+
+An optional conversation `source: {entryId, label}` references a note within the
+same owner's same plan. The browser loads it on demand. No context is returned
+by plan exports, specification sync, public views or implementation packets.
+Existing conversations retain their original entries and attribution.
+
 `write_plan` takes `operationId`, `expectedVersion`, and the complete `plan`. Use `expectedVersion: null` only when creating a plan. A retry with the same operation ID and identical request returns the first result. Reusing the ID with different input returns `OPERATION_MISMATCH`.
 
 Upload every asset before referencing it in a plan revision. `upload_asset` accepts PNG, JPEG, GIF, WebP, SVG, or self-contained HTML. Its result is the complete asset descriptor to put in `plan.assets`. Roles are `binding-reference` and `illustration`. Optional editable source accepts text, JSON, or SVG. The server calculates every SHA-256 digest. Reusing an asset ID with new bytes creates another immutable digest; later revisions may reference the new digest without changing the old bytes.

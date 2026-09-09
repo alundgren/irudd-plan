@@ -1,3 +1,5 @@
+import { agentContextPage } from "./agent-context-sync.js";
+import type { AppendAgentContextRequest } from "../contract/agent-context.js";
 import { conversationPage } from "./conversation-sync.js";
 import { PlanSync } from "./plan-sync.js";
 import type { SyncCursor, SyncPlanRequest } from "../contract/sync.js";
@@ -70,6 +72,38 @@ export class PlanService {
     return new PlanSync(this.store).read(ownerId, request);
   }
 
+  async getAgentContext(
+    ownerId: string,
+    planId: string,
+    cursor?: SyncCursor,
+    limit = 25,
+  ) {
+    return agentContextPage(
+      ownerId,
+      await this.store.agentContext.get(ownerId, planId),
+      cursor,
+      limit,
+    );
+  }
+
+  async getAgentContextEntry(ownerId: string, planId: string, entryId: string) {
+    const entry = await this.store.agentContext.getEntry(
+      ownerId,
+      planId,
+      entryId,
+    );
+    if (!entry)
+      throw new PlanError(
+        "REFERENCE_MISSING",
+        "Agent context entry is unavailable",
+      );
+    return entry;
+  }
+
+  appendAgentContext(ownerId: string, request: AppendAgentContextRequest) {
+    return this.store.agentContext.append(ownerId, request);
+  }
+
   async getPlanning(
     ownerId: string,
     planId: string,
@@ -88,6 +122,12 @@ export class PlanService {
     if ((await this.store.get(ownerId, request.planId)) === undefined)
       throw new PlanError("PLAN_NOT_FOUND", "Plan is unavailable");
     for (const entry of request.entries) {
+      if (entry.source)
+        await this.getAgentContextEntry(
+          ownerId,
+          request.planId,
+          entry.source.entryId,
+        );
       for (const asset of entry.assets ?? []) {
         const stored = await this.store.getAsset(
           ownerId,

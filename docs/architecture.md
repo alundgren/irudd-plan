@@ -71,3 +71,23 @@ read includes the last verified cursor; missing or divergent cursors trigger
 explicit recovery through bounded pages. Cursors are stateless, with no session
 registry or additional infrastructure. `get_operation` reads an owner-scoped
 receipt to resolve uncertain writes without retransmitting their content.
+
+## Agent context
+
+`agent_context_entries` stores immutable owner/plan-scoped findings separately
+from discussion and specification. Each record has a title, body and optional
+`supersedes` ID identifying an explicit correction. Its independent digest chain
+supports bounded `get_agent_context` reads and optimistic `append_agent_context`
+writes with operation receipts. Exact source retrieval uses a primary-key lookup.
+Plan deletion cascades to these records; publishing a plan does not expose them.
+
+The browser only retrieves agent context when a conversation entry explicitly
+cites a source and the person opens it. It has no context-write endpoint. Existing
+conversation rows and digest chains remain unchanged. Requirements needed for
+implementation must enter work items or required specification records, because
+agent context is excluded from item packets and their digests.
+
+The planning footer reserves space below the conversation scroller. Its receipt
+confirms persistence, not agent acknowledgement. Browser polling establishes
+server connectivity only. Active agent polling and resumption are skill workflow
+responsibilities; the server cannot wake a stopped agent session.

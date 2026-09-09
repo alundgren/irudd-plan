@@ -1612,9 +1612,19 @@ summary {
 .planning-container {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 .planning-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.planning-scroll {
+  scroll-padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
   padding: 28px;
   max-width: 1600px;
   margin: 0 auto;
@@ -1698,7 +1708,7 @@ summary {
   min-width: 0;
 }
 @media (max-width: 700px) {
-  .planning-view {
+  .planning-scroll {
     padding: 16px;
   }
 }
@@ -1729,4 +1739,33 @@ summary {
     align-items: stretch;
     gap: 4px;
   }
+}
+
+.planning-source {
+  margin-block: 0.75rem;
+}
+.planning-source summary {
+  cursor: pointer;
+  text-decoration: underline;
+}
+.planning-source-content {
+  max-height: 24rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.planning-actions {
+  flex: none;
+  padding: 12px max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom));
+  background: #eadfcd;
+  border-top: 1px solid #c1af9a;
+}
+.planning-actions p {
+  margin: 4px 0 0;
+}
+.planning-actions button {
+  min-height: 44px;
+  white-space: normal;
+  height: auto;
 }

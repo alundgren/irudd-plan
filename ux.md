@@ -175,3 +175,35 @@ Question visuals use the existing authenticated, isolated asset viewer. Human
 answers are attributed by the browser endpoint, never by agent-supplied fields.
 The private discussion is excluded from public views and implementation packets.
 A saved answer is available to an active polling agent, but does not start one.
+
+### Conversation, findings and submission
+
+Planning is for human questions, understandable explanations and replies. Agent
+repository evidence and handoff notes live in a separate private context stream.
+They never become ordinary conversation sections. A recommendation can cite one
+specific note when it helps the person assess it. Only that message gets a Source
+disclosure. Opening it loads the cited immutable version, labels it an agent
+finding and warns that later findings may revise it. Long evidence scrolls within
+the disclosure; failure offers Retry source. Findings do not imply human approval.
+Legacy entries retain their content and attribution, with no title-based hiding.
+Implementation requirements still belong in the selected packet's required records.
+
+Save answers and notes and its progress, receipt and retry errors occupy a footer
+outside the question scroller. The footer reserves layout space on desktop and
+mobile, so it does not cover fields. The visual viewport limits its height when a
+mobile keyboard reduces visible space. Questions and the free-note field scroll
+independently above it. Batch submission, uncertain-request retries and drafts
+retain their existing behavior. The footer uses the existing warm-paper colours.
+
+"Server connected" describes browser-to-server polling. "Saved to this plan"
+confirms persistence only. Saving does not restart a stopped agent session. There
+is no agent presence or acknowledgement indicator. A response attributed to the
+agent is the visible evidence that it has continued the discussion.
+
+The planning skill keeps an active session polling bounded deltas after posting
+questions, then responds to those original questions. Chat points to the canvas;
+it does not repeat the batch or open a competing native prompt. Voluntary chat
+answers are reconciled as agent notes identifying session chat as their source.
+An interrupted or runtime-limited session stops honestly and resumes from saved
+cursors and handoff notes, or bounded bootstrap when its cache is unavailable.
+Automatic wake-up requires a separate runtime integration and is not implemented.

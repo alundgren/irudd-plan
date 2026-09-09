@@ -34,9 +34,10 @@ Start a fresh agent session so it loads the new skill and tool catalog. Reload
 the browser to use the matching client. Before trying a plan, require:
 
 - `get_contract` returns owner `alundgren` for this operator and features
-  `planningConversation`, `planDeltas` and `incrementalSync`, all true.
+  `planningConversation`, `planDeltas`, `incrementalSync` and `agentContext`, all true.
 - Tool discovery includes `sync_plan`, `get_planning`, `append_planning`,
-  `patch_plan`, and `get_operation`.
+  `patch_plan`, `get_operation`, `get_agent_context`, `get_agent_context_entry`
+  and `append_agent_context`.
 - The browser signs in under a `browser` mapping to that same owner. Browser
   GET and POST requests under `/api/plans/*/planning` must reach the origin.
   Keep `/api/*` behind browser Access; do not add a public bypass or CORS rule.
@@ -87,3 +88,27 @@ the consistent volume backup if that is what you intend; writes made after the
 backup will be lost. A restored/divergent server may reject retained cursors.
 Clients then discard cached server state and recover through bounded reads.
 Do not delete migration history or try to reverse the schema manually.
+
+## Agent-context rollout
+
+The `agent_context_entries` migration adds a separate private table without
+rewriting existing conversation data. Deploy the server and browser together,
+then update this repository's planning skill. Deliver the companion
+`irudd-skills/resources/codex/AGENTS.md` canvas-specific final-response exception
+through the normal managed-instruction installer. That exception keeps an active
+planning session polling and prevents a second native question prompt. Existing
+installed instructions are not changed by this implementation.
+
+Use a disposable plan to confirm that long findings stay outside conversation,
+an explicitly cited source loads only when opened, and save/retry status remains
+visible with long questions on desktop and mobile. Check a real mobile keyboard
+as well as reduced viewport tests. Verify that server connectivity and saved
+receipts do not imply agent presence. Stop and resume the agent deliberately;
+saved replies must be read and reconciled with the original questions on resume.
+
+The observed live plan has not been rewritten. Old technical notes remain
+ordinary legacy conversation entries. Any existing-data cleanup requires exact
+entry selection and separate authorization; there is no automatic classification
+or deletion. Rolling back the image leaves the new table intact and old clients
+continue reading the unchanged conversation. New skill feature checks reject an
+older server. No automatic agent wake-up integration is included.

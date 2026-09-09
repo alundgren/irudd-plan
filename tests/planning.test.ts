@@ -355,6 +355,21 @@ it("keeps discussion and its private visual out of a published specification", a
     },
     "agent",
   );
+  const context = await service.getAgentContext("owner-a", plan.planId);
+  await service.appendAgentContext("owner-a", {
+    contractVersion: "v1",
+    planId: plan.planId,
+    operationId: "private-evidence",
+    expectedRevision: context.cursor.revision,
+    expectedDigest: context.cursor.digest,
+    entries: [
+      {
+        id: "private-evidence",
+        title: "Private repository findings",
+        body: "Internal investigation and handoff details",
+      },
+    ],
+  });
   await service.verifyRepository("owner-a", {
     contractVersion: "v1",
     planId: plan.planId,

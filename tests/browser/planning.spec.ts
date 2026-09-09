@@ -91,9 +91,7 @@ for (const width of [1280, 390]) {
       await page
         .getByRole("button", { name: "Save answers and notes" })
         .click();
-      await expect(
-        page.getByText("Saved. The agent can read your answers."),
-      ).toBeVisible();
+      await expect(page.getByText("Saved to this plan.")).toBeVisible();
       const answer = await client.callTool<{
         structuredContent: PlanningConversation;
       }>("get_planning", {
@@ -189,9 +187,7 @@ test("an uncertain save retries the original batch without duplicating answers",
       page.getByRole("textbox", { name: "Add a thought or ask a question" }),
     ).toHaveValue("Keep this thought");
     await page.getByRole("button", { name: "Retry saving answers" }).click();
-    await expect(
-      page.getByText("Saved. The agent can read your answers."),
-    ).toBeVisible();
+    await expect(page.getByText("Saved to this plan.")).toBeVisible();
     const result = await client.callTool<{
       structuredContent: PlanningConversation;
     }>("get_planning", { contractVersion: "v1", planId });

@@ -66,10 +66,14 @@ For interactive planning from a direct prompt or an issue, read
 [canvas conversation](references/conversation.md). Start on the canvas, batch
 questions, collect browser answers, and keep discussion separate from the
 implementation specification. Require the advertised conversation and delta
-features plus `incrementalSync` for that workflow. Read
-[incremental synchronization](references/sync.md) and keep both stream cursors.
+features plus `incrementalSync` and `agentContext` for that workflow. Read
+[incremental synchronization](references/sync.md) and keep all three stream cursors.
 Use bounded `sync_plan`/`get_planning` reads and `patch_plan`/`append_planning` writes
-during interaction. Full-plan reads are for deliberate export or legacy revision.
+during interaction. Put repository evidence and session bookkeeping in
+`append_agent_context`, and synchronize it with `get_agent_context`. Keep
+conversation questions and explanations in plain language. Once questions are
+on the canvas, keep actively polling; do not duplicate them in native prompts
+or end the turn just to await session input. Full-plan reads are for deliberate export or legacy revision.
 
 Read [the contract](references/contract.md) and the
 [fresh session examples](references/sessions.md). Upload self-contained visuals

@@ -15,13 +15,27 @@ export async function handlePlanningRequest(
   authenticator: Authenticator,
   url: URL,
 ): Promise<boolean> {
-  const match = url.pathname.match(/^\/api\/plans\/([^/]+)\/planning$/);
+  const source = url.pathname.match(
+    /^\/api\/plans\/([^/]+)\/agent-context\/([^/]+)$/,
+  );
+  const match =
+    source ?? url.pathname.match(/^\/api\/plans\/([^/]+)\/planning$/);
   if (match?.[1] === undefined) return false;
   const ownerId = await authenticator.authenticate(request.headers);
   const planId = decodeURIComponent(match[1]);
   try {
     let result: unknown;
-    if (request.method === "GET") {
+    if (source) {
+      if (request.method !== "GET") {
+        response.writeHead(405, { allow: "GET" }).end();
+        return true;
+      }
+      result = await service.getAgentContextEntry(
+        ownerId,
+        planId,
+        decodeURIComponent(source[2]!),
+      );
+    } else if (request.method === "GET") {
       const query = planningQuery(url, planId);
       result = await service.getPlanning(
         ownerId,
@@ -64,7 +78,7 @@ export async function handlePlanningRequest(
       throw error;
     const code = error instanceof PlanError ? error.code : "REQUEST_INVALID";
     const status =
-      code === "PLAN_NOT_FOUND"
+      code === "PLAN_NOT_FOUND" || code === "REFERENCE_MISSING"
         ? 404
         : code === "PLAN_CONFLICT" || code === "SYNC_REQUIRED"
           ? 409

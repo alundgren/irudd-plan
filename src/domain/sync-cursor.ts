@@ -4,7 +4,7 @@ import { digest } from "./validate-plan.js";
 export function initialCursor(
   ownerId: string,
   planId: string,
-  stream: "plan" | "conversation",
+  stream: "plan" | "conversation" | "agent-context",
 ): SyncCursor {
   return { revision: 0, digest: digest({ ownerId, planId, stream }) };
 }

@@ -1,3 +1,4 @@
+import { AgentContextStore } from "./agent-context-store.js";
 import { PlanningStore } from "./planning-store.js";
 import { and, eq, sql } from "drizzle-orm";
 import * as SQLiteNodeDrizzle from "drizzle-orm/effect-sqlite-node";
@@ -92,6 +93,7 @@ type Database = Effect.Success<
 
 export class PlanStore {
   readonly planning: PlanningStore;
+  readonly agentContext: AgentContextStore;
   private readonly assetStore: AssetStore;
   private readonly githubStore: GitHubStore;
 
@@ -101,6 +103,7 @@ export class PlanStore {
     private readonly now: () => Date = () => new Date(),
   ) {
     this.planning = new PlanningStore(filename);
+    this.agentContext = new AgentContextStore(filename);
     this.assetStore = new AssetStore(filename);
     this.githubStore = new GitHubStore(filename);
   }

@@ -17,6 +17,7 @@ export const PlanningEntry = Schema.Struct({
   section: Text,
   kind: Schema.Literals(["question", "note", "answer", "resolved"]),
   body: Text,
+  source: Schema.optionalKey(Schema.Struct({ entryId: Id, label: Id })),
   replyTo: Schema.optionalKey(Id),
   choices: Schema.optionalKey(Schema.Array(Text)),
   assets: Schema.optionalKey(Schema.Array(AssetDescriptor)),

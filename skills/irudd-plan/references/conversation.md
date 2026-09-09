@@ -2,13 +2,13 @@
 
 Use this workflow for a direct planning prompt or an issue-based planning session.
 Read [incremental synchronization](sync.md). Require `get_contract.features.planningConversation`,
-`planDeltas` and `incrementalSync` before using this workflow. If any is missing, report that the server needs updating. Do not describe
+`planDeltas`, `incrementalSync` and `agentContext` before using this workflow. If any is missing, report that the server needs updating. Do not describe
 browser-local feedback as submitted answers.
 
 Create the plan immediately with `write_plan`, using the actual repository and
 prompt as the initial goal. Empty items, contexts, decisions and assets are
 valid. For an existing plan, synchronize the specification with `sync_plan` and discussion with
-`get_planning` before continuing. Reuse stored cursors and fetch only deltas.
+`get_planning`, and agent findings with `get_agent_context` before continuing. Reuse stored cursors and fetch only deltas.
 Keep the existing plan's subject; create a separate plan for a different task.
 Use `get_github_reference` for its human URL. The browser's Planning button opens
 the discussion; a plan with no items opens it by default.
@@ -62,8 +62,39 @@ This is a two-way polling connection, not a callback that starts an idle agent.
 Do not promise automatic resumption after the session ends. A new session reuses cached state and cursors when available, then reads only
 new discussion and specification records. Without that state, bootstrap through
 bounded pages and identify open questions before proceeding.
-End a waiting session with the plan reference and outstanding questions so the
-person can continue either there or in a later session.
+Do not end the turn merely because questions have been posted. Continue bounded
+incremental polling while actively waiting, then process replies and continue
+planning. Do not open a native session question tool for those same decisions
+or repeat the complete question batch in chat. Chat may link to the canvas and
+report progress. Work on independent tasks between polls when useful.
+
+If the person voluntarily answers in chat, reconcile it with the original
+question. Append an agent note with `replyTo`, the original section, and wording
+such as "You answered in session chat: accept CSV." Preserve the actual source;
+do not create a browser-authored answer. Resolve only what the reply settles.
+
+Process new entry IDs once. Acknowledge a settled answer by appending a `resolved`
+entry referencing its original question, with the explanation the person needs.
+Before processing after an interruption, synchronize all streams and inspect
+existing resolutions and newer replies. Reconcile unfinished specification
+writes using their operation receipts. A later answer to a resolved question
+must be considered again. Use agent context for a handoff recording processed
+reply IDs and outstanding work, not another human-facing status section.
+
+If interrupted, explicitly stopped, or limited by the runtime, persist a handoff
+when possible and state that the session has stopped. Saving on the canvas
+persists answers but cannot restart an idle agent. On resumption retrieve deltas
+from retained state; if state is missing, bootstrap bounded pages and identify
+unanswered questions and replies newer than their resolutions. Automatic wake-up
+requires a separately supported runtime integration; this server has none.
+
+The canvas-specific final-response rule is to link to the canvas and name the
+outstanding topics, without copying its questions or opening another prompt.
+The authoritative Codex AGENTS.md must carry that exception to its general rule
+requiring unanswered questions in final responses. A skill cannot override a
+higher-priority instruction: if the installed rule still requires full questions,
+report the configuration conflict and follow that instruction until updated.
+See [setup](setup.md#canvas-workflow-instructions).
 
 Reply with a note, follow-up question, or `resolved` entry whose `replyTo` is the
 original question ID and whose section matches that question. Entries are
@@ -82,7 +113,7 @@ unchanged. Use `removeItemIds`, `removeContextIds`, `removeDecisionIds` or
 records, valid references and dependency lists. The conversation revision and
 specification version are independent.
 
-Keep questions, alternatives and discarded proposals in the discussion. Put
+Keep understandable questions, alternatives and decision-relevant summaries in the discussion. Put
 settled requirements and the rationale needed for implementation in work items
 and required contexts/decisions. Upload and attach binding visuals to those
 records deliberately. `get_work_item`, packet digests, compact overviews and
@@ -99,3 +130,51 @@ When details are settled, check the specification against the discussion and
 return focused item references for implementation. The conversation remains a
 private record under the plan's existing retention policy, including its expiry.
 It is not an implementation packet or authorization to execute or publish work.
+
+## Agent working context
+
+Use `append_agent_context` for repository findings, commit hashes, paths,
+investigation progress, scout tracking, preservation evidence and handoff notes.
+Use a concise title and a focused body. Each note is immutable. Correct a finding
+with a new ID and `supersedes` pointing to its latest version. Retain old notes
+for attribution, and reduce correction chains locally to the current findings.
+`get_agent_context` returns bounded incremental pages using its own cursor;
+`get_agent_context_entry` retrieves a deliberately selected note without history.
+These records are private to the authenticated plan owner, including on published
+plans. They expire with the plan. Do not store secrets there.
+
+For example, after reading the agent-context cursor:
+
+```json
+{
+  "contractVersion": "v1",
+  "planId": "csv-import",
+  "operationId": "inspect-importer-1",
+  "expectedRevision": 0,
+  "expectedDigest": "<copy cursor.digest from get_agent_context>",
+  "entries": [
+    {
+      "id": "importer-evidence-1",
+      "title": "Existing importer behavior",
+      "body": "src/import/read.ts rejects the whole file if a date is invalid. Preserve the existing tab-delimited format when changing row handling."
+    }
+  ]
+}
+```
+
+The conversation might then say "The importer currently rejects the whole file.
+Keeping valid rows would let you fix only the errors." Attach optional
+`source: {"entryId": "importer-evidence-1", "label": "Current importer behavior"}`
+only when inspecting the evidence helps assess that recommendation. The browser
+loads the cited version on demand. Do not add source controls to every question.
+Agent findings are not human decisions, and a cited note is not a requirement.
+Copy the tab-format preservation requirement into the selected work item's
+requirements or a required context before handing it to an implementer.
+
+Existing conversation entries remain unchanged, even if their titles sound
+technical. Never infer classification from titles or silently remove history.
+For an explicitly requested cleanup, copy identified evidence to agent context,
+retain its original entry ID in the note, and explain the correction briefly.
+This release does not remove or hide the original conversation entry. Preserve
+human answers and their original attribution. Implementation packets must remain
+complete without fetching conversation or agent-context history.

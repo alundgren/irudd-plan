@@ -1,14 +1,15 @@
 # Incremental planning protocol
 
 Require `get_contract.features.incrementalSync: true` alongside
-`planningConversation` and `planDeltas`. Do not use a revision number without
+`planningConversation`, `planDeltas` and `agentContext`. Do not use a revision number without
 its returned digest. No new MCP transport, webhook or credentials are required.
 
 ## Read only what changed
 
 Use `sync_plan` for the specification and `get_planning` for discussion.
+Use `get_agent_context` for private agent findings.
 Retain their separate `{revision, digest}` cursors with the corresponding local
-state. Send the last cursor on each read. Both default to 25 records per page;
+state. Send the last cursor on each read. All three default to 25 records per page;
 `limit` can be 1 through 100. Unchanged reads contain no record bodies. Assets
 are descriptors here; retrieve exact bytes only when needed and cache by digest.
 A page bounds record count, not the size of an individual specification record.
@@ -102,6 +103,24 @@ above. Authentication, unavailable-plan and service errors remain stop condition
 Cursor validation detects restored/divergent history; it cannot restore data lost
 from the server. Backups are needed for that.
 
-Normal planning retains the local state and both cursors across the question,
+Normal planning retains the local state and all three cursors across the question,
 answer and refinement loop. Implementation agents continue using focused
 `get_work_item` and `check_packet`; discussion never enters those packets.
+
+## Agent-context pages and writes
+
+`get_agent_context` uses the conversation page protocol with an independent
+owner/plan-scoped digest chain. Never use a conversation cursor for this stream.
+`append_agent_context` requires its current `expectedRevision` and `expectedDigest`.
+Hash `{type: "agent-context", request}` for the receipt's request digest. The same
+replay, conflict and reset rules apply. Entries carry server-assigned agent
+authorship, operation ID, timestamp and revision. A batch contains 1 to 50 notes;
+bodies are limited to 40,000 characters, IDs and titles to 200.
+
+Corrections append new IDs with optional `supersedes`; only the latest note in a
+correction chain can be superseded. Old entries stay readable by ID. Polling
+returns only new notes, not prior bodies. A fresh session without cached context
+bootstraps in pages; an exact source lookup uses `get_agent_context_entry` with
+`entryId` and does not advance a cursor. Reads currently rebuild the digest chain
+from stored entries on the server, like conversation reads; paging bounds network
+responses rather than database work.

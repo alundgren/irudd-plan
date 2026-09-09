@@ -1,3 +1,5 @@
+import { usePlanningViewport } from "./use-planning-viewport.js";
+import { PlanningSource } from "./planning-source.js";
 import type { StoredPlanningEntry } from "../contract/planning.js";
 import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
@@ -11,6 +13,7 @@ export function PlanningView({
   readonly planId: string;
   readonly goal: string;
 }) {
+  const viewport = usePlanningViewport();
   const {
     conversation,
     drafts,
@@ -31,89 +34,90 @@ export function PlanningView({
   const hasDraft =
     Object.values(drafts).some((value) => value.trim()) || !!note.trim();
   return (
-    <section className="planning-view" aria-label="Planning conversation">
-      <header className="planning-intro">
-        <h1>{goal}</h1>
-        <p>
-          Work through the questions here. Saved answers are available to the
-          planning agent and future sessions.
-        </p>
-        <p role="status">
-          {connected
-            ? "Connected · checking for new questions"
-            : "Disconnected · retrying connection"}
-        </p>
-      </header>
-      {!conversation ? (
-        <p>Loading conversation...</p>
-      ) : !sections.length ? (
-        <p>
-          No questions yet. The agent can add the first batch to this canvas.
-        </p>
-      ) : null}
-      <div className="planning-sections">
-        {sections.map((section) => (
-          <section className="planning-section" key={section}>
-            <h2>{section}</h2>
-            {conversation?.entries
-              .filter(
-                (entry) =>
-                  entry.section === section &&
-                  (entry.replyTo === undefined || entry.kind === "question"),
-              )
-              .map((entry) => (
-                <PlanningThread
-                  key={entry.id}
-                  entry={entry}
-                  entries={conversation.entries}
-                  planId={planId}
-                  draft={drafts[entry.id] ?? ""}
-                  disabled={sending || uncertain}
-                  onChange={(value) => {
-                    setAnswer(entry.id, value);
-                    setSaved(false);
-                  }}
-                />
-              ))}
-          </section>
-        ))}
-      </div>
-      <div className="planning-compose">
-        <label htmlFor="planning-note">Add a thought or ask a question</label>
-        <textarea
-          id="planning-note"
-          value={note}
-          disabled={sending || uncertain}
-          maxLength={40000}
-          onChange={(event) => {
-            setNote(event.target.value);
-            setSaved(false);
-          }}
-        />
-        <Button
-          disabled={
-            sending ||
-            (!hasDraft && !uncertain) ||
-            !conversation ||
-            (!connected && !uncertain)
-          }
-          onClick={() => void submit()}
-        >
-          {sending
-            ? "Saving..."
-            : uncertain
-              ? "Retry saving answers"
-              : "Save answers and notes"}
-        </Button>
-        {saved ? (
-          <p role="status">Saved. The agent can read your answers.</p>
+    <section
+      ref={viewport.ref}
+      style={{ maxHeight: viewport.height }}
+      className="planning-view"
+      aria-label="Planning conversation"
+    >
+      <div className="planning-scroll">
+        <header className="planning-intro">
+          <h1>{goal}</h1>
+          <p>
+            Work through the questions here. Saved answers are available to the
+            planning agent and future sessions.
+          </p>
+          <p role="status">
+            {connected
+              ? "Server connected · checking for conversation updates"
+              : "Server disconnected · retrying connection"}
+          </p>
+        </header>
+        {!conversation ? (
+          <p>Loading conversation...</p>
+        ) : !sections.length ? (
+          <p>
+            No questions yet. The agent can add the first batch to this canvas.
+          </p>
         ) : null}
-        {error ? <p role="alert">{error} Your draft is still here.</p> : null}
-        <p>
-          Discussion stays in this private planning record. Implementation
-          agents receive the agreed specification separately.
-        </p>
+        <div className="planning-sections">
+          {sections.map((section) => (
+            <section className="planning-section" key={section}>
+              <h2>{section}</h2>
+              {conversation?.entries
+                .filter(
+                  (entry) =>
+                    entry.section === section &&
+                    (entry.replyTo === undefined || entry.kind === "question"),
+                )
+                .map((entry) => (
+                  <PlanningThread
+                    key={entry.id}
+                    entry={entry}
+                    entries={conversation.entries}
+                    planId={planId}
+                    draft={drafts[entry.id] ?? ""}
+                    disabled={sending || uncertain}
+                    onChange={(value) => {
+                      setAnswer(entry.id, value);
+                      setSaved(false);
+                    }}
+                  />
+                ))}
+            </section>
+          ))}
+        </div>
+        <div className="planning-compose">
+          <label htmlFor="planning-note">Add a thought or ask a question</label>
+          <textarea
+            id="planning-note"
+            value={note}
+            disabled={sending || uncertain}
+            maxLength={40000}
+            onChange={(event) => {
+              setNote(event.target.value);
+              setSaved(false);
+            }}
+          />
+          <p>
+            Discussion stays in this private planning record. Implementation
+            agents receive the agreed specification separately.
+          </p>
+        </div>
       </div>
+      <PlanningActions
+        sending={sending}
+        uncertain={uncertain}
+        saved={saved}
+        error={error}
+        disabled={
+          sending ||
+          (!hasDraft && !uncertain) ||
+          !conversation ||
+          (!connected && !uncertain)
+        }
+        onSubmit={() => void submit()}
+      />
     </section>
   );
 }
@@ -190,6 +194,13 @@ function PlanningMessage({
         {entry.kind === "resolved" ? " · Resolved" : ""}
       </p>
       <RichText text={entry.body} />
+      {entry.source ? (
+        <PlanningSource
+          key={entry.source.entryId}
+          planId={planId}
+          source={entry.source}
+        />
+      ) : null}
       {entry.assets?.map((asset) => (
         <AssetView
           key={`${asset.id}:${asset.digest}`}
@@ -199,5 +210,36 @@ function PlanningMessage({
         />
       ))}
     </div>
+  );
+}
+
+function PlanningActions({
+  sending,
+  uncertain,
+  saved,
+  error,
+  disabled,
+  onSubmit,
+}: {
+  readonly sending: boolean;
+  readonly uncertain: boolean;
+  readonly saved: boolean;
+  readonly error: string | undefined;
+  readonly disabled: boolean;
+  readonly onSubmit: () => void;
+}) {
+  return (
+    <footer className="planning-actions" aria-label="Save planning answers">
+      <Button disabled={disabled} onClick={onSubmit}>
+        {sending
+          ? "Saving..."
+          : uncertain
+            ? "Retry saving answers"
+            : "Save answers and notes"}
+      </Button>
+      {saved ? <p role="status">Saved to this plan.</p> : null}
+      {error ? <p role="alert">{error} Your draft is still here.</p> : null}
+      <p>Saving does not restart a stopped agent session.</p>
+    </footer>
   );
 }

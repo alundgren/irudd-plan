@@ -102,3 +102,17 @@ The public repository's `docs/operations.md` and `docs/smoke-tests.md` contain
 operator deployment commands. Deployment through the actual Cloudflare endpoint
 must be observed separately from the local tests; the local verifier is not
 Cloudflare certification.
+
+## Canvas workflow instructions
+
+Require the `agentContext` feature before starting the updated planning workflow.
+Install this repository's skill source alongside the server update.
+
+The managed Codex instruction source is `resources/codex/AGENTS.md` in
+`irudd-skills`. Its general requirement to repeat unanswered questions in final
+responses needs the irudd-plan exception: keep canvas questions on the canvas,
+continue polling during an active wait, and when stopping link to the canvas,
+name outstanding topics and explain that saving does not restart the session.
+Distribute that source change through its normal installer. Do not edit only an
+installed managed block. Higher-priority instructions still govern until that
+update is installed. Native question tools must not compete for canvas decisions.

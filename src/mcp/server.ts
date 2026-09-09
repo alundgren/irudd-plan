@@ -1,3 +1,8 @@
+import {
+  GetAgentContextRequest,
+  GetAgentContextEntryRequest,
+  AppendAgentContextRequest,
+} from "../contract/agent-context.js";
 import { SyncPlanRequest, GetOperationRequest } from "../contract/sync.js";
 import {
   AppendPlanningRequest,
@@ -214,6 +219,7 @@ async function callTool(
           features: {
             itemDependencies: true,
             planningConversation: true,
+            agentContext: true,
             planDeltas: true,
             incrementalSync: true,
           },
@@ -237,6 +243,31 @@ async function callTool(
         break;
       case "sync_plan":
         value = await service.syncPlan(ownerId, decode(SyncPlanRequest, args));
+        break;
+      case "get_agent_context": {
+        const request = decode(GetAgentContextRequest, args);
+        value = await service.getAgentContext(
+          ownerId,
+          request.planId,
+          request.cursor,
+          request.limit,
+        );
+        break;
+      }
+      case "get_agent_context_entry": {
+        const request = decode(GetAgentContextEntryRequest, args);
+        value = await service.getAgentContextEntry(
+          ownerId,
+          request.planId,
+          request.entryId,
+        );
+        break;
+      }
+      case "append_agent_context":
+        value = await service.appendAgentContext(
+          ownerId,
+          decode(AppendAgentContextRequest, args),
+        );
         break;
       case "get_planning": {
         const request = decode(GetPlanningRequest, args);

@@ -99,3 +99,25 @@ Percent-encode IDs and digest query values. References resolve current content,
 not historical revisions. Use `get_github_reference` for the human link and MCP
 reference instead of constructing a public URL. Required MCP failure remains a
 stop condition even if a browser page still displays cached content.
+
+## Private agent context
+
+The additive `agentContext` feature provides `get_agent_context`,
+`get_agent_context_entry` and `append_agent_context`. See [sync](sync.md) for
+cursor, correction and retry semantics and [conversation](conversation.md) for
+writing examples. Conversation entries may include one optional `source` with
+`entryId` and a plain-language `label`, referencing an immutable note in the same
+owner's same plan. Require this feature before sending source references.
+
+Agent context has its own table and revision stream. It is excluded from
+`get_plan`, `sync_plan`, public documents and selected implementation packets.
+Changing findings alone does not change packet digests. Binding requirements
+must be copied into work items or their required contexts/decisions/assets.
+The authenticated browser can read a cited note by ID but cannot write agent
+context. Publication does not expose context. Plan deletion cascades to context.
+
+The migration only adds storage. Existing conversation JSON, IDs, author fields,
+digest chains and browser drafts are not rewritten. Legacy technical notes stay
+visible until an explicitly designed cleanup is separately authorized; there is
+no title-based classification. Old clients continue their existing conversation
+workflow; updated planning skills stop when the new feature is absent.

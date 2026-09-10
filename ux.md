@@ -236,8 +236,8 @@ not. A later human answer starts the wait again. Agent messages never show a vis
 answer keeps a green checkmark and "Saved to this plan" directly beneath it,
 inside its indented block. Drafts and failed writes do not create receipts.
 The composer has a divider and says "Your answer" initially, then "Add a
-follow-up" after any saved answer, including while waiting. Batch saving retains
-its existing behavior.
+follow-up" after any saved answer, including while waiting. Browser saves are
+per composer; the server still accepts batch requests from existing clients.
 
 The Quiet inline reference uses system-ui, 400/500/600 weights, a 17px semibold
 status title with 27.2px line height, 13.5px supporting text, and #3D6034 for

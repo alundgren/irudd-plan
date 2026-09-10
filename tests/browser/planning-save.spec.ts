@@ -199,6 +199,62 @@ for (const width of [1440, 390]) {
         "answer",
         "note",
       ]);
+      // A reset can remove the origin while the accepted request is still uncertain.
+      await expect(
+        a.getByRole("button", { name: /^Save follow-up:/ }),
+      ).toBeEnabled();
+      await note.fill("Keep this recovery note");
+      await page.unroute(`**/api/plans/${planId}/planning`);
+      const recoveryPosts: string[] = [];
+      await page.route(`**/api/plans/${planId}/planning`, async (route) => {
+        if (route.request().method() !== "POST") return route.continue();
+        recoveryPosts.push(route.request().postData()!);
+        if (recoveryPosts.length === 1) {
+          await route.fetch();
+          await route.abort("failed");
+        } else await route.continue();
+      });
+      await a.getByRole("button", { name: /^Save follow-up:/ }).focus();
+      await page.keyboard.press("Enter");
+      await expect(
+        a.getByRole("button", { name: /^Retry saving:/ }),
+      ).toBeEnabled();
+      let resetPage = true;
+      await page.route(`**/api/plans/${planId}/planning**`, async (route) => {
+        if (route.request().method() !== "GET") return route.fallback();
+        if (resetPage) {
+          resetPage = false;
+          await route.fulfill({
+            json: { ...initial, status: "reset_required" },
+          });
+        } else await route.fulfill({ json: initial });
+      });
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await expect(a).toHaveCount(0);
+      await expect(note).toHaveValue(/Keep this recovery note/);
+      await expect(note).toHaveValue(/Newer A draft/);
+      const recoveredNote = await note.inputValue();
+      const recoveredRetry = page.getByRole("button", {
+        name: "Retry saving: Add a thought or ask a question",
+      });
+      await recoveredRetry.focus();
+      await expect(page.locator(".planning-compose")).toContainText(
+        "This save belongs to a question that is no longer shown",
+      );
+      await recoveredRetry.click();
+      await expect(
+        page.getByText("The original answer was saved to this plan.", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(recoveryPosts).toHaveLength(2);
+      expect(recoveryPosts[1]).toBe(recoveryPosts[0]);
+      await expect(note).toHaveValue(recoveredNote);
+      expect(
+        (await read()).entries.filter(
+          (entry) => entry.author === "human" && entry.body === "Newer A draft",
+        ),
+      ).toHaveLength(1);
       console.log(JSON.stringify({ width, retry: box, noteSave: noteBox }));
     } finally {
       await client.close();

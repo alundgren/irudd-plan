@@ -52,7 +52,9 @@ export function usePlanningFeed(
             if (controller.signal.aborted) return;
             setConversation(replica);
             setConnected(
-              !page.hasMore && source.readyState === EventSource.OPEN,
+              !page.hasMore &&
+                navigator.onLine &&
+                source.readyState === EventSource.OPEN,
             );
             setDelivery(page.delivery);
             if (page.hasMore) {
@@ -74,12 +76,18 @@ export function usePlanningFeed(
         refreshing = false;
       }
     };
-    source.addEventListener("planning-update", () => void refresh());
-    source.onerror = () => {
+    const disconnect = () => {
       setConnected(false);
       setDelivery(undefined);
     };
+    const reconnect = () => void refresh();
+    source.addEventListener("planning-update", reconnect);
+    source.onerror = disconnect;
+    window.addEventListener("offline", disconnect);
+    window.addEventListener("online", reconnect);
     return () => {
+      window.removeEventListener("offline", disconnect);
+      window.removeEventListener("online", reconnect);
       controller.abort();
       source.close();
       clearTimeout(timer);

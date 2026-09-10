@@ -1847,3 +1847,42 @@ summary {
   white-space: pre;
   tab-size: 2;
 }
+
+.planning-inline-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--muted);
+}
+.planning-inline-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+.planning-inline-detail {
+  margin-top: 3px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.planning-inline-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.planning-inline-waiting,
+.planning-inline-warning {
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .planning-inline-waiting .planning-inline-dot {
+    animation: planning-waiting-pulse 2s ease-in-out infinite;
+  }
+}
+@keyframes planning-waiting-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

@@ -26,6 +26,7 @@ export function usePlanningResize(
   children: ReactNode,
 ) {
   const { viewport, world, current, move, fitting, focus } = camera;
+  const overviewZoom = useRef<number | undefined>(undefined);
   const observerRef = useRef<ResizeObserver | undefined>(undefined);
   const refresh = useRef<(() => void) | undefined>(undefined);
   useLayoutEffect(() => {
@@ -34,6 +35,8 @@ export function usePlanningResize(
   const selected = useRef<ReturnType<typeof measure> | undefined>(undefined);
   const select = useCallback(
     (panel: HTMLElement) => {
+      overviewZoom.current = fitting.current ? current.current.zoom : undefined;
+      fitting.current = false;
       const observer = observerRef.current;
       const previous = selected.current?.panel;
       if (previous) {
@@ -46,7 +49,7 @@ export function usePlanningResize(
       const section = panel.closest(".planning-section");
       if (section) observer?.observe(section);
     },
-    [world],
+    [world, current, fitting],
   );
   const read = useCallback(
     (panel: HTMLElement) => {
@@ -82,7 +85,7 @@ export function usePlanningResize(
             next,
             view,
             content,
-            width !== view.clientWidth,
+            overviewZoom.current === previous.zoom ? 1.1 : previous.zoom,
           ),
         );
       } else if (!resized && anchor?.panel.isConnected) {
@@ -102,6 +105,7 @@ export function usePlanningResize(
         // A manually positioned overview has no document to follow.
         fit();
       }
+      if (resized) overviewZoom.current = undefined;
       width = view.clientWidth;
       height = view.clientHeight;
       if (anchor?.panel.isConnected)
@@ -127,11 +131,12 @@ function resizedCamera(
   next: ReturnType<typeof measure>,
   view: HTMLElement,
   content: HTMLElement,
-  widthChanged: boolean,
+  preferredZoom: number,
 ): Camera {
-  const zoom = !widthChanged
-    ? previous.zoom
-    : Math.min(previous.zoom, Math.max(1, view.clientWidth - 48) / next.width);
+  const zoom = Math.min(
+    preferredZoom,
+    Math.max(1, view.clientWidth - 48) / next.width,
+  );
   const reading = Math.max(
     0,
     Math.min(

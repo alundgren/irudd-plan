@@ -252,6 +252,26 @@ test("mounted planning documents survive width and keyboard resizing", async ({
     const after = await longNote.boundingBox();
     expect(after!.y).toBeLessThan(before!.y + 50);
     await expect(answer).toHaveValue("Keep the valid rows");
+    await page.getByRole("button", { name: "Fit", exact: true }).click();
+    await answer.click();
+    await answer.press("End");
+    await answer.press("!");
+    await page.setViewportSize({ width: 390, height: 500 });
+    await insideCanvas(answer);
+    await insideCanvas(action);
+    expect((await answer.boundingBox())!.width).toBeGreaterThan(280);
+    await expect(answer).toBeFocused();
+    await expect(answer).toHaveValue("Keep the valid rows!");
+    await page.evaluate(() => {
+      Object.defineProperty(window.visualViewport, "height", {
+        configurable: true,
+        value: 320,
+      });
+      window.visualViewport!.dispatchEvent(new Event("resize"));
+    });
+    await insideCanvas(answer);
+    await insideCanvas(action);
+    await expect(answer).toBeFocused();
     expect(errors).toEqual([]);
   } finally {
     await client.close();

@@ -1,3 +1,7 @@
+import {
+  PlanningInlineStatus,
+  pendingPlanningAnswer,
+} from "./planning-inline-status.js";
 import { PlanningCanvas } from "./planning-canvas.js";
 import { usePlanningViewport } from "./use-planning-viewport.js";
 import { PlanningSource } from "./planning-source.js";
@@ -92,6 +96,8 @@ export function PlanningView({
                     key={entry.id}
                     entry={entry}
                     entries={conversation.entries}
+                    connected={connected}
+                    delivery={delivery}
                     planId={planId}
                     draft={drafts[entry.id] ?? ""}
                     disabled={sending || uncertain}
@@ -152,6 +158,8 @@ function deliveryMessage(delivery: QueueDelivery, humanRevision: number) {
 }
 
 function PlanningThread({
+  connected,
+  delivery,
   entry,
   entries,
   planId,
@@ -161,11 +169,14 @@ function PlanningThread({
 }: {
   readonly entry: StoredPlanningEntry;
   readonly entries: readonly StoredPlanningEntry[];
+  readonly connected: boolean;
+  readonly delivery: QueueDelivery | undefined;
   readonly planId: string;
   readonly draft: string;
   readonly disabled: boolean;
   readonly onChange: (value: string) => void;
 }) {
+  const pendingAnswer = pendingPlanningAnswer(entry.id, entries);
   const replies = entries.filter(
     (candidate) =>
       candidate.replyTo === entry.id && candidate.kind !== "question",
@@ -192,8 +203,20 @@ function PlanningThread({
         </Button>
         <PlanningMessage entry={entry} planId={planId} />
         {replies.map((reply) => (
-          <PlanningMessage key={reply.id} entry={reply} planId={planId} />
+          <PlanningMessage
+            key={reply.id}
+            entry={reply}
+            planId={planId}
+            showResolution={!pendingAnswer}
+          />
         ))}
+        {pendingAnswer ? (
+          <PlanningInlineStatus
+            answer={pendingAnswer}
+            connected={connected}
+            delivery={delivery}
+          />
+        ) : null}
         {attachments.length ? (
           <nav
             className="planning-example-links"
@@ -265,15 +288,17 @@ function PlanningThread({
 function PlanningMessage({
   entry,
   planId,
+  showResolution = true,
 }: {
   readonly entry: StoredPlanningEntry;
   readonly planId: string;
+  readonly showResolution?: boolean;
 }) {
   return (
     <div className={`planning-message planning-${entry.author}`}>
       <p className="planning-byline">
         {entry.author === "human" ? "You" : "Agent"}
-        {entry.kind === "resolved" ? " · Resolved" : ""}
+        {entry.kind === "resolved" && showResolution ? " · Resolved" : ""}
       </p>
       <RichText text={entry.body} />
       {entry.source ? (

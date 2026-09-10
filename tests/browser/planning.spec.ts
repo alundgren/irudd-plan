@@ -341,7 +341,7 @@ async function readConversation(client: IruddMcpClient, planId: string) {
   return result.structuredContent;
 }
 
-test("polls only new entries and reloads bounded pages after a reset without losing the draft", async ({
+test("loads new entries on events and reloads bounded pages after a reset without losing the draft", async ({
   page,
   baseURL,
 }) => {
@@ -380,7 +380,7 @@ test("polls only new entries and reloads bounded pages after a reset without los
     const pages: PlanningPage[] = [];
     page.on("response", (response) => {
       if (
-        response.url().includes(`/api/plans/${planId}/planning`) &&
+        new URL(response.url()).pathname === `/api/plans/${planId}/planning` &&
         response.request().method() === "GET"
       )
         void response
@@ -392,16 +392,9 @@ test("polls only new entries and reloads bounded pages after a reset without los
     await expect(
       page.getByText("Choose option 29", { exact: true }),
     ).toBeAttached();
-    await expect
-      .poll(() => pages.some((result) => result.status === "unchanged"))
-      .toBe(true);
+    await expect.poll(() => pages.length).toBe(2);
     expect(pages[0]!.entries).toHaveLength(25);
     expect(pages[1]!.entries).toHaveLength(5);
-    expect(
-      pages
-        .filter((result) => result.status === "unchanged")
-        .every((result) => result.entries.length === 0),
-    ).toBe(true);
     const draft = page.getByRole("textbox", {
       name: "Add a thought or ask a question",
     });
@@ -419,6 +412,22 @@ test("polls only new entries and reloads bounded pages after a reset without los
           json: { ...body, status: "reset_required", entries: [] },
         });
       } else await route.continue();
+    });
+    const current = await readConversation(client, planId);
+    await client.callTool("append_planning", {
+      contractVersion: "v1",
+      planId,
+      operationId: randomUUID(),
+      expectedRevision: current.headCursor.revision,
+      expectedDigest: current.headCursor.digest,
+      entries: [
+        {
+          id: "new-note",
+          section: "Questions",
+          kind: "note",
+          body: "A new event triggers a delta read.",
+        },
+      ],
     });
     await expect(page.getByRole("alert")).toContainText(
       "Conversation was reset",

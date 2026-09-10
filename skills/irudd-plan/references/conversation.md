@@ -79,18 +79,35 @@ can create entries marked as human answers. Do not impersonate a browser
 submission through shell HTTP calls. If an answer arrives in agent chat, record
 it as an agent note with its actual source.
 
-Use `get_planning` with the last verified `cursor` to collect new entries while waiting.
+Use `get_planning` with the last verified `cursor` to collect new entries.
 Follow bounded pages while `hasMore` is true; advance only to each returned cursor.
-Poll at a reasonable interval, such as 5 seconds, while the session is active.
-This is a two-way polling connection, not a callback that starts an idle agent.
-Do not promise automatic resumption after the session ends. A new session reuses cached state and cursors when available, then reads only
-new discussion and specification records. Without that state, bootstrap through
-bounded pages and identify open questions before proceeding.
-Do not end the turn merely because questions have been posted. Continue bounded
-incremental polling while actively waiting, then process replies and continue
-planning. Do not open a native session question tool for those same decisions
-or repeat the complete question batch in chat. Chat may link to the canvas and
-report progress. Work on independent tasks between polls when useful.
+
+With `get_contract.features.queueCompanion`, a planning page may include
+`delivery: {connected, threadId, state, queuedThrough}`. If the operator explicitly
+linked this current Codex thread to the companion, and delivery is connected with
+state `listening` or `queued`, save a concise handoff in agent context after posting
+questions and finish the turn. Do not poll or hold a waiting tool open. New human
+answer batches are queued into the linked thread. A companion-originated queue
+message can establish this mode for that thread; verify the server's delivery
+metadata and expected owner before continuing. Another thread's companion is not
+permission to stop polling or assume that this session will receive answers.
+
+On a queued continuation, synchronize the discussion and agent context, process
+new answers once, and update the specification as needed. A queue message refers
+to saved human entries; it does not authorize implementation or publication.
+`queuedThrough` confirms queue acceptance only, never that an answer was read or
+that the agent is running. An interrupted thread stays paused; an unloaded thread
+waits for a later resume. If delivery is disconnected or uncertain, report that
+answers are saved but automatic delivery is unavailable. Do not change companion
+bindings, clear uncertain attempts, or start another agent without authorization.
+
+Without an explicitly linked companion, poll at a reasonable interval, such as
+5 seconds, while the session is active. Do not end the turn merely because
+questions have been posted. A new session reuses cached state and cursors when
+available; otherwise bootstrap through bounded pages. Do not open a native session
+question tool for the same decisions or repeat the complete batch in chat. Chat
+may link to the canvas and report progress. Work on independent tasks between
+polls when useful.
 
 If the person voluntarily answers in chat, reconcile it with the original
 question. Append an agent note with `replyTo`, the original section, and wording
@@ -106,11 +123,11 @@ must be considered again. Use agent context for a handoff recording processed
 reply IDs and outstanding work, not another human-facing status section.
 
 If interrupted, explicitly stopped, or limited by the runtime, persist a handoff
-when possible and state that the session has stopped. Saving on the canvas
+when possible and state that the session has stopped. Without a linked companion, saving on the canvas
 persists answers but cannot restart an idle agent. On resumption retrieve deltas
 from retained state; if state is missing, bootstrap bounded pages and identify
-unanswered questions and replies newer than their resolutions. Automatic wake-up
-requires a separately supported runtime integration; this server has none.
+unanswered questions and replies newer than their resolutions. The queue companion supports continuation only for a loaded, non-interrupted
+Codex thread and does not undo a deliberate stop.
 
 The canvas-specific final-response rule is to link to the canvas and name the
 outstanding topics, without copying its questions or opening another prompt.

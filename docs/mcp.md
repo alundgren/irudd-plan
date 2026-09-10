@@ -34,6 +34,15 @@ retrieves one exact note by `entryId`. See the authoritative skill's
 [incremental protocol](../skills/irudd-plan/references/sync.md) for pagination,
 corrections, independent cursors and `get_operation` receipt recovery.
 
+With `features.queueCompanion`, `get_planning` may also include private
+`delivery: {connected, threadId, state, queuedThrough}` metadata. It describes
+the optional local queue companion, not agent runtime status. See
+[queue companion setup](queue-companion.md) for binding and recovery.
+Service-authenticated `/companion/plans/{planId}/events`, `/planning`, and
+`/delivery` endpoints support its event stream, cursor reads, and delivery
+reports. Browser credentials cannot use these endpoints. Delivery is excluded
+from plan documents, exports, public views, and implementation packets.
+
 An optional conversation `source: {entryId, label}` references a note within the
 same owner's same plan. The browser loads it on demand. No context is returned
 by plan exports, specification sync, public views or implementation packets.

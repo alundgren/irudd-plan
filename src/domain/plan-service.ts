@@ -28,6 +28,7 @@ import type {
 } from "../github/github-app.js";
 import { prepareAsset, type AssetLimits } from "./assets.js";
 import { PlanUpdateHub } from "./plan-update-hub.js";
+import { PlanningDelivery } from "./planning-delivery.js";
 import {
   collectRequiredPacket,
   digest,
@@ -35,6 +36,7 @@ import {
 } from "./validate-plan.js";
 
 export class PlanService {
+  readonly delivery = new PlanningDelivery();
   constructor(
     private readonly store: PlanStore,
     readonly updates = new PlanUpdateHub(),
@@ -111,7 +113,11 @@ export class PlanService {
     limit = 25,
   ) {
     const conversation = await this.store.planning.get(ownerId, planId);
-    return conversationPage(ownerId, conversation, cursor, limit);
+    const delivery = this.delivery.get(ownerId, planId);
+    return {
+      ...conversationPage(ownerId, conversation, cursor, limit),
+      ...(delivery ? { delivery } : {}),
+    };
   }
 
   async appendPlanning(
@@ -142,7 +148,9 @@ export class PlanService {
           );
       }
     }
-    return this.store.planning.append(ownerId, request, author);
+    const result = await this.store.planning.append(ownerId, request, author);
+    if (!result.replayed) this.delivery.changed(ownerId, request.planId);
+    return result;
   }
 
   async patch(ownerId: string, request: PatchPlanRequest) {

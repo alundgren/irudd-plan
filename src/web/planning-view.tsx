@@ -6,6 +6,7 @@ import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
 import { Button } from "./ui/button.js";
 import { usePlanningConversation } from "./use-planning-conversation.js";
+import type { QueueDelivery } from "../domain/planning-delivery.js";
 
 export function PlanningView({
   planId,
@@ -17,6 +18,7 @@ export function PlanningView({
   const viewport = usePlanningViewport();
   const {
     conversation,
+    delivery,
     drafts,
     note,
     error,
@@ -50,9 +52,19 @@ export function PlanningView({
           </p>
           <p role="status">
             {connected
-              ? "Server connected · checking for conversation updates"
+              ? "Server connected · receiving conversation updates"
               : "Server disconnected · retrying connection"}
           </p>
+          {delivery ? (
+            <p role="status">
+              {deliveryMessage(
+                delivery,
+                conversation?.entries
+                  .filter((entry) => entry.author === "human")
+                  .at(-1)?.revision ?? 0,
+              )}
+            </p>
+          ) : null}
         </header>
         {!conversation ? (
           <p>Loading conversation...</p>
@@ -125,6 +137,18 @@ export function PlanningView({
       />
     </section>
   );
+}
+
+function deliveryMessage(delivery: QueueDelivery, humanRevision: number) {
+  if (delivery.state === "uncertain")
+    return "Delivery needs review. Check the linked session before sending again.";
+  if (!delivery.connected)
+    return "Queue companion disconnected · saved answers will wait for reconnection.";
+  if (humanRevision > delivery.queuedThrough && delivery.state === "queued")
+    return "New answers saved · waiting to queue them for the agent.";
+  if (delivery.state === "queued")
+    return "Answers queued for the agent. Running status is unknown.";
+  return "Queue companion connected · new saved answers will be sent to the linked session.";
 }
 
 function PlanningThread({

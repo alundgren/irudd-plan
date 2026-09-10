@@ -49,6 +49,7 @@ import {
 } from "../contract/plan.js";
 import type { PlanService } from "../domain/plan-service.js";
 import { handleBrowserRequest } from "../web/http-router.js";
+import { handleCompanionRequest } from "../web/companion-router.js";
 import { resourceTemplates, tools } from "./catalog.js";
 
 interface ServerOptions {
@@ -64,6 +65,12 @@ export function createMcpHttpServer(
   options: ServerOptions = {},
 ): Server {
   const activeStreamCloses = new Set<() => void>();
+  const registerStream = (close: () => void) => {
+    activeStreamCloses.add(close);
+    return () => {
+      activeStreamCloses.delete(close);
+    };
+  };
   const bodyLimitBytes = options.bodyLimitBytes ?? 2_000_000;
   const handler = createMcpHandler(
     (context) => createOwnerServer(service, requireOwner(context.authInfo)),
@@ -75,6 +82,16 @@ export function createMcpHttpServer(
     response: ServerResponse,
   ): Promise<void> => {
     try {
+      if (
+        await handleCompanionRequest(
+          request,
+          response,
+          service,
+          authenticator,
+          registerStream,
+        )
+      )
+        return;
       if (request.url === "/healthz") {
         sendJson(response, 200, { status: "ok" });
         return;
@@ -217,6 +234,7 @@ async function callTool(
           contractVersion: CONTRACT_VERSION,
           skillVersion: SKILL_VERSION,
           features: {
+            queueCompanion: true,
             itemDependencies: true,
             planningConversation: true,
             agentContext: true,
@@ -502,9 +520,12 @@ function sendHttpError(response: ServerResponse, error: unknown): void {
         : normalized.code === "PLAN_NOT_FOUND" ||
             normalized.code === "ASSET_UNAVAILABLE"
           ? 404
-          : normalized.code === "INTERNAL"
-            ? 500
-            : 400;
+          : normalized.code === "PLAN_CONFLICT" ||
+              normalized.code === "SYNC_REQUIRED"
+            ? 409
+            : normalized.code === "INTERNAL"
+              ? 500
+              : 400;
   sendJson(response, status, {
     jsonrpc: "2.0",
     id: null,

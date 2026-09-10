@@ -72,8 +72,10 @@ Use bounded `sync_plan`/`get_planning` reads and `patch_plan`/`append_planning` 
 during interaction. Put repository evidence and session bookkeeping in
 `append_agent_context`, and synchronize it with `get_agent_context`. Keep
 conversation questions and explanations in plain language. Once questions are
-on the canvas, keep actively polling; do not duplicate them in native prompts
-or end the turn just to await session input. Full-plan reads are for deliberate export or legacy revision.
+on the canvas, use the delivery mode described in canvas conversation. An explicitly
+linked queue companion lets this thread finish while awaiting answers. Otherwise
+keep actively polling. Do not duplicate canvas questions in native prompts.
+Full-plan reads are for deliberate export or legacy revision.
 
 Read [the contract](references/contract.md) and the
 [fresh session examples](references/sessions.md). Upload self-contained visuals

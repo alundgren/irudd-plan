@@ -54,8 +54,10 @@ retention policy also governs conversation lifetime.
 MCP `append_planning` creates agent questions, notes and resolutions. The
 browser's authenticated JSON endpoint creates human answers and notes, with
 cross-origin submission protection. `get_planning` supports a revision/digest cursor
-for active agent polling. The browser polls every two seconds. This protocol
-persists answers across sessions but does not launch an agent process.
+for active agent polling. The browser receives private conversation events and fetches changed pages.
+The optional local queue companion subscribes using service credentials and
+forwards new human batches through `codex queue`; the web server never launches
+a local agent process.
 
 MCP `patch_plan` reconstructs a specification from the exact stored base revision
 and complete changed records, then uses ordinary validation and optimistic write
@@ -88,6 +90,19 @@ implementation must enter work items or required specification records, because
 agent context is excluded from item packets and their digests.
 
 The planning footer reserves space below the conversation scroller. Its receipt
-confirms persistence, not agent acknowledgement. Browser polling establishes
-server connectivity only. Active agent polling and resumption are skill workflow
-responsibilities; the server cannot wake a stopped agent session.
+confirms persistence, not agent acknowledgement. The optional companion reports
+connection status and queue acceptance independently. `src/companion` owns local
+configuration, verified cursor catch-up, an exclusive state lock, a crash-safe
+delivery journal, and the Codex CLI call. `src/web/companion-router.ts` accepts only
+service credentials; private browser conversation events use browser credentials.
+Both streams recheck authentication and plan access while connected. Revision
+notices carry no answer bodies. The registry permits one connected companion per
+owner/plan and requires acknowledgements within 45 seconds. It is deliberately
+process-local; deployment remains a single application process. A distributed
+server would need shared connection claims and event delivery.
+
+The agent can finish after posting questions when its current thread is explicitly
+linked. The companion's configured Codex home provides the queue storage shared
+with the owning Codex process. A queue receipt confirms acceptance only. An
+interrupted thread stays paused; an unloaded thread waits for a later resume.
+See [queue companion](queue-companion.md) for setup and uncertain delivery recovery.

@@ -24,6 +24,30 @@ visuals first and put their exact descriptors in the entry's `assets` array.
 These attachments do not need to enter `plan.assets` unless the specification
 also needs them. HTML and SVG use the existing isolated asset viewer.
 
+The discussion is a pannable, zoomable canvas. Each question has its own answer
+area. Attachments appear as separate documents beside that question, in array
+order. Attachments on a reply appear beside the original question too. Use this
+space to help the person inspect the actual options, not just read about them.
+
+When someone asks to see examples or compare alternatives, create the examples
+before asking them to choose again. For example, a comparison of two agent-file
+approaches can show two labeled HTML documents containing the proposed file
+contents, launch instructions and a small loading diagram. Upload each document
+with `upload_asset`, then append a short reply with both descriptors in `assets`
+and `replyTo` pointing to the question. The browser places the two documents
+side by side. Do not answer a request to see the files with another long prose
+account of what they would contain. Mark illustrative files as examples and
+verify runtime-specific syntax before presenting it as usable configuration.
+
+Use HTML for formatted file previews or alternate proposals, SVG or images for
+diagrams and mockups. Keep each alternative in its own attachment with a clear
+caption so it can be opened at reading size. HTML code examples must escape
+`&`, `<` and `>` inside `pre`/`code`; use inline styling and no external resources.
+Include the original file as the upload's optional source when useful. Short
+code snippets can also use fenced code blocks in a message body. Keep the reply
+focused on the difference the person should inspect. A simple question can
+stay text-only; choose a visual or document when it helps reach understanding.
+
 For example, after `get_planning` returns revision 0, replace the digest
 placeholder below with its actual `cursor.digest`:
 

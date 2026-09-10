@@ -74,6 +74,12 @@ for (const width of [1280, 390]) {
         page.locator('iframe[title="100 rows: 98 valid and 2 invalid"]'),
       ).toBeAttached();
       await page.getByRole("button", { name: "CSV", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "CSV", exact: true }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await page
+        .getByRole("combobox", { name: "Go to planning section" })
+        .selectOption("Invalid rows");
       await page
         .getByRole("textbox", {
           name: "Answer: What happens when two rows fail?",
@@ -111,11 +117,140 @@ for (const width of [1280, 390]) {
       await expect(
         page.getByText("Keep valid rows and report errors", { exact: true }),
       ).toBeVisible();
+      const documents: AssetDescriptor[] = [];
+      for (const [id, content] of [
+        [
+          "option-a",
+          "# Reviewer\n\nReview the selected change.\nReport defects with file references.",
+        ],
+        [
+          "option-b",
+          "# Reviewer\n\nRead the shared review rules first.\nReview the selected change using those rules.",
+        ],
+      ]) {
+        const result = await client.callTool<{
+          structuredContent: AssetDescriptor;
+        }>("upload_asset", {
+          contractVersion: "v1",
+          planId,
+          assetId: id,
+          caption: `${id}.md`,
+          role: "illustration",
+          mediaType: "text/html",
+          bytesBase64: Buffer.from(
+            `<html><head><style>body{margin:0;background:#f9f6f0;color:#604939;font:16px/1.6 system-ui}h2{font-size:22px;font-weight:600}pre{white-space:pre-wrap;font:15px/1.6 ui-monospace,monospace}</style></head><body><h2>${id}.md</h2><pre>${content}</pre></body></html>`,
+          ).toString("base64"),
+        });
+        documents.push(result.structuredContent);
+      }
+      await page
+        .getByRole("combobox", { name: "Go to planning section" })
+        .selectOption("File formats");
+      const cameraBefore = await page
+        .locator(".planning-world")
+        .getAttribute("style");
       await client.callTool("append_planning", {
         contractVersion: "v1",
         planId,
         operationId: randomUUID(),
         expectedRevision: 4,
+        expectedDigest: (await readConversation(client, planId)).cursor.digest,
+        entries: [
+          {
+            id: "comparison",
+            section: "File formats",
+            kind: "note",
+            replyTo: "formats",
+            body: "Compare the two proposed files beside this question.",
+            assets: documents,
+          },
+        ],
+      });
+      await expect(page.locator(".planning-artifact")).toHaveCount(3);
+      await expect(page.locator(".planning-world")).toHaveAttribute(
+        "style",
+        cameraBefore!,
+      );
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
+      const positions = await page
+        .locator(".planning-comparison")
+        .first()
+        .locator("[data-planning-panel]")
+        .evaluateAll((panels) =>
+          panels.map((panel) => {
+            const rect = panel.getBoundingClientRect();
+            return { left: rect.left, right: rect.right, top: rect.top };
+          }),
+        );
+      expect(positions).toHaveLength(3);
+      expect(positions[1]!.left).toBeGreaterThan(positions[0]!.right);
+      expect(positions[2]!.left).toBeGreaterThan(positions[1]!.right);
+      expect(positions[2]!.top).toBeCloseTo(positions[1]!.top, 0);
+      await page
+        .getByRole("combobox", { name: "Go to planning section" })
+        .selectOption("File formats");
+      await page
+        .getByRole("button", { name: "Compare examples", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Read option-a.md", exact: true }),
+      ).toBeInViewport();
+      await expect(
+        page.getByRole("button", { name: "Read option-b.md", exact: true }),
+      ).toBeInViewport();
+      await page.screenshot({
+        path: `test-results/planning-comparison-${width}.png`,
+      });
+      await page
+        .getByRole("button", { name: "Read option-a.md", exact: true })
+        .click();
+      await expect(
+        page.frameLocator('iframe[title="option-a.md"]').locator("pre"),
+      ).toContainText("Report defects with file references.");
+      await page
+        .locator(".planning-artifact")
+        .filter({
+          has: page.getByRole("button", {
+            name: "Read option-a.md",
+            exact: true,
+          }),
+        })
+        .getByRole("button", { name: "Back to question" })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Compare examples", exact: true }),
+      ).toBeInViewport();
+      await page
+        .getByRole("button", { name: "option-b.md", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Read option-b.md", exact: true }),
+      ).toBeInViewport();
+      const zoom = Number(
+        await page.locator(".planning-canvas").getAttribute("data-zoom"),
+      );
+      await page.locator(".planning-canvas").focus();
+      await page.keyboard.press("-");
+      await expect
+        .poll(async () =>
+          Number(
+            await page.locator(".planning-canvas").getAttribute("data-zoom"),
+          ),
+        )
+        .toBeLessThan(zoom);
+      const beforePan = await page
+        .locator(".planning-world")
+        .getAttribute("style");
+      await page.keyboard.press("ArrowRight");
+      await expect(page.locator(".planning-world")).not.toHaveAttribute(
+        "style",
+        beforePan!,
+      );
+      await client.callTool("append_planning", {
+        contractVersion: "v1",
+        planId,
+        operationId: randomUUID(),
+        expectedRevision: 5,
         expectedDigest: (await readConversation(client, planId)).cursor.digest,
         entries: [
           {
@@ -135,6 +270,7 @@ for (const width of [1280, 390]) {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
       await page.screenshot({
         path: `test-results/planning-${width}.png`,
         fullPage: true,

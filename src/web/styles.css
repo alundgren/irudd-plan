@@ -21,6 +21,8 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) var(--bg);
 }
 
 body {
@@ -1619,15 +1621,74 @@ summary {
   display: flex;
   flex-direction: column;
 }
-.planning-scroll {
-  scroll-padding: 12px;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  width: 100%;
-  padding: 28px;
-  max-width: 1600px;
-  margin: 0 auto;
+.planning-world {
+  position: absolute;
+  width: max-content;
+  transform-origin: 0 0;
+}
+.planning-canvas {
+  cursor: grab;
+}
+.planning-canvas [data-planning-panel] {
+  cursor: auto;
+}
+.planning-world [data-planning-panel] {
+  width: clamp(280px, calc(100cqw - 48px), 600px);
+}
+.planning-comparison {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  margin: 16px 0 40px;
+}
+.planning-artifact {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+}
+.planning-artifact .asset-frame {
+  margin: 0;
+}
+.planning-artifact .asset-view {
+  margin-top: 16px;
+}
+.planning-artifact figcaption {
+  margin-bottom: 16px;
+}
+.planning-thread > button {
+  margin-bottom: 16px;
+}
+.planning-example-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 16px;
+}
+.planning-example-links button,
+.planning-artifact > button {
+  height: auto;
+  min-height: 40px;
+  padding: 8px 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.planning-artifact > button {
+  margin: 0 8px 8px 0;
+}
+.planning-view .canvas-tools select {
+  min-width: 0;
+  max-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  font: inherit;
+}
+.planning-pan-hint {
+  font-size: 13.5px;
+  color: var(--muted);
 }
 .planning-intro {
   max-width: 75ch;
@@ -1639,8 +1700,9 @@ summary {
 }
 .planning-sections {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 28px;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 64px;
   align-items: start;
 }
 .planning-section h2 {
@@ -1652,7 +1714,7 @@ summary {
   border: 1px solid #c1af9a;
   border-radius: 10px;
   padding: 20px;
-  margin: 16px 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .planning-message {
@@ -1708,8 +1770,11 @@ summary {
   min-width: 0;
 }
 @media (max-width: 700px) {
-  .planning-scroll {
-    padding: 16px;
+  .planning-pan-hint {
+    display: none;
+  }
+  .planning-view .canvas-tools {
+    flex-wrap: wrap;
   }
 }
 
@@ -1768,4 +1833,17 @@ summary {
   min-height: 44px;
   white-space: normal;
   height: auto;
+}
+
+.rich-text pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 6px;
+  background: var(--panel);
+  font:
+    14px/1.6 ui-monospace,
+    monospace;
+  white-space: pre;
+  tab-size: 2;
 }

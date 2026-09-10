@@ -120,7 +120,7 @@ export const planningTools = [
   {
     name: "append_planning",
     description:
-      "Append a small batch of plain-language questions, explanations or resolutions to the private planning canvas. Keep repository evidence and bookkeeping in append_agent_context. Attach an optional source {entryId, label} only when it helps assess a recommendation. Entries are immutable. Use replyTo for follow-ups and resolutions, section for grouping, choices for suggested answers, and exact uploaded asset descriptors for visuals. Human answers arrive through the browser. Read current revision first; retry identical operationId and input after an uncertain result.",
+      "Append a small batch of plain-language questions, explanations or resolutions to the private planning canvas. Keep repository evidence and bookkeeping in append_agent_context. Attach an optional source {entryId, label} only when it helps assess a recommendation. Entries are immutable. Use replyTo for follow-ups and resolutions, section for grouping, choices for suggested answers, and exact uploaded asset descriptors for visuals. Assets render as separate documents beside the question, in array order; reply assets appear beside the original question. For requests to see examples or compare alternatives, upload concrete labeled HTML file previews, proposals, diagrams or images and attach them to a short reply instead of only describing them in prose. Body supports fenced code blocks. Human answers arrive through the browser. Read current revision first; retry identical operationId and input after an uncertain result.",
     inputSchema: {
       type: "object",
       required: [

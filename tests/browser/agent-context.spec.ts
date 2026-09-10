@@ -119,9 +119,9 @@ for (const width of [1280, 390]) {
           .evaluate((element) => element.scrollHeight > element.clientHeight),
       ).toBe(true);
       await page.getByText("Source: Current importer", { exact: true }).click();
-      await page.locator(".planning-scroll").evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-      });
+      await page
+        .getByRole("button", { name: "Add a thought", exact: true })
+        .click();
       await assertReachable();
       await page
         .getByRole("textbox", { name: "Add a thought or ask a question" })

@@ -154,9 +154,19 @@ items create no new feedback targets.
 ## Collaborative planning
 
 Private plans have a Planning control beside the specification navigation.
-Plans without implementation items start in Planning. The view groups questions
-into named sections at a readable scale, with responsive columns and ordinary
-scrolling. Suggested answers are buttons with no automatic selection. Each
+Plans without implementation items start in Planning. The view groups questions into named sections on a continuous canvas.
+Question attachments and attachments on replies appear as separate documents
+beside the original question, in upload order, so alternative files, proposals
+and visuals can be compared side by side. Each document has a reading control and a return to its question. Question links open individual attachments; Compare examples frames all attachments together.
+The canvas fits its contents initially; the section chooser opens a question at
+reading size. Wheel zooms, Shift-wheel pans, dragging background or middle-button
+dragging pans, and touch supports pan and pinch zoom. Focused canvas arrow keys
+pan, plus/minus zoom, and Home fits. Editing text preserves normal input behavior.
+Tabbing to a control brings its document into view. The Add a thought toolbar
+action opens the note editor. Answer submission stays outside the canvas.
+Live content refits only while the person has not navigated away from Fit.
+Scrollbars in fields and bounded documents use thin warm-colored tracks.
+Fenced code blocks preserve whitespace and render literal code. Suggested answers are buttons with no automatic selection. Each
 question also accepts free text. Save answers and notes submits the filled
 answers as one batch. Saved replies stay beside their original questions.
 

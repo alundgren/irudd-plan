@@ -1,3 +1,4 @@
+import { PlanningCanvas } from "./planning-canvas.js";
 import { usePlanningViewport } from "./use-planning-viewport.js";
 import { PlanningSource } from "./planning-source.js";
 import type { StoredPlanningEntry } from "../contract/planning.js";
@@ -40,12 +41,12 @@ export function PlanningView({
       className="planning-view"
       aria-label="Planning conversation"
     >
-      <div className="planning-scroll">
-        <header className="planning-intro">
+      <PlanningCanvas sections={sections}>
+        <header className="planning-intro" data-planning-panel>
           <h1>{goal}</h1>
           <p>
-            Work through the questions here. Saved answers are available to the
-            planning agent and future sessions.
+            Explore the examples, compare alternatives, and answer on the
+            canvas.
           </p>
           <p role="status">
             {connected
@@ -62,7 +63,11 @@ export function PlanningView({
         ) : null}
         <div className="planning-sections">
           {sections.map((section) => (
-            <section className="planning-section" key={section}>
+            <section
+              className="planning-section"
+              key={section}
+              data-planning-section={section}
+            >
               <h2>{section}</h2>
               {conversation?.entries
                 .filter(
@@ -87,7 +92,7 @@ export function PlanningView({
             </section>
           ))}
         </div>
-        <div className="planning-compose">
+        <div className="planning-compose" data-planning-panel>
           <label htmlFor="planning-note">Add a thought or ask a question</label>
           <textarea
             id="planning-note"
@@ -104,7 +109,7 @@ export function PlanningView({
             agents receive the agreed specification separately.
           </p>
         </div>
-      </div>
+      </PlanningCanvas>
       <PlanningActions
         sending={sending}
         uncertain={uncertain}
@@ -145,38 +150,91 @@ function PlanningThread({
     replies
       .filter((reply) => reply.kind === "resolved" || reply.kind === "answer")
       .at(-1)?.kind === "resolved";
+  const attachments = [entry, ...replies].flatMap((message) =>
+    (message.assets ?? []).map((asset) => ({
+      asset,
+      key: JSON.stringify([message.id, asset.id, asset.digest]),
+    })),
+  );
   return (
-    <article className="planning-thread">
-      <PlanningMessage entry={entry} planId={planId} />
-      {replies.map((reply) => (
-        <PlanningMessage key={reply.id} entry={reply} planId={planId} />
+    <div className="planning-comparison">
+      <article
+        className="planning-thread"
+        data-planning-panel
+        data-planning-document={entry.id}
+      >
+        <Button variant="outline" size="sm" data-read-panel>
+          {entry.kind === "question" ? "Read question" : "Read note"}
+        </Button>
+        <PlanningMessage entry={entry} planId={planId} />
+        {replies.map((reply) => (
+          <PlanningMessage key={reply.id} entry={reply} planId={planId} />
+        ))}
+        {attachments.length ? (
+          <nav
+            className="planning-example-links"
+            aria-label="Question examples"
+          >
+            {attachments.length > 1 ? (
+              <Button variant="outline" size="sm" data-compare-examples>
+                Compare examples
+              </Button>
+            ) : null}
+            {attachments.map(({ asset, key }) => (
+              <Button
+                key={key}
+                variant="outline"
+                size="sm"
+                data-read-target={key}
+              >
+                {asset.caption}
+              </Button>
+            ))}
+          </nav>
+        ) : null}
+        {entry.kind === "question" ? (
+          <fieldset disabled={disabled}>
+            <legend>
+              {resolved ? "Add or revise your answer" : "Your answer"}
+            </legend>
+            {entry.choices?.map((choice) => (
+              <Button
+                key={choice}
+                variant="outline"
+                size="sm"
+                aria-pressed={draft === choice}
+                onClick={() => onChange(choice)}
+              >
+                {choice}
+              </Button>
+            ))}
+            <textarea
+              aria-label={`Answer: ${entry.body}`}
+              value={draft}
+              maxLength={40000}
+              onChange={(event) => onChange(event.target.value)}
+              placeholder="Choose a suggestion or write your own answer"
+            />
+          </fieldset>
+        ) : null}
+      </article>
+      {attachments.map(({ asset, key }) => (
+        <article
+          className="planning-artifact"
+          data-planning-panel
+          data-planning-document={key}
+          key={key}
+        >
+          <Button variant="outline" size="sm" data-read-panel>
+            Read {asset.caption}
+          </Button>
+          <Button variant="outline" size="sm" data-read-target={entry.id}>
+            Back to question
+          </Button>
+          <AssetView planId={planId} asset={asset} feedbackCount={0} />
+        </article>
       ))}
-      {entry.kind === "question" ? (
-        <fieldset disabled={disabled}>
-          <legend>
-            {resolved ? "Add or revise your answer" : "Your answer"}
-          </legend>
-          {entry.choices?.map((choice) => (
-            <Button
-              key={choice}
-              variant="outline"
-              size="sm"
-              aria-pressed={draft === choice}
-              onClick={() => onChange(choice)}
-            >
-              {choice}
-            </Button>
-          ))}
-          <textarea
-            aria-label={`Answer: ${entry.body}`}
-            value={draft}
-            maxLength={40000}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder="Choose a suggestion or write your own answer"
-          />
-        </fieldset>
-      ) : null}
-    </article>
+    </div>
   );
 }
 
@@ -201,14 +259,6 @@ function PlanningMessage({
           source={entry.source}
         />
       ) : null}
-      {entry.assets?.map((asset) => (
-        <AssetView
-          key={`${asset.id}:${asset.digest}`}
-          planId={planId}
-          asset={asset}
-          feedbackCount={0}
-        />
-      ))}
     </div>
   );
 }

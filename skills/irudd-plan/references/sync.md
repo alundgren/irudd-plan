@@ -59,8 +59,9 @@ previous revision. The next digest is SHA-256 of canonical JSON containing
 `previousDigest` and the exact returned `entry`. Start with the returned base
 digest. Verify the computed final digest against the page cursor. Ignore an
 already-applied page with the same final cursor. Missing, reordered or altered
-entries require recovery. Poll immediately while `hasMore`, otherwise wait about
-5 seconds in an active agent session. The browser polls every 2 seconds.
+entries require recovery. Poll immediately while `hasMore`, otherwise follow the delivery mode in conversation.md. Without an explicitly
+linked queue companion, wait about 5 seconds in an active agent session. The
+browser receives change events and fetches deltas after changes or reconnects.
 
 ## Writes and uncertain responses
 

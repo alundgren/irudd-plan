@@ -89,7 +89,7 @@ for (const width of [1280, 390]) {
       });
       await expect(answer).toBeVisible();
       await expect(
-        page.getByText("Server connected · checking for conversation updates"),
+        page.getByText("Server connected · receiving conversation updates"),
       ).toBeVisible();
       expect(sourceRequests).toHaveLength(0);
       await expect(

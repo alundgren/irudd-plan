@@ -160,8 +160,8 @@ scrolling. Suggested answers are buttons with no automatic selection. Each
 question also accepts free text. Save answers and notes submits the filled
 answers as one batch. Saved replies stay beside their original questions.
 
-The view checks for new questions every two seconds using its last verified
-revision/digest cursor. It appends only new entries, verifies their digest chain,
+The view receives conversation change events and fetches new questions using its
+last verified revision/digest cursor. It appends only new entries, verifies their digest chain,
 and follows bounded pages immediately while catching up. A reset clears cached
 server content and reloads bounded pages while preserving drafts for review.
 Submission waits until the browser has caught up. Connection failure shows
@@ -174,7 +174,8 @@ Reloading restores saved conversation from the server; unsent drafts are in memo
 Question visuals use the existing authenticated, isolated asset viewer. Human
 answers are attributed by the browser endpoint, never by agent-supplied fields.
 The private discussion is excluded from public views and implementation packets.
-A saved answer is available to an active polling agent, but does not start one.
+A saved answer is available to an active polling agent or an explicitly linked
+queue companion. The companion can queue a continuation in a loaded Codex thread.
 
 ### Conversation, findings and submission
 
@@ -195,15 +196,18 @@ mobile keyboard reduces visible space. Questions and the free-note field scroll
 independently above it. Batch submission, uncertain-request retries and drafts
 retain their existing behavior. The footer uses the existing warm-paper colours.
 
-"Server connected" describes browser-to-server polling. "Saved to this plan"
-confirms persistence only. Saving does not restart a stopped agent session. There
-is no agent presence or acknowledgement indicator. A response attributed to the
+"Server connected" describes the browser-to-server event connection. "Saved to this plan"
+confirms persistence only. Saving does not restart a stopped agent session. Optional queue delivery status distinguishes a connected companion, queued
+answers, and uncertain delivery. It does not claim that the agent is running. A response attributed to the
 agent is the visible evidence that it has continued the discussion.
 
-The planning skill keeps an active session polling bounded deltas after posting
-questions, then responds to those original questions. Chat points to the canvas;
+The planning skill lets an explicitly linked thread finish after posting
+questions when its companion is connected. Otherwise it keeps an active session
+polling bounded deltas, then responds to those original questions. Chat points to the canvas;
 it does not repeat the batch or open a competing native prompt. Voluntary chat
 answers are reconciled as agent notes identifying session chat as their source.
 An interrupted or runtime-limited session stops honestly and resumes from saved
 cursors and handoff notes, or bounded bootstrap when its cache is unavailable.
-Automatic wake-up requires a separate runtime integration and is not implemented.
+The optional queue companion sends new saved batches through Codex. Interrupted
+threads remain paused; closed threads wait until resumed. Uncertain delivery
+requires operator review and never triggers an automatic retry.

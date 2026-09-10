@@ -5,6 +5,7 @@ import {
   type PlanningReplica,
 } from "./planning-replica.js";
 import { fetchPlanning } from "./planning-api.js";
+import type { QueueDelivery } from "../domain/planning-delivery.js";
 
 export function usePlanningFeed(
   planId: string,
@@ -12,10 +13,16 @@ export function usePlanningFeed(
 ) {
   const [conversation, setConversation] = useState<PlanningReplica>();
   const [connected, setConnected] = useState(false);
+  const [delivery, setDelivery] = useState<QueueDelivery>();
   useEffect(() => {
     const controller = new AbortController();
     let replica: PlanningReplica | undefined;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let refreshing = false;
+    let pending = false;
+    const source = new EventSource(
+      `/api/plans/${encodeURIComponent(planId)}/planning/events`,
+    );
     const reset = (message: string) => {
       onReset(message);
       replica = undefined;
@@ -23,25 +30,34 @@ export function usePlanningFeed(
       setConnected(false);
     };
     const refresh = async () => {
+      pending = true;
+      if (refreshing) return;
+      refreshing = true;
       try {
-        const page = await fetchPlanning(
-          planId,
-          controller.signal,
-          replica?.cursor,
-        );
-        if (controller.signal.aborted) return;
-        if (page.status === "reset_required") {
-          reset(
-            "Conversation was reset. Unsent answers are in your note for review before saving.",
+        while (pending && !controller.signal.aborted) {
+          pending = false;
+          const page = await fetchPlanning(
+            planId,
+            controller.signal,
+            replica?.cursor,
           );
-        } else {
-          replica = await applyPlanningPage(planId, replica, page);
           if (controller.signal.aborted) return;
-          setConversation(replica);
-          setConnected(!page.hasMore);
-          if (page.hasMore) {
-            timer = setTimeout(() => void refresh(), 0);
-            return;
+          if (page.status === "reset_required") {
+            reset(
+              "Conversation was reset. Unsent answers are in your note for review before saving.",
+            );
+            pending = true;
+          } else {
+            replica = await applyPlanningPage(planId, replica, page);
+            if (controller.signal.aborted) return;
+            setConversation(replica);
+            setConnected(
+              !page.hasMore && source.readyState === EventSource.OPEN,
+            );
+            setDelivery(page.delivery);
+            if (page.hasMore) {
+              pending = true;
+            }
           }
         }
       } catch (caught) {
@@ -52,15 +68,23 @@ export function usePlanningFeed(
           );
         }
         setConnected(false);
+        setDelivery(undefined);
+        timer = setTimeout(() => void refresh(), 2000);
+      } finally {
+        refreshing = false;
       }
-      timer = setTimeout(() => void refresh(), 2000);
     };
-    void refresh();
+    source.addEventListener("planning-update", () => void refresh());
+    source.onerror = () => {
+      setConnected(false);
+      setDelivery(undefined);
+    };
     return () => {
       controller.abort();
+      source.close();
       clearTimeout(timer);
     };
   }, [planId, onReset]);
 
-  return { conversation, connected };
+  return { conversation, connected, delivery };
 }

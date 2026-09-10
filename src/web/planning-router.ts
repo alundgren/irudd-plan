@@ -97,7 +97,7 @@ export async function handlePlanningRequest(
   return true;
 }
 
-async function readJson(request: IncomingMessage): Promise<unknown> {
+export async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -110,7 +110,7 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-function planningQuery(url: URL, planId: string) {
+export function planningQuery(url: URL, planId: string) {
   return decode(GetPlanningRequest, {
     contractVersion: "v1",
     planId,

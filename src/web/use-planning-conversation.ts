@@ -27,7 +27,10 @@ export function usePlanningConversation(planId: string) {
     setDrafts({});
     setError(message);
   }, []);
-  const { conversation, connected } = usePlanningFeed(planId, resetDrafts);
+  const { conversation, connected, delivery } = usePlanningFeed(
+    planId,
+    resetDrafts,
+  );
 
   const submit = async () => {
     if (!conversation || (!connected && !pending.current)) return;
@@ -86,6 +89,7 @@ export function usePlanningConversation(planId: string) {
     }
   };
   return {
+    delivery,
     conversation,
     drafts,
     note,

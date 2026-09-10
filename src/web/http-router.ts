@@ -1,4 +1,5 @@
 import { handlePlanningRequest } from "./planning-router.js";
+import { planningEvents } from "./planning-events.js";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -23,6 +24,20 @@ export async function handleBrowserRequest(
   options: BrowserRouterOptions,
 ): Promise<boolean> {
   const url = new URL(request.url ?? "/", "http://localhost");
+  const planningStream = url.pathname.match(
+    /^\/api\/plans\/([^/]+)\/planning\/events$/,
+  );
+  if (planningStream && request.method === "GET") {
+    await planningEvents(
+      request,
+      response,
+      service,
+      options.authenticator,
+      options.registerStreamClose,
+      decodeURIComponent(planningStream[1]!),
+    );
+    return true;
+  }
   if (request.method === "GET" && isClientAsset(url.pathname)) {
     await serveClientAsset(
       response,

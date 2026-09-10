@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "companion": "tsx scripts/queue-companion.ts",
+    "trial:queue": "python3 scripts/codex-queue-trial.py",
+    "trial:companion": "tsx scripts/queue-companion-trial.ts",
     "build": "vp run build:server && vp run build:client",
     "build:client": "vp build --config vite.client.config.ts",
     "build:server": "vp build",

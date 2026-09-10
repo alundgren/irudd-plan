@@ -211,11 +211,7 @@ function PlanningThread({
           />
         ))}
         {pendingAnswer ? (
-          <PlanningInlineStatus
-            answer={pendingAnswer}
-            connected={connected}
-            delivery={delivery}
-          />
+          <PlanningInlineStatus connected={connected} delivery={delivery} />
         ) : null}
         {attachments.length ? (
           <nav

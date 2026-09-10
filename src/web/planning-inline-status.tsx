@@ -12,7 +12,6 @@ export function pendingPlanningAnswer(
 }
 
 export function planningInlineStatus(
-  answerRevision: number,
   connected: boolean,
   delivery: QueueDelivery | undefined,
 ) {
@@ -28,8 +27,7 @@ export function planningInlineStatus(
       detail: "Your answer is saved. Agent status is unknown.",
       tone: "unknown",
     };
-  const queued = delivery.queuedThrough >= answerRevision;
-  if (delivery.state === "uncertain" && !queued)
+  if (delivery.state === "uncertain")
     return {
       title: "Delivery needs checking",
       detail:
@@ -39,34 +37,24 @@ export function planningInlineStatus(
   if (!delivery.connected)
     return {
       title: "Companion disconnected",
-      detail: queued
-        ? "Your answer was queued. The agent may still be working."
-        : "Your answer is saved. Delivery will continue when the companion reconnects.",
+      detail: "Your answer is saved. Agent status is unknown.",
       tone: "warning",
     };
-  if (queued)
-    return {
-      title: "Queued for the agent",
-      detail: "Waiting for a reply. Agent activity is unavailable.",
-      tone: "waiting",
-    };
   return {
-    title: "Waiting to send to the agent",
+    title: "Waiting for a reply",
     detail: "Your answer is saved. The companion is connected.",
     tone: "waiting",
   };
 }
 
 export function PlanningInlineStatus({
-  answer,
   connected,
   delivery,
 }: {
-  readonly answer: StoredPlanningEntry;
   readonly connected: boolean;
   readonly delivery: QueueDelivery | undefined;
 }) {
-  const status = planningInlineStatus(answer.revision, connected, delivery);
+  const status = planningInlineStatus(connected, delivery);
   return (
     <div
       className={`planning-inline-status planning-inline-${status.tone}`}

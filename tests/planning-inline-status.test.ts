@@ -53,45 +53,48 @@ describe("pending answers", () => {
 });
 
 describe("delivery evidence", () => {
-  it("compares coverage with this answer, including listening heartbeats", () => {
-    expect(planningInlineStatus(4, true, delivery).title).toBe(
-      "Queued for the agent",
+  it("does not infer answer delivery from a cursor that may include skipped history", () => {
+    const beforeQueue = planningInlineStatus(true, {
+      ...delivery,
+      state: "listening",
+      queuedThrough: 0,
+    });
+    const laterQueue = planningInlineStatus(true, {
+      ...delivery,
+      queuedThrough: 6,
+    });
+    expect(beforeQueue).toEqual(laterQueue);
+    expect(laterQueue.title).toBe("Waiting for a reply");
+    expect(laterQueue.detail).toBe(
+      "Your answer is saved. The companion is connected.",
     );
-    expect(planningInlineStatus(5, true, delivery).title).toBe(
-      "Waiting to send to the agent",
-    );
-    expect(
-      planningInlineStatus(4, true, { ...delivery, state: "listening" }).title,
-    ).toBe("Queued for the agent");
   });
 
-  it("does not confuse a failed later batch with an already queued answer", () => {
+  it("reports a companion delivery problem without claiming this answer failed", () => {
     const uncertain = { ...delivery, state: "uncertain" as const };
-    expect(planningInlineStatus(4, true, uncertain).title).toBe(
-      "Queued for the agent",
-    );
-    expect(planningInlineStatus(5, true, uncertain).title).toBe(
+    expect(planningInlineStatus(true, uncertain).title).toBe(
       "Delivery needs checking",
     );
     expect(
-      planningInlineStatus(5, true, { ...uncertain, connected: false }).title,
+      planningInlineStatus(true, { ...uncertain, connected: false }).title,
     ).toBe("Delivery needs checking");
   });
 
   it("distinguishes lost browser updates, missing metadata, and lost companion", () => {
-    expect(planningInlineStatus(4, false, delivery).title).toBe(
+    expect(planningInlineStatus(false, delivery).title).toBe(
       "Reconnecting to this plan",
     );
-    expect(planningInlineStatus(4, true, undefined).title).toBe(
-      "Waiting for a reply",
+    expect(planningInlineStatus(true, undefined).detail).toContain(
+      "Agent status is unknown",
     );
-    const offline = { ...delivery, connected: false };
-    expect(planningInlineStatus(4, true, offline).detail).toContain(
-      "was queued",
+    const offline = planningInlineStatus(true, {
+      ...delivery,
+      connected: false,
+    });
+    expect(offline.title).toBe("Companion disconnected");
+    expect(offline.detail).toBe(
+      "Your answer is saved. Agent status is unknown.",
     );
-    expect(planningInlineStatus(5, true, offline).detail).toContain(
-      "Delivery will continue",
-    );
-    expect(planningInlineStatus(4, true, offline).tone).toBe("warning");
+    expect(offline.tone).toBe("warning");
   });
 });

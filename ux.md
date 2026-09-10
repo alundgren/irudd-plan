@@ -225,20 +225,23 @@ requires operator review and never triggers an automatic retry.
 ## Inline planning wait status
 
 Each question with a saved human answer awaiting a reply shows a quiet inline
-status after its messages. Queue acceptance and companion connectivity use the
-existing delivery metadata; neither claims that an agent turn has started.
-A soft dot pulses only while the companion is connected and delivery or a reply
-is pending. The wording names that wait. Reduced-motion users see a static dot.
-Unknown activity, disconnected companions, uncertain delivery, and browser
-reconnection use static indicators and explain that the answer remains saved.
+status after its messages. A connected companion shows "Waiting for a reply"
+with a soft pulsing dot. This describes the wait, not agent activity.
+Reduced-motion users see a static dot. Unknown activity, disconnected companions,
+uncertain delivery, and browser reconnection use static indicators and explain
+that the answer remains saved.
 
 The latest direct reply determines whether a question is still waiting. An agent
 reply or linked follow-up question clears its indicator; replies elsewhere do
 not. A later human answer starts the wait again. Previous resolution labels are
-hidden while that question awaits another reply. Delivery coverage is compared
-with that answer's revision, so an older queued batch cannot mark a new answer
-as delivered. A failed later batch does not mark an already queued answer as
-uncertain. Drafts and saving retain their existing behavior.
+hidden while that question awaits another reply. Drafts and saving retain their
+existing behavior.
+
+The companion's queue cursor is not proof of delivery for a particular answer:
+initialization deliberately skips older entries. Inline wording therefore reports
+only saved-answer and connection facts. A companion delivery problem asks the
+person to check the linked session, without claiming that their answer failed or
+suggesting an automatic resend.
 
 This first version does not subscribe to agent runtime events or generate
 progress narration. A confirmed working indicator needs a future event source

@@ -109,11 +109,13 @@ for (const width of [1440, 390]) {
       expect(response.ok).toBe(true);
       reader = response.body!.getReader();
       await reader.read();
-      await expect(status).toContainText("Waiting to send to the agent");
+      await expect(status).toContainText("The companion is connected");
+      // These answers predate companion connection. Its cursor cannot prove delivery.
       const queuedThrough = (await conversation()).headCursor.revision;
       await report("queued", queuedThrough);
-      await expect(status).toContainText("Queued for the agent");
+      await expect(status).toContainText("The companion is connected");
       await expect(status).not.toContainText("Agent working");
+      await expect(status).not.toContainText("Queued for the agent");
       await first.getByRole("button", { name: "Read question" }).click();
       await expect(status).toBeInViewport();
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -128,7 +130,7 @@ for (const width of [1440, 390]) {
       await expect(status).toContainText("Reconnecting to this plan");
       await expect(first.getByRole("textbox")).toHaveValue("Keep this draft");
       await context.setOffline(false);
-      await expect(status).toContainText("Queued for the agent");
+      await expect(status).toContainText("The companion is connected");
       await append([
         {
           id: "unrelated",
@@ -139,7 +141,7 @@ for (const width of [1440, 390]) {
         },
       ]);
       await expect(second.locator(".planning-inline-status")).toHaveCount(0);
-      await expect(status).toContainText("Queued for the agent");
+      await expect(status).toContainText("The companion is connected");
       await append([
         {
           id: "resolved",
@@ -155,18 +157,18 @@ for (const width of [1440, 390]) {
       await page
         .getByRole("button", { name: "Save answers and notes" })
         .click();
-      await expect(status).toContainText("Waiting to send to the agent");
+      await expect(status).toContainText("The companion is connected");
       await expect(first.locator(".planning-byline")).not.toContainText([
         "Resolved",
       ]);
       await report("uncertain", queuedThrough);
       await expect(status).toContainText("Delivery needs checking");
       await report("queued", (await conversation()).headCursor.revision);
-      await expect(status).toContainText("Queued for the agent");
+      await expect(status).toContainText("The companion is connected");
       controller.abort();
       await reader.cancel().catch(() => {});
       await expect(status).toContainText("Companion disconnected");
-      await expect(status).toContainText("Your answer was queued");
+      await expect(status).toContainText("Your answer is saved");
       await page.screenshot({
         path: `test-results/inline-disconnected-${width}.png`,
       });

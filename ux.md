@@ -29,6 +29,15 @@ Direct item URLs and browser history use the same item framing. References use t
 
 Every item presents its goal, required decisions, requirements, checks, visual-reference links and Technical detail. Required context, prior art, deferrals and completion remain expanded. Text selection and control clicks do not create feedback.
 
+Required decisions appear under "Decisions to follow", with one sentence stating
+that these choices are part of the current plan and should be followed during
+implementation. Titles, full choices and reasons remain expanded in a plain list.
+The section is absent when the item has no required decisions. Its presence does
+not assert human approval or that every planning question is answered. Open
+questions belong in the planning conversation; explicitly delegated choices
+belong in the item's requirements. The section keeps its existing feedback ID
+and content matching so a wording change does not invalidate saved comments.
+
 ## References
 
 Each required item/asset association appears inside its owning frame, including assets inherited through decisions and context. Shared assets appear for every owning item, retaining the original IDs and digests. Each reference names its item and shows the original caption and role. Raster and SVG proportions determine height without cropping. Missing assets, failed requests and unsupported previews keep their caption, feedback action and return link.

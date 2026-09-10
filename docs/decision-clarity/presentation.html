@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decisions a reader can understand · irudd-plan</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f2eade;
+        --paper: #f9f6f0;
+        --panel: #eadfcd;
+        --line: #c1af9a;
+        --text: #604939;
+        --muted: #66574d;
+        --accent: #784f26;
+        --ok: #3d6034;
+        --link: #3d5d71;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: transparent;
+        padding: 8px 15px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--panel);
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--link);
+        outline-offset: 4px;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button[aria-pressed="true"] {
+        background: var(--text);
+        color: var(--paper);
+        border-color: var(--text);
+      }
+      a {
+        color: var(--link);
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 20px 4vw;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-weight: 600;
+      }
+      .small {
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+      main {
+        max-width: 1400px;
+        margin: auto;
+        padding: 36px 5vw 105px;
+      }
+      article[hidden] {
+        display: none;
+      }
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin: 0 0 12px;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 48px);
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+        font-weight: 600;
+        max-width: 23ch;
+        margin: 0 0 22px;
+      }
+      h2 {
+        font-size: 22px;
+        line-height: 1.3;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 14px;
+      }
+      h3 {
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0 0 9px;
+      }
+      p {
+        margin: 0 0 16px;
+        max-width: 72ch;
+      }
+      .lead {
+        font-size: 20px;
+        max-width: 65ch;
+        margin-bottom: 30px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.35fr);
+        gap: 44px;
+        align-items: start;
+      }
+      .notes {
+        padding-top: 8px;
+      }
+      .notes p {
+        margin-bottom: 24px;
+      }
+      .verdict {
+        border-left: 3px solid var(--ok);
+        padding-left: 18px;
+      }
+      .tag {
+        color: var(--ok);
+        font-weight: 500;
+      }
+      .preview {
+        min-width: 0;
+      }
+      .preview-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .size-controls {
+        display: flex;
+        gap: 6px;
+      }
+      .size-controls button {
+        font-size: 13.5px;
+        padding: 5px 10px;
+      }
+      .sheet {
+        background: var(--paper);
+        border-radius: 12px;
+        padding: 28px;
+        width: 100%;
+        margin: 0 auto;
+      }
+      .sheet.phone {
+        max-width: 390px;
+        padding: 24px;
+      }
+      .sheet p {
+        margin-bottom: 12px;
+      }
+      .sheet .label {
+        font-size: 12px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin: 0 0 14px;
+      }
+      .sheet .goal {
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--panel);
+        margin-bottom: 22px;
+      }
+      .choice {
+        margin-top: 20px;
+      }
+      .choice + .choice {
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+      .choice h3 {
+        font-size: 17px;
+      }
+      .choice .why {
+        font-size: 13.5px;
+        color: var(--accent);
+        margin-bottom: 0;
+      }
+      .cards .choice {
+        margin-top: 10px;
+        padding: 11px 13px;
+        background: var(--panel);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 7px 7px 0;
+      }
+      .cards .choice + .choice {
+        border-top: 0;
+      }
+      .question {
+        margin-bottom: 24px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+      .question .owner {
+        color: var(--accent);
+        font-size: 13.5px;
+      }
+      .question button {
+        background: var(--panel);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        margin-top: 30px;
+      }
+      .flow section {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      code {
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 24px 0;
+        text-align: left;
+      }
+      th,
+      td {
+        padding: 16px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-weight: 600;
+      }
+      .recommended {
+        background: var(--panel);
+      }
+      footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 14px 20px;
+        background: var(--bg);
+        border-top: 1px solid var(--line);
+      }
+      #counter {
+        min-width: 65px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      @media (max-width: 800px) {
+        .grid,
+        .flow {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        main {
+          padding: 26px 20px 110px;
+        }
+        header {
+          padding: 16px 20px;
+        }
+        .lead {
+          font-size: 18px;
+        }
+        .sheet {
+          padding: 22px;
+        }
+        th,
+        td {
+          padding: 10px 7px;
+          font-size: 14px;
+        }
+      }
+      @media print {
+        article[hidden] {
+          display: block;
+        }
+        article {
+          break-after: page;
+        }
+        header,
+        footer,
+        .size-controls {
+          display: none;
+        }
+        main {
+          padding: 0;
+        }
+        .grid {
+          grid-template-columns: 1fr 1.3fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="brand">irudd-plan / design review</span
+      ><span class="small">10 September 2026 · Three options</span>
+    </header>
+    <main>
+      <article aria-label="The problem">
+        <p class="eyebrow">01 / The problem</p>
+        <h1>Does this still need a decision?</h1>
+        <p class="lead">
+          The heading says “Open decisions”. The content gives instructions and
+          says they came from explicit answers. The reader has to guess which
+          one to believe.
+        </p>
+        <div class="grid">
+          <div class="notes">
+            <h2>One section, two conflicting messages</h2>
+            <p>
+              A human needs to know whether to answer something. An implementing
+              agent needs to know whether to follow a choice or make one.
+            </p>
+            <p>
+              The current data stores chosen text, a reason and an optional
+              source. It has no open/decided status, decision owner or approval
+              record.
+            </p>
+            <p class="small">
+              Example wording comes from the supplied screenshot of the plan
+              linked from
+              <a href="https://github.com/alundgren/irudd-plan/issues/63"
+                >issue #63</a
+              >. Mockups simplify the text for comparison. They are design
+              examples, not edits to that plan.
+            </p>
+          </div>
+          <div class="preview">
+            <div class="preview-bar">
+              <span class="small">Current presentation</span>
+            </div>
+            <div class="sheet cards">
+              <p class="label">Open decisions</p>
+              <div class="choice">
+                <h3>Match Quiet inline and save per question</h3>
+                <p>
+                  Match the green inline saved receipt. Replace batch saving
+                  with per-question save buttons.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+              <div class="choice">
+                <h3>Animate ordinary waiting</h3>
+                <p>
+                  Soft pulse and three-dot ellipsis animate during ordinary
+                  saved-answer waiting.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article hidden aria-label="Option one">
+        <p class="eyebrow">02 / Option 1 · Change the heading</p>
+        <h1>Agreed decisions</h1>
+        <p class="lead">
+          Keep the current cards and replace the misleading heading.
+        </p>
+        <div class="grid">
+          <div class="notes">
+            <h2>Smallest change</h2>
+            <p>
+              It immediately tells the human these examples have already been
+              decided. Existing plans need no changes.
+            </p>
+            <h3>Where it falls short</h3>
+            <p>
+              “Agreed” can imply human approval. The app cannot verify that from
+              these records. It also leaves an agent to infer what a recorded
+              decision means for implementation.
+            </p>
+            <p class="small">
+              Agent treatment: explain in the tool description that required
+              decisions should be followed.
+            </p>
+          </div>
+          <div class="preview">
+            <div class="preview-bar">
+              <span class="small">Option 1 mockup</span>
+              <div class="size-controls">
+                <button aria-pressed="true" data-size="desktop">Desktop</button
+                ><button aria-pressed="false" data-size="phone">390px</button>
+              </div>
+            </div>
+            <div class="sheet cards">
+              <p class="label">Agreed decisions</p>
+              <div class="choice">
+                <h3>Match Quiet inline and save per question</h3>
+                <p>
+                  Match the green inline saved receipt. Replace batch saving
+                  with per-question save buttons.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+              <div class="choice">
+                <h3>Animate ordinary waiting</h3>
+                <p>
+                  Use a soft pulse and three-dot ellipsis while waiting for a
+                  reply. Keep reduced-motion and connection-problem states
+                  static.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article hidden aria-label="Option two">
+        <p class="eyebrow">03 / Option 2 · State what to do</p>
+        <h1>Decisions to follow</h1>
+        <p class="lead">
+          Give the section a clear purpose, with the choice and its reason
+          together.
+        </p>
+        <div class="grid">
+          <div class="notes">
+            <p class="tag">Recommended · implemented in the draft PR</p>
+            <h2>A clear instruction for both readers</h2>
+            <p>
+              The human can see that these are choices in the current plan. The
+              agent gets a direct instruction to follow them. Plain text and
+              spacing replace the highlighted cards.
+            </p>
+            <p>
+              The heading does not claim who approved the choices. It does not
+              claim that all questions elsewhere have been answered.
+            </p>
+            <div class="verdict">
+              <h3>Why I prefer it</h3>
+              <p>
+                It answers the actual question without adding status tracking.
+                Existing records, full text, reasons and saved feedback keep
+                working.
+              </p>
+            </div>
+          </div>
+          <div class="preview">
+            <div class="preview-bar">
+              <span class="small">Option 2 mockup</span>
+              <div class="size-controls">
+                <button aria-pressed="true" data-size="desktop">Desktop</button
+                ><button aria-pressed="false" data-size="phone">390px</button>
+              </div>
+            </div>
+            <div class="sheet">
+              <div class="goal">
+                <p class="label">Goal</p>
+                <p>
+                  Make saved answers visibly acknowledged and ordinary waiting
+                  perceptible.
+                </p>
+              </div>
+              <p class="label">Decisions to follow</p>
+              <p>
+                These choices are part of the current plan. Follow them during
+                implementation.
+              </p>
+              <div class="choice">
+                <h3>Match Quiet inline and save per question</h3>
+                <p>
+                  Match the green inline saved receipt. Replace batch saving
+                  with per-question save buttons.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+              <div class="choice">
+                <h3>Animate ordinary waiting</h3>
+                <p>
+                  Use a soft pulse and three-dot ellipsis while waiting for a
+                  reply. Keep reduced-motion and connection-problem states
+                  static.
+                </p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article hidden aria-label="Option three">
+        <p class="eyebrow">04 / Option 3 · Track outstanding choices</p>
+        <h1>Decided / Still to decide</h1>
+        <p class="lead">
+          Make ownership and unresolved work explicit in separate sections.
+        </p>
+        <div class="grid">
+          <div class="notes">
+            <h2>Useful when choices remain open</h2>
+            <p>
+              Every unresolved choice names who should answer and whether
+              implementation must wait. Completed choices move into “Decided”.
+            </p>
+            <h3>A larger product change</h3>
+            <p>
+              This needs stored status, ownership, transitions and rules for
+              existing plans. The app cannot safely derive those from old prose.
+            </p>
+            <p class="small">
+              The open question shown here is invented to demonstrate the
+              option. Nothing in the supplied screenshot establishes an
+              outstanding choice.
+            </p>
+            <p class="small">
+              Agent treatment: structured status and owner fields, plus an
+              explicit rule for which choices block implementation.
+            </p>
+          </div>
+          <div class="preview">
+            <div class="preview-bar">
+              <span class="small"
+                >Option 3 mockup · hypothetical open question</span
+              >
+              <div class="size-controls">
+                <button aria-pressed="true" data-size="desktop">Desktop</button
+                ><button aria-pressed="false" data-size="phone">390px</button>
+              </div>
+            </div>
+            <div class="sheet">
+              <div class="question">
+                <p class="label">Still to decide</p>
+                <h3>How long should the saved receipt remain?</h3>
+                <p class="owner">
+                  Human answer needed before implementing receipt timing
+                </p>
+                <p>Always visible, or fade after a short delay?</p>
+                <p class="small">
+                  In this design, the question links to its planning
+                  conversation.
+                </p>
+              </div>
+              <p class="label">Decided</p>
+              <div class="choice">
+                <h3>Save each question separately</h3>
+                <p>Replace batch saving with per-question save buttons.</p>
+                <p class="why">
+                  Why: Explicit answer on the fix-planning canvas.
+                </p>
+              </div>
+              <div class="choice">
+                <h3>Animate ordinary waiting</h3>
+                <p>
+                  Use a soft pulse and three-dot ellipsis while waiting for a
+                  reply.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article hidden aria-label="Comparison and recommendation">
+        <p class="eyebrow">05 / Choose the smallest complete answer</p>
+        <h1>Option 2 fits the current product.</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Human reads</th>
+              <th>Agent receives</th>
+              <th>Cost / limitation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1 · Agreed decisions</td>
+              <td>These were agreed</td>
+              <td>Guidance to follow choices</td>
+              <td>Very small; approval implication</td>
+            </tr>
+            <tr class="recommended">
+              <td>2 · Decisions to follow</td>
+              <td>These choices apply to this work</td>
+              <td>The same instruction, with conflict handling</td>
+              <td>Small; no status tracking</td>
+            </tr>
+            <tr>
+              <td>3 · Decided / Still to decide</td>
+              <td>What remains and who answers</td>
+              <td>Stored status, owner and blocking rules</td>
+              <td>Larger; new data and migration policy</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="flow">
+          <section>
+            <h2>What the draft changes</h2>
+            <p>
+              Rename the section, add one sentence, and render full choices and
+              reasons as a plain list. Keep the section absent when there are no
+              required decisions.
+            </p>
+            <p>
+              Keep the existing decision IDs and feedback matching. No database
+              migration or new approval state.
+            </p>
+          </section>
+          <section>
+            <h2>What it cannot establish</h2>
+            <p>
+              The app does not inspect old prose to decide whether a choice was
+              really settled. A contradictory or unanswered question inside a
+              decision still needs correction by the planner.
+            </p>
+            <p>
+              Changing an existing agent's installed skill is a separate
+              installation step. The server's tool description supplies the
+              guidance to clients that refresh tool discovery after deployment.
+            </p>
+          </section>
+        </div>
+      </article>
+      <article hidden aria-label="Agent guidance and review">
+        <p class="eyebrow">06 / Same meaning in the agent handoff</p>
+        <h1>Follow the choice. Raise a conflict.</h1>
+        <div class="flow">
+          <section>
+            <h2>For the implementing agent</h2>
+            <p>
+              “Required decisions are choices to follow during implementation,
+              not open questions or proof of human approval. Raise conflicts
+              before changing a recorded choice.”
+            </p>
+            <p class="small">
+              Added to the <code>get_work_item</code> tool description and
+              explained in the bundled skill.
+            </p>
+          </section>
+          <section>
+            <h2>For the planning agent</h2>
+            <p>
+              Store chosen outcomes in <code>decisions</code>. Keep unresolved
+              questions in the planning conversation. If the implementer should
+              make a choice, put that delegation and its limits in the work
+              item's requirements.
+            </p>
+            <p class="small">
+              This distinguishes “follow this” from “choose within these limits”
+              without inventing approval.
+            </p>
+          </section>
+        </div>
+        <div class="flow">
+          <section>
+            <h2>Review the draft tomorrow</h2>
+            <p>
+              Check whether “Decisions to follow” answers your question
+              immediately. Slides 2–4 offer desktop and 390px mockups for
+              comparison.
+            </p>
+            <p>
+              The draft PR contains the implementation, this presentation and
+              its validation record. Issue #63 remains the other agent's work.
+            </p>
+          </section>
+          <section>
+            <h2>Validation focus</h2>
+            <p>
+              Private and public item views; readable phone layout; no empty
+              decision section; existing comments still match; MCP packets
+              retain their current contract.
+            </p>
+            <p class="small">
+              Use Previous / Next or the left and right arrow keys. The HTML can
+              also be printed as a complete deck.
+            </p>
+          </section>
+        </div>
+      </article>
+    </main>
+    <footer>
+      <button id="previous" aria-label="Previous slide">← Previous</button
+      ><span id="counter" aria-live="polite"></span
+      ><button id="next" aria-label="Next slide">Next →</button>
+    </footer>
+    <script>
+      const slides = [...document.querySelectorAll("main > article")];
+      let current = Math.max(
+        0,
+        Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0),
+      );
+      const previous = document.getElementById("previous");
+      const next = document.getElementById("next");
+      function show(index) {
+        current = Math.max(0, Math.min(slides.length - 1, index));
+        slides.forEach((slide, i) => {
+          slide.hidden = i !== current;
+        });
+        previous.disabled = current === 0;
+        next.disabled = current === slides.length - 1;
+        document.getElementById("counter").textContent =
+          `${current + 1} / ${slides.length}`;
+        history.replaceState(null, "", `#${current + 1}`);
+        window.scrollTo(0, 0);
+      }
+      previous.addEventListener("click", () => show(current - 1));
+      next.addEventListener("click", () => show(current + 1));
+      document.addEventListener("keydown", (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.key === "ArrowRight") show(current + 1);
+        if (event.key === "ArrowLeft") show(current - 1);
+      });
+      document.querySelectorAll("[data-size]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const preview = button.closest(".preview");
+          preview
+            .querySelector(".sheet")
+            .classList.toggle("phone", button.dataset.size === "phone");
+          preview
+            .querySelectorAll("[data-size]")
+            .forEach((option) =>
+              option.setAttribute("aria-pressed", String(option === button)),
+            );
+        });
+      });
+      show(current);
+    </script>
+  </body>
+</html>

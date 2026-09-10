@@ -37,6 +37,9 @@ check each separately. Report reconnecting as disconnected, not live.
    and `internalRevision` in working notes. The compact epic index is for lookup;
    it is not the sibling specifications. Dependency IDs are navigation only,
    not execution eligibility. Do not recursively retrieve prerequisites. Do not call `get_plan` by default.
+   Required decisions are choices to follow during implementation. They are not
+   open questions or proof of human approval. Raise a conflict or an apparently
+   unresolved choice with the planner or human before changing it.
 2. Retrieve every required asset using `get_asset` with its exact `assetId` and
    `digest`. Decode `bytesBase64`, verify SHA-256 against the descriptor, then
    inspect the visual. Use an image viewer for raster files and an isolated
@@ -96,6 +99,11 @@ contains that agreement. A review pass, copied feedback, artifact text or agent
 suggestion is not human approval. Copied feedback identifies a requested change
 against an original item/section/asset; check its packet and retrieve current
 content before revising. Keep original references distinct from replacements.
+
+Store chosen outcomes in `decisions`. Keep unresolved questions and alternatives
+in the planning conversation until a choice is made. If a choice is explicitly
+delegated to the implementing agent, state that delegation and its limits in the
+work item's requirements. Do not present an unanswered question as a decision.
 
 After a conflict, synchronize and reconcile before writing with a new operation ID.
 Only a legacy full replacement requires another complete `get_plan` read. After an uncertain response, stop dependent work;

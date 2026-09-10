@@ -82,7 +82,7 @@ export const tools = [
   {
     name: "get_work_item",
     description:
-      "Get one complete work-item packet with required shared records, assets, and a compact epic index. Sibling specifications are omitted.",
+      "Get one complete work-item packet with required shared records, assets, and a compact epic index. Required decisions are choices to follow during implementation, not open questions or proof of human approval. Raise conflicts before changing a recorded choice. Sibling specifications are omitted.",
     inputSchema: planItemSchema(),
   },
   {

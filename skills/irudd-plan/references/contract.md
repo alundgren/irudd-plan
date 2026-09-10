@@ -37,6 +37,12 @@ Contexts and decisions have `id`, `title`, `body`, `reason`, optional `source`,
 requirements must be acyclic. Use source to identify recorded evidence or human
 agreement precisely, without copying private conversational detail.
 
+`decisions` records chosen outcomes to follow during implementation. It does not
+track open questions, approval status or decision history. Keep unresolved choices
+in the planning conversation. Put any explicit delegation to the implementing
+agent, including its limits, in the work item's requirements. Raise conflicts
+before changing a recorded choice; do not infer human approval from its presence.
+
 `get_work_item` returns the complete selected item with recursively required
 contexts, decisions and asset descriptors, plus `epic.goal`, repository and a
 compact index. Both overview and item-packet indexes contain IDs, titles, short

@@ -123,9 +123,13 @@ function ItemSheet({
           <FeedbackSheetSection
             {...feedbackProps}
             sectionId="decisions"
-            label="Open decisions"
+            label="Decisions to follow"
             changedSections={changedSections}
           >
+            <p>
+              These choices are part of the current plan. Follow them during
+              implementation.
+            </p>
             <DecisionList decisions={decisions} />
           </FeedbackSheetSection>
         )}

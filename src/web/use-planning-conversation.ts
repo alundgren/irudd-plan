@@ -3,18 +3,28 @@ import { useCallback, useRef, useState } from "react";
 import type { AppendPlanningRequest } from "../contract/planning.js";
 import { PlanningRequestError, submitPlanning } from "./planning-api.js";
 
+export type PlanningSaveState = {
+  target: string | null;
+  phase: "sending" | "uncertain" | "error" | "saved";
+  error?: string;
+  recovered?: boolean;
+};
+type PendingSave = {
+  target: string | null;
+  draft: string;
+  request: AppendPlanningRequest;
+};
+
 export function usePlanningConversation(planId: string) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
-  const [error, setError] = useState<string>();
-  const [sending, setSending] = useState(false);
-  const [uncertain, setUncertain] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState<string>();
+  const [save, setSave] = useState<PlanningSaveState>();
   const unsentAnswers = useRef<Record<string, { body: string; value: string }>>(
     {},
   );
-  const pending = useRef<AppendPlanningRequest | undefined>(undefined);
-
+  const pending = useRef<PendingSave | undefined>(undefined);
+  const inFlight = useRef(false);
   const resetDrafts = useCallback((message: string) => {
     const preserved = Object.values(unsentAnswers.current)
       .filter((answer) => answer.value.trim())
@@ -25,67 +35,83 @@ export function usePlanningConversation(planId: string) {
       );
     unsentAnswers.current = {};
     setDrafts({});
-    setError(message);
+    setRecoveryMessage(message);
   }, []);
-  const { conversation, connected, delivery } = usePlanningFeed(
-    planId,
-    resetDrafts,
-  );
+  const { conversation, connected, delivery, refreshConversation } =
+    usePlanningFeed(planId, resetDrafts);
+  const targetExists = (target: string | null) =>
+    target === null ||
+    conversation?.entries.some(
+      (entry) => entry.id === target && entry.kind === "question",
+    );
+  const visibleTarget = save && targetExists(save.target) ? save.target : null;
 
-  const submit = async () => {
-    if (!conversation || (!connected && !pending.current)) return;
-    if (!pending.current) {
-      const entries: AppendPlanningRequest["entries"][number][] =
-        conversation.entries
-          .filter(
-            (entry) => entry.kind === "question" && drafts[entry.id]?.trim(),
-          )
-          .map((entry) => ({
-            id: crypto.randomUUID(),
-            section: entry.section,
-            kind: "answer",
-            body: drafts[entry.id]!.trim(),
-            replyTo: entry.id,
-          }));
-      if (note.trim())
-        entries.push({
-          id: crypto.randomUUID(),
-          section: "Discussion",
-          kind: "note",
-          body: note.trim(),
-        });
-      if (!entries.length) return;
+  const submit = async (target: string | null) => {
+    if (inFlight.current || !conversation) return;
+    if (pending.current) {
+      if (target !== visibleTarget) return;
+    } else {
+      if (!connected) return;
+      const question = conversation.entries.find(
+        (entry) => entry.id === target && entry.kind === "question",
+      );
+      const draft = target === null ? note : (drafts[target] ?? "");
+      if (!draft.trim() || (target !== null && !question)) return;
       pending.current = {
-        contractVersion: "v1",
-        planId,
-        operationId: crypto.randomUUID(),
-        expectedRevision: conversation.revision,
-        expectedDigest: conversation.cursor.digest,
-        entries,
+        target,
+        draft,
+        request: {
+          contractVersion: "v1",
+          planId,
+          operationId: crypto.randomUUID(),
+          expectedRevision: conversation.revision,
+          expectedDigest: conversation.cursor.digest,
+          entries: [
+            {
+              id: crypto.randomUUID(),
+              section: question?.section ?? "Discussion",
+              kind: question ? "answer" : "note",
+              body: draft.trim(),
+              ...(question ? { replyTo: question.id } : {}),
+            },
+          ],
+        },
       };
     }
-    setSending(true);
-    setError(undefined);
+    const submitted = pending.current;
+    inFlight.current = true;
+    setSave({ target: submitted.target, phase: "sending" });
     try {
-      await submitPlanning(pending.current);
+      await submitPlanning(submitted.request);
       pending.current = undefined;
-      setUncertain(false);
-      setDrafts({});
-      unsentAnswers.current = {};
-      setNote("");
-      setSaved(true);
+      if (submitted.target === null) {
+        setNote((current) => (current === submitted.draft ? "" : current));
+      } else {
+        const id = submitted.target;
+        setDrafts((current) =>
+          current[id] === submitted.draft ? { ...current, [id]: "" } : current,
+        );
+        if (unsentAnswers.current[id]?.value === submitted.draft)
+          delete unsentAnswers.current[id];
+      }
+      await refreshConversation();
+      setSave({ target: submitted.target, phase: "saved" });
     } catch (caught) {
-      if (caught instanceof PlanningRequestError && caught.status < 500) {
+      const known =
+        caught instanceof PlanningRequestError && caught.status < 500;
+      if (known) {
         pending.current = undefined;
-        setUncertain(false);
-      } else setUncertain(true);
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to save answers. Retry to check whether they were saved.",
-      );
+        await refreshConversation();
+      }
+      setSave({
+        target: submitted.target,
+        phase: known ? "error" : "uncertain",
+        error: known
+          ? "Conversation changed or this save was rejected. Review the latest entries, then save again. Your draft is still here."
+          : "Could not confirm this save. Retry to check the original submission. Your draft is still here.",
+      });
     } finally {
-      setSending(false);
+      inFlight.current = false;
     }
   };
   return {
@@ -93,11 +119,15 @@ export function usePlanningConversation(planId: string) {
     conversation,
     drafts,
     note,
-    error,
+    recoveryMessage,
     connected,
-    sending,
-    uncertain,
-    saved,
+    save: save
+      ? {
+          ...save,
+          target: visibleTarget,
+          recovered: save.target !== visibleTarget,
+        }
+      : undefined,
     setAnswer: (id: string, value: string) => {
       unsentAnswers.current[id] = {
         body:
@@ -105,10 +135,20 @@ export function usePlanningConversation(planId: string) {
         value,
       };
       setDrafts((current) => ({ ...current, [id]: value }));
-      setSaved(false);
+      setSave((current) =>
+        current?.target === id && current.phase === "saved"
+          ? undefined
+          : current,
+      );
     },
-    setNote,
-    setSaved,
+    setNote: (value: string) => {
+      setNote(value);
+      setSave((current) =>
+        current?.target === null && current.phase === "saved"
+          ? undefined
+          : current,
+      );
+    },
     submit,
   };
 }

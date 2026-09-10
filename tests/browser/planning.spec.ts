@@ -95,9 +95,35 @@ for (const width of [1280, 390]) {
         }),
       ).toHaveValue("Keep valid rows and report errors");
       await page
-        .getByRole("button", { name: "Save answers and notes" })
-        .click();
-      await expect(page.getByText("Saved to this plan.")).toBeVisible();
+        .getByRole("button", {
+          name: "Save answer: Which formats should we accept?",
+          exact: true,
+        })
+        .focus();
+      await page.keyboard.press("Enter");
+      await expect(
+        page.getByRole("textbox", {
+          name: "Answer: What happens when two rows fail?",
+        }),
+      ).toHaveValue("Keep valid rows and report errors");
+      await expect(
+        page.getByRole("button", {
+          name: "Save answer: What happens when two rows fail?",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await page
+        .getByRole("button", {
+          name: "Save answer: What happens when two rows fail?",
+          exact: true,
+        })
+        .focus();
+      await page.keyboard.press("Enter");
+      await expect(
+        page.getByRole("textbox", {
+          name: "Answer: What happens when two rows fail?",
+        }),
+      ).toHaveValue("");
       const answer = await client.callTool<{
         structuredContent: PlanningConversation;
       }>("get_planning", {
@@ -281,7 +307,7 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("an uncertain save retries the original batch without duplicating answers", async ({
+test("an uncertain save retries the original request without duplicating answers", async ({
   page,
   baseURL,
 }) => {
@@ -315,14 +341,24 @@ test("an uncertain save retries the original batch without duplicating answers",
         await route.abort("failed");
       } else await route.continue();
     });
-    await page.getByRole("button", { name: "Save answers and notes" }).click();
+    await page
+      .getByRole("button", {
+        name: "Save note: Add a thought or ask a question",
+      })
+      .click();
     await expect(
-      page.getByRole("button", { name: "Retry saving answers" }),
+      page.getByRole("button", {
+        name: "Retry saving: Add a thought or ask a question",
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "Add a thought or ask a question" }),
     ).toHaveValue("Keep this thought");
-    await page.getByRole("button", { name: "Retry saving answers" }).click();
+    await page
+      .getByRole("button", {
+        name: "Retry saving: Add a thought or ask a question",
+      })
+      .click();
     await expect(page.getByText("Saved to this plan.")).toBeVisible();
     const result = await client.callTool<{
       structuredContent: PlanningConversation;
@@ -437,7 +473,9 @@ test("loads new entries on events and reloads bounded pages after a reset withou
       /Unsent answer to "Choose option 0":\nKeep my unsent answer/,
     );
     await expect(
-      page.getByRole("button", { name: "Save answers and notes" }),
+      page.getByRole("button", {
+        name: "Save note: Add a thought or ask a question",
+      }),
     ).toBeEnabled();
     expect(pages.filter((result) => result.entries.length === 25).length).toBe(
       2,

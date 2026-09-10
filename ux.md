@@ -163,12 +163,11 @@ reading size. Wheel zooms, Shift-wheel pans, dragging background or middle-butto
 dragging pans, and touch supports pan and pinch zoom. Focused canvas arrow keys
 pan, plus/minus zoom, and Home fits. Editing text preserves normal input behavior.
 Tabbing to a control brings its document into view. The Add a thought toolbar
-action opens the note editor. Answer submission stays outside the canvas.
+action opens the note editor. Each composer has its own save control immediately below its field.
 Live content refits only while the person has not navigated away from Fit.
 Scrollbars in fields and bounded documents use thin warm-colored tracks.
 Fenced code blocks preserve whitespace and render literal code. Suggested answers are buttons with no automatic selection. Each
-question also accepts free text. Save answers and notes submits the filled
-answers as one batch. Saved replies stay beside their original questions.
+question also accepts free text. Save answer submits only that question. After a saved answer, the control reads Save follow-up. Save note submits only the free note. Saved replies stay beside their original questions.
 
 The view receives conversation change events and fetches new questions using its
 last verified revision/digest cursor. It appends only new entries, verifies their digest chain,
@@ -176,8 +175,7 @@ and follows bounded pages immediately while catching up. A reset clears cached
 server content and reloads bounded pages while preserving drafts for review.
 Submission waits until the browser has caught up. Connection failure shows
 a disconnected state and retries. A failed save preserves drafts; an uncertain
-save freezes the submitted batch and offers an identical retry. Concurrent
-changes reject the batch so the person can read new content before resubmitting.
+save retains its exact request and offers a retry at the originating composer. Other saves wait with an explanation while every editor remains writable. Success clears only unchanged submitted text, preserving newer edits and unrelated drafts. Concurrent changes refresh the conversation before another explicit save.
 Switching to the specification keeps the conversation mounted and drafts intact.
 Reloading restores saved conversation from the server; unsent drafts are in memory.
 
@@ -199,12 +197,13 @@ the disclosure; failure offers Retry source. Findings do not imply human approva
 Legacy entries retain their content and attribution, with no title-based hiding.
 Implementation requirements still belong in the selected packet's required records.
 
-Save answers and notes and its progress, receipt and retry errors occupy a footer
-outside the question scroller. The footer reserves layout space on desktop and
-mobile, so it does not cover fields. The visual viewport limits its height when a
-mobile keyboard reduces visible space. Questions and the free-note field scroll
-independently above it. Batch submission, uncertain-request retries and drafts
-retain their existing behavior. The footer uses the existing warm-paper colours.
+Save progress, success and actionable errors appear below the originating composer.
+Controls include their question in their accessible name. Empty drafts and new saves
+while disconnected are disabled; uncertain requests can still be retried exactly.
+Tabbing brings controls into view, and Add a thought still opens the note editor.
+A conversation reset moves unsent answers into that note for review. If a pending
+question is removed, its retry remains available at the note composer without
+changing the original request. The existing batch endpoint remains compatible.
 
 "Server connected" describes the browser-to-server event connection. "Saved to this plan"
 confirms persistence only. Saving does not restart a stopped agent session. Optional queue delivery status distinguishes a connected companion, queued

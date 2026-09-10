@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   applyPlanningPage,
   PlanningSyncError,
@@ -14,11 +14,13 @@ export function usePlanningFeed(
   const [conversation, setConversation] = useState<PlanningReplica>();
   const [connected, setConnected] = useState(false);
   const [delivery, setDelivery] = useState<QueueDelivery>();
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
+  const refreshConversation = useCallback(() => refreshRef.current(), []);
   useEffect(() => {
     const controller = new AbortController();
     let replica: PlanningReplica | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let refreshing = false;
+    let refreshTask: Promise<void> | undefined;
     let pending = false;
     const source = new EventSource(
       `/api/plans/${encodeURIComponent(planId)}/planning/events`,
@@ -29,10 +31,7 @@ export function usePlanningFeed(
       setConversation(undefined);
       setConnected(false);
     };
-    const refresh = async () => {
-      pending = true;
-      if (refreshing) return;
-      refreshing = true;
+    const readPages = async () => {
       try {
         while (pending && !controller.signal.aborted) {
           pending = false;
@@ -72,10 +71,16 @@ export function usePlanningFeed(
         setConnected(false);
         setDelivery(undefined);
         timer = setTimeout(() => void refresh(), 2000);
-      } finally {
-        refreshing = false;
       }
     };
+    const refresh = () => {
+      pending = true;
+      refreshTask ??= readPages().finally(() => {
+        refreshTask = undefined;
+      });
+      return refreshTask;
+    };
+    refreshRef.current = refresh;
     const disconnect = () => {
       setConnected(false);
       setDelivery(undefined);
@@ -94,5 +99,5 @@ export function usePlanningFeed(
     };
   }, [planId, onReset]);
 
-  return { conversation, connected, delivery };
+  return { conversation, connected, delivery, refreshConversation };
 }

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { IruddMcpClient } from "../../src/client/mcp-client.js";
 import type { PlanningPage } from "../../src/domain/conversation-sync.js";
 
-for (const width of [1280, 390]) {
+for (const width of [1440, 390]) {
   test(`long planning content keeps save and sources usable at ${width}px`, async ({
     page,
     baseURL,
@@ -96,10 +96,11 @@ for (const width of [1280, 390]) {
         page.getByText("Repository investigation", { exact: true }),
       ).toHaveCount(0);
       await answer.fill("Import the valid rows");
-      const action = page.getByRole("button", {
-        name: "Save answers and notes",
+      let action = page.getByRole("button", {
+        name: "Save answer: Should valid rows still be imported?",
       });
       const assertReachable = async () => {
+        await action.focus();
         const box = await action.boundingBox();
         expect(box).not.toBeNull();
         expect(box!.y).toBeGreaterThanOrEqual(0);
@@ -122,37 +123,15 @@ for (const width of [1280, 390]) {
       await page
         .getByRole("button", { name: "Add a thought", exact: true })
         .click();
-      await assertReachable();
+      action = page.getByRole("button", {
+        name: "Save note: Add a thought or ask a question",
+      });
       await page
         .getByRole("textbox", { name: "Add a thought or ask a question" })
         .fill("Keep the report readable");
-      if (width === 390) {
-        await page.evaluate(() => {
-          Object.defineProperty(window.visualViewport!, "height", {
-            configurable: true,
-            value: 500,
-          });
-          window.visualViewport!.dispatchEvent(new Event("resize"));
-        });
-        await expect
-          .poll(async () => {
-            const box = await action.boundingBox();
-            return box!.y + box!.height;
-          })
-          .toBeLessThanOrEqual(500);
-        await page.evaluate(() => {
-          Reflect.deleteProperty(window.visualViewport!, "height");
-          window.visualViewport!.dispatchEvent(new Event("resize"));
-        });
-      }
-      // A reduced visible viewport exercises the layout used while a keyboard is open.
+      // Focus navigation keeps the local action reachable with a reduced viewport.
       await page.setViewportSize({ width, height: 500 });
       await assertReachable();
-      const fieldBox = await page
-        .getByRole("textbox", { name: "Add a thought or ask a question" })
-        .boundingBox();
-      const footerBox = await page.locator(".planning-actions").boundingBox();
-      expect(fieldBox!.y + fieldBox!.height).toBeLessThanOrEqual(footerBox!.y);
       let lost = false;
       await page.route(`**/api/plans/${planId}/planning`, async (route) => {
         if (route.request().method() === "POST" && !lost) {
@@ -162,19 +141,29 @@ for (const width of [1280, 390]) {
         } else await route.continue();
       });
       await action.click();
-      const retry = page.getByRole("button", { name: "Retry saving answers" });
+      const retry = page.getByRole("button", {
+        name: "Retry saving: Add a thought or ask a question",
+      });
       await expect(retry).toBeVisible();
       await expect(page.getByRole("alert")).toBeVisible();
+      await retry.focus();
       await retry.click();
       await expect(
         page.getByText("Saved to this plan.", { exact: true }),
       ).toBeVisible();
+      await expect(answer).toHaveValue("Import the valid rows");
+      action = page.getByRole("button", {
+        name: "Save answer: Should valid rows still be imported?",
+      });
+      await assertReachable();
+      await action.click();
+      await expect(answer).toHaveValue("");
       const submitted = await read("get_planning", posted.cursor);
       expect(submitted.entries.map((entry) => entry.body)).toEqual([
-        "Import the valid rows",
         "Keep the report readable",
+        "Import the valid rows",
       ]);
-      expect(submitted.entries[0]).toMatchObject({
+      expect(submitted.entries[1]).toMatchObject({
         author: "human",
         replyTo: "question",
       });
@@ -213,9 +202,7 @@ for (const width of [1280, 390]) {
       await expect(
         page.getByText(resolution.entries[0]!.body, { exact: true }),
       ).toBeVisible();
-      await expect(
-        page.getByText("Saving does not restart a stopped agent session."),
-      ).toBeVisible();
+
       await page.screenshot({
         path: `test-results/agent-context-${width}.png`,
         fullPage: true,

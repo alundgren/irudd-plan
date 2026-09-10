@@ -75,6 +75,12 @@ asks for them.
 
 The selected packet contains the full requested item, every recursively required shared context, required decisions, and required asset descriptors. It also contains the epic goal and an index with each item's ID, title, short goal, and related item IDs. It does not include sibling requirements, checks, deferrals, or completion expectations.
 
+Required decisions are chosen outcomes to follow during implementation. They do
+not represent open questions or prove human approval. The tool description and
+public skill tell implementing agents to raise conflicts before changing a
+recorded choice. Planning guidance keeps unresolved questions in the conversation
+and puts explicit delegated choices and their limits in work-item requirements.
+
 `packetVersion` is a SHA-256 digest over the selected item and its required context, decisions, and assets. Editing an unrelated sibling does not change it. Editing a referenced decision does.
 
 ## Errors

@@ -270,14 +270,12 @@ summary {
 }
 
 .decision {
-  padding: 11px 13px;
-  border-left: 3px solid var(--accent);
-  border-radius: 0 7px 7px 0;
-  background: var(--panel);
+  margin-top: 20px;
 }
 
 .decision + .decision {
-  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .decision h4 {

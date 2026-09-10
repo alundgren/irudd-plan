@@ -1,16 +1,20 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function panTo(page: Page, target: Locator) {
-  await page.locator(".plan-viewport").waitFor({ state: "visible" });
+  await page
+    .getByLabel("Plan canvas", { exact: true })
+    .waitFor({ state: "visible" });
   await target.evaluate((element) => {
     const details = element.closest("details");
     if (details) details.open = true;
   });
   const bounds = await target.boundingBox();
-  const canvas = await page.locator(".plan-viewport").boundingBox();
+  const canvas = await page
+    .getByLabel("Plan canvas", { exact: true })
+    .boundingBox();
   if (bounds === null || canvas === null)
     throw new Error("Missing canvas content");
-  await page.locator(".plan-viewport").evaluate(
+  await page.getByLabel("Plan canvas", { exact: true }).evaluate(
     (view, delta) => {
       view.dispatchEvent(
         new WheelEvent("wheel", {

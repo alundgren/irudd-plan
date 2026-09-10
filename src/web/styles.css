@@ -1756,7 +1756,8 @@ summary {
 .planning-view textarea {
   display: block;
   width: 100%;
-  min-height: 110px;
+  min-height: min(110px, var(--planning-editor-height, 110px));
+  max-height: var(--planning-editor-height, none);
   padding: 12px;
   border: 1px solid #c1af9a;
   border-radius: 8px;

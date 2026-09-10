@@ -1,6 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 import { usePlanningGestures } from "./use-planning-gestures.js";
+import { usePlanningResize } from "./use-planning-resize.js";
 import { PlanningCanvasTools } from "./planning-canvas-tools.js";
 
 export function PlanningCanvas({
@@ -25,14 +26,8 @@ export function PlanningCanvas({
     fitting.current = true;
     move({ x: 24, y: 24, zoom: Math.max(0.001, zoom) });
   }, [viewport, world, move, fitting]);
-  useLayoutEffect(() => {
-    const observer = new ResizeObserver(() => {
-      if (fitting.current) fit();
-    });
-    if (viewport.current) observer.observe(viewport.current);
-    if (world.current) observer.observe(world.current);
-    return () => observer.disconnect();
-  }, [viewport, world, fitting, fit]);
+  const resize = usePlanningResize(camera, fit, children);
+  const readingCamera = { ...camera, focus: resize.read };
   const gestures = usePlanningGestures(camera, fit);
   return (
     <>
@@ -54,10 +49,12 @@ export function PlanningCanvas({
         }}
         onFocusCapture={(event) => {
           const target = event.target;
-          if (target === event.currentTarget || pointerFocus.current) return;
+          if (target === event.currentTarget) return;
           const panel = target.closest<HTMLElement>("[data-planning-panel]");
           if (panel) {
-            camera.focus(panel);
+            resize.select(panel);
+            if (pointerFocus.current) return;
+            resize.read(panel);
             requestAnimationFrame(() => {
               const view = viewport.current?.getBoundingClientRect();
               const bounds = target.getBoundingClientRect();
@@ -88,7 +85,7 @@ export function PlanningCanvas({
                   button.dataset.readTarget,
               )
             : button?.closest<HTMLElement>("[data-planning-panel]");
-          if (panel) camera.focus(panel);
+          if (panel) resize.read(panel);
         }}
       >
         <div
@@ -101,7 +98,11 @@ export function PlanningCanvas({
           {children}
         </div>
       </div>
-      <PlanningCanvasTools camera={camera} sections={sections} fit={fit} />
+      <PlanningCanvasTools
+        camera={readingCamera}
+        sections={sections}
+        fit={fit}
+      />
     </>
   );
 }

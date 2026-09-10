@@ -1731,9 +1731,20 @@ summary {
 .planning-thread fieldset {
   border: 0;
   padding: 0;
-  margin-top: 20px;
+  margin-top: 28px;
+}
+.planning-thread .planning-answer-composer {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.planning-saved-receipt {
+  margin-top: 12px;
+  color: #3d6034;
+  font-size: 13.5px;
 }
 .planning-thread legend {
+  float: left;
+  width: 100%;
   margin-bottom: 10px;
 }
 .planning-thread fieldset button {
@@ -1852,12 +1863,13 @@ summary {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  margin: 20px 0;
+  margin: 36px 0 24px;
   color: var(--muted);
 }
 .planning-inline-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 27.2px;
 }
 .planning-inline-detail {
   margin-top: 3px;
@@ -1872,13 +1884,29 @@ summary {
   border-radius: 50%;
   background: currentColor;
 }
-.planning-inline-waiting,
+.planning-inline-waiting {
+  color: #3d6034;
+}
+.planning-inline-ellipsis {
+  display: inline-flex;
+  margin-left: 8px;
+  gap: 3px;
+}
 .planning-inline-warning {
   color: var(--accent);
 }
 @media (prefers-reduced-motion: no-preference) {
   .planning-inline-waiting .planning-inline-dot {
     animation: planning-waiting-pulse 2s ease-in-out infinite;
+  }
+  .planning-inline-ellipsis span {
+    animation: planning-waiting-pulse 1.5s ease-in-out infinite;
+  }
+  .planning-inline-ellipsis span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .planning-inline-ellipsis span:nth-child(3) {
+    animation-delay: 0.4s;
   }
 }
 @keyframes planning-waiting-pulse {

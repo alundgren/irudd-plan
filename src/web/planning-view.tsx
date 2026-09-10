@@ -181,10 +181,9 @@ function PlanningThread({
     (candidate) =>
       candidate.replyTo === entry.id && candidate.kind !== "question",
   );
-  const resolved =
-    replies
-      .filter((reply) => reply.kind === "resolved" || reply.kind === "answer")
-      .at(-1)?.kind === "resolved";
+  const answered = replies.some(
+    (reply) => reply.author === "human" && reply.kind === "answer",
+  );
   const attachments = [entry, ...replies].flatMap((message) =>
     (message.assets ?? []).map((asset) => ({
       asset,
@@ -203,12 +202,7 @@ function PlanningThread({
         </Button>
         <PlanningMessage entry={entry} planId={planId} />
         {replies.map((reply) => (
-          <PlanningMessage
-            key={reply.id}
-            entry={reply}
-            planId={planId}
-            showResolution={!pendingAnswer}
-          />
+          <PlanningMessage key={reply.id} entry={reply} planId={planId} />
         ))}
         {pendingAnswer ? (
           <PlanningInlineStatus connected={connected} delivery={delivery} />
@@ -236,10 +230,8 @@ function PlanningThread({
           </nav>
         ) : null}
         {entry.kind === "question" ? (
-          <fieldset disabled={disabled}>
-            <legend>
-              {resolved ? "Add or revise your answer" : "Your answer"}
-            </legend>
+          <fieldset disabled={disabled} className="planning-answer-composer">
+            <legend>{answered ? "Add a follow-up" : "Your answer"}</legend>
             {entry.choices?.map((choice) => (
               <Button
                 key={choice}
@@ -256,7 +248,11 @@ function PlanningThread({
               value={draft}
               maxLength={40000}
               onChange={(event) => onChange(event.target.value)}
-              placeholder="Choose a suggestion or write your own answer"
+              placeholder={
+                answered
+                  ? "Anything else you'd like to add?"
+                  : "Choose a suggestion or write your own answer"
+              }
             />
           </fieldset>
         ) : null}
@@ -284,19 +280,21 @@ function PlanningThread({
 function PlanningMessage({
   entry,
   planId,
-  showResolution = true,
 }: {
   readonly entry: StoredPlanningEntry;
   readonly planId: string;
-  readonly showResolution?: boolean;
 }) {
   return (
     <div className={`planning-message planning-${entry.author}`}>
       <p className="planning-byline">
         {entry.author === "human" ? "You" : "Agent"}
-        {entry.kind === "resolved" && showResolution ? " · Resolved" : ""}
       </p>
       <RichText text={entry.body} />
+      {entry.author === "human" && entry.kind === "answer" ? (
+        <p className="planning-saved-receipt">
+          <span aria-hidden="true">✓</span> Saved to this plan
+        </p>
+      ) : null}
       {entry.source ? (
         <PlanningSource
           key={entry.source.entryId}

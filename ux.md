@@ -225,17 +225,25 @@ requires operator review and never triggers an automatic retry.
 ## Inline planning wait status
 
 Each question with a saved human answer awaiting a reply shows a quiet inline
-status after its messages. A connected companion shows "Waiting for a reply"
-with a soft pulsing dot. This describes the wait, not agent activity.
-Reduced-motion users see a static dot. Unknown activity, disconnected companions,
+status after its messages. Both ordinary waiting without companion metadata and connected-companion waiting
+show "Waiting for a reply" with a soft pulsing dot and staggered ellipsis. This describes the wait, not agent activity.
+Reduced-motion users see a static dot and ellipsis. Disconnected companions,
 uncertain delivery, and browser reconnection use static indicators and explain
 that the answer remains saved.
 
 The latest direct reply determines whether a question is still waiting. An agent
 reply or linked follow-up question clears its indicator; replies elsewhere do
-not. A later human answer starts the wait again. Previous resolution labels are
-hidden while that question awaits another reply. Drafts and saving retain their
-existing behavior.
+not. A later human answer starts the wait again. Agent messages never show a visible "Resolved" label. Every persisted human
+answer keeps a green checkmark and "Saved to this plan" directly beneath it,
+inside its indented block. Drafts and failed writes do not create receipts.
+The composer has a divider and says "Your answer" initially, then "Add a
+follow-up" after any saved answer, including while waiting. Batch saving retains
+its existing behavior.
+
+The Quiet inline reference uses system-ui, 400/500/600 weights, a 17px semibold
+status title with 27.2px line height, 13.5px supporting text, and #3D6034 for
+saved receipts and ordinary waiting. This follows the selected mockup rather
+than adding a font dependency.
 
 The companion's queue cursor is not proof of delivery for a particular answer:
 initialization deliberately skips older entries. Inline wording therefore reports

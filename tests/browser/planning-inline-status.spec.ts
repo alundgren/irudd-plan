@@ -115,9 +115,13 @@ for (const width of [1440, 390]) {
       await first.getByRole("textbox").fill("CSV");
       await expect(first.locator(".planning-saved-receipt")).toHaveCount(0);
       await second.getByRole("textbox").fill("Keep valid rows");
-      await page
-        .getByRole("button", { name: "Save answers and notes" })
-        .click();
+      await first.getByRole("button", { name: /^Save answer:/ }).focus();
+      await page.keyboard.press("Enter");
+      await expect(
+        second.getByRole("button", { name: /^Save answer:/ }),
+      ).toBeEnabled();
+      await second.getByRole("button", { name: /^Save answer:/ }).focus();
+      await page.keyboard.press("Enter");
       await expect(status).toContainText("Waiting for a reply");
       await expect(second.locator(".planning-inline-status")).toContainText(
         "Waiting for a reply",
@@ -273,17 +277,16 @@ for (const width of [1440, 390]) {
         if (route.request().method() === "POST") await route.abort("failed");
         else await route.continue();
       });
-      await page
-        .getByRole("button", { name: "Save answers and notes" })
-        .click();
+      await first.getByRole("button", { name: /^Save follow-up:/ }).focus();
+      await page.keyboard.press("Enter");
       await expect(
-        page.getByRole("button", { name: "Retry saving answers" }),
+        page.getByRole("button", { name: /^Retry saving:/ }),
       ).toBeVisible();
       await expect(first.locator(".planning-saved-receipt")).toHaveCount(1);
       await expect(status).toHaveCount(0);
       await expect(first.getByRole("textbox")).toHaveValue("Also accept JSON");
       await page.unroute(`**/api/plans/${planId}/planning`);
-      await page.getByRole("button", { name: "Retry saving answers" }).click();
+      await page.getByRole("button", { name: /^Retry saving:/ }).click();
       await expect(first.locator(".planning-saved-receipt")).toHaveCount(2);
       await expect(status).toContainText("The companion is connected");
       await expect(first.locator(".planning-byline")).not.toContainText([

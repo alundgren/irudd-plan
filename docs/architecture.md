@@ -89,8 +89,9 @@ conversation rows and digest chains remain unchanged. Requirements needed for
 implementation must enter work items or required specification records, because
 agent context is excluded from item packets and their digests.
 
-The planning footer reserves space below the conversation scroller. Its receipt
-confirms persistence, not agent acknowledgement. The optional companion reports
+Each planning composer owns its save control and feedback. The browser keeps one
+unresolved request and leaves other drafts editable; the append endpoint still
+accepts batches from existing clients. A saved receipt confirms persistence only. The optional companion reports
 connection status and queue acceptance independently. `src/companion` owns local
 configuration, verified cursor catch-up, an exclusive state lock, a crash-safe
 delivery journal, and the Codex CLI call. `src/web/companion-router.ts` accepts only

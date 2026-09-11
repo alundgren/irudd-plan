@@ -9,7 +9,11 @@ import type { StoredPlanningEntry } from "../contract/planning.js";
 import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
 import { Button } from "./ui/button.js";
-import { usePlanningConversation } from "./use-planning-conversation.js";
+import { PlanningSaveAction } from "./planning-save-action.js";
+import {
+  usePlanningConversation,
+  type PlanningSaveState,
+} from "./use-planning-conversation.js";
 import type { QueueDelivery } from "../domain/planning-delivery.js";
 
 export function PlanningView({
@@ -25,21 +29,16 @@ export function PlanningView({
     delivery,
     drafts,
     note,
-    error,
+    recoveryMessage,
     connected,
-    sending,
-    uncertain,
-    saved,
+    save,
     setAnswer,
     setNote,
-    setSaved,
     submit,
   } = usePlanningConversation(planId);
   const sections = [
     ...new Set(conversation?.entries.map((entry) => entry.section) ?? []),
   ];
-  const hasDraft =
-    Object.values(drafts).some((value) => value.trim()) || !!note.trim();
   return (
     <section
       ref={viewport.ref}
@@ -100,11 +99,9 @@ export function PlanningView({
                     delivery={delivery}
                     planId={planId}
                     draft={drafts[entry.id] ?? ""}
-                    disabled={sending || uncertain}
-                    onChange={(value) => {
-                      setAnswer(entry.id, value);
-                      setSaved(false);
-                    }}
+                    save={save}
+                    onSubmit={() => void submit(entry.id)}
+                    onChange={(value) => setAnswer(entry.id, value)}
                   />
                 ))}
             </section>
@@ -115,32 +112,25 @@ export function PlanningView({
           <textarea
             id="planning-note"
             value={note}
-            disabled={sending || uncertain}
             maxLength={40000}
-            onChange={(event) => {
-              setNote(event.target.value);
-              setSaved(false);
-            }}
+            onChange={(event) => setNote(event.target.value)}
           />
+          <PlanningSaveAction
+            target={null}
+            label="Save note"
+            context="Add a thought or ask a question"
+            draft={note}
+            connected={connected}
+            save={save}
+            onSubmit={() => void submit(null)}
+          />
+          {recoveryMessage ? <p role="alert">{recoveryMessage}</p> : null}
           <p>
             Discussion stays in this private planning record. Implementation
             agents receive the agreed specification separately.
           </p>
         </div>
       </PlanningCanvas>
-      <PlanningActions
-        sending={sending}
-        uncertain={uncertain}
-        saved={saved}
-        error={error}
-        disabled={
-          sending ||
-          (!hasDraft && !uncertain) ||
-          !conversation ||
-          (!connected && !uncertain)
-        }
-        onSubmit={() => void submit()}
-      />
     </section>
   );
 }
@@ -164,7 +154,8 @@ function PlanningThread({
   entries,
   planId,
   draft,
-  disabled,
+  save,
+  onSubmit,
   onChange,
 }: {
   readonly entry: StoredPlanningEntry;
@@ -173,7 +164,8 @@ function PlanningThread({
   readonly delivery: QueueDelivery | undefined;
   readonly planId: string;
   readonly draft: string;
-  readonly disabled: boolean;
+  readonly save: PlanningSaveState | undefined;
+  readonly onSubmit: () => void;
   readonly onChange: (value: string) => void;
 }) {
   const pendingAnswer = pendingPlanningAnswer(entry.id, entries);
@@ -230,7 +222,7 @@ function PlanningThread({
           </nav>
         ) : null}
         {entry.kind === "question" ? (
-          <fieldset disabled={disabled} className="planning-answer-composer">
+          <fieldset className="planning-answer-composer">
             <legend>{answered ? "Add a follow-up" : "Your answer"}</legend>
             {entry.choices?.map((choice) => (
               <Button
@@ -253,6 +245,15 @@ function PlanningThread({
                   ? "Anything else you'd like to add?"
                   : "Choose a suggestion or write your own answer"
               }
+            />
+            <PlanningSaveAction
+              target={entry.id}
+              label={answered ? "Save follow-up" : "Save answer"}
+              context={entry.body}
+              draft={draft}
+              connected={connected}
+              save={save}
+              onSubmit={onSubmit}
             />
           </fieldset>
         ) : null}
@@ -303,36 +304,5 @@ function PlanningMessage({
         />
       ) : null}
     </div>
-  );
-}
-
-function PlanningActions({
-  sending,
-  uncertain,
-  saved,
-  error,
-  disabled,
-  onSubmit,
-}: {
-  readonly sending: boolean;
-  readonly uncertain: boolean;
-  readonly saved: boolean;
-  readonly error: string | undefined;
-  readonly disabled: boolean;
-  readonly onSubmit: () => void;
-}) {
-  return (
-    <footer className="planning-actions" aria-label="Save planning answers">
-      <Button disabled={disabled} onClick={onSubmit}>
-        {sending
-          ? "Saving..."
-          : uncertain
-            ? "Retry saving answers"
-            : "Save answers and notes"}
-      </Button>
-      {saved ? <p role="status">Saved to this plan.</p> : null}
-      {error ? <p role="alert">{error} Your draft is still here.</p> : null}
-      <p>Saving does not restart a stopped agent session.</p>
-    </footer>
   );
 }

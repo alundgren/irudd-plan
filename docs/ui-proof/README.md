@@ -3,7 +3,9 @@
 The experiment records focused, asserted browser interactions with headless
 Playwright 1.62.1. The installed version supports `page.screencast.start` and
 `stop`, so navigation, test data creation and server startup stay outside the
-video. Two independent clips cover guided answers and example comparison.
+video. Proof runs disable Playwright tracing because its earlier, lower-resolution
+screencast controls capture dimensions in this installed version. Ordinary
+browser tests retain failure traces. Two independent clips cover guided answers and example comparison.
 Screenshots provide a still view for comparison with the design mockup.
 
 Run `vp run test:ui-proof`. On a shared development VM, select a free port with

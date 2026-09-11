@@ -9,6 +9,9 @@ on:
       - ".github/workflows/ui-proof.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+concurrency:
+  group: ui-proof-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

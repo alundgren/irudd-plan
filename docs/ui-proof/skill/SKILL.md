@@ -9,6 +9,11 @@ Choose the one to three interactions that best explain the UI change. Use the
 application's headless Playwright tests and synthetic data. Inspect the installed
 Playwright API before choosing a recording method.
 
+Check that tracing or another recorder does not capture at a lower resolution
+first. In Playwright 1.62.1 the first screencast client controls capture size;
+irudd-plan disables tracing for proof runs. Inspect an actual video frame for
+padding or reduced text size, not only the separate screenshot.
+
 Use a fixed viewport, normally 1280 by 800. Complete setup and navigation before
 starting each screencast. Exercise the changed interaction, assert its resulting
 state, and stop recording. Capture a still of the important result too. Prefer

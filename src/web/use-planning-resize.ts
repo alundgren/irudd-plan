@@ -70,11 +70,19 @@ export function usePlanningResize(
       const resized =
         width !== view.clientWidth || height !== view.clientHeight;
       const previous = current.current;
+      const anchor = selected.current;
+      const actions = anchor?.editor
+        ?.closest("fieldset, .planning-compose")
+        ?.querySelector<HTMLElement>(".planning-save-action");
+      const reserved = actions ? actions.offsetHeight + 28 : 80;
+      view.style.setProperty(
+        "--planning-composer-height",
+        `${Math.max(1, view.clientHeight / previous.zoom - 16)}px`,
+      );
       view.style.setProperty(
         "--planning-editor-height",
-        `${Math.max(48, view.clientHeight / previous.zoom - 80)}px`,
+        `${Math.max(48, view.clientHeight / previous.zoom - reserved)}px`,
       );
-      const anchor = selected.current;
       if (fitting.current) fit();
       else if (resized && anchor?.panel.isConnected) {
         const next = measure(anchor.panel, content);
@@ -158,9 +166,10 @@ function resizedCamera(
     const actions = next.editor
       .closest("fieldset, .planning-compose")
       ?.querySelector<HTMLElement>(".planning-save-action");
-    const bottom = actions
-      ? elementPoint(actions, content).y + actions.offsetHeight
-      : next.editorY! + next.editor.offsetHeight;
+    const editorGroup = next.editor.closest<HTMLElement>(".planning-editor");
+    const bottomElement = editorGroup ?? actions ?? next.editor;
+    const bottom =
+      elementPoint(bottomElement, content).y + bottomElement.offsetHeight;
     y = Math.min(y, view.clientHeight - 8 - bottom * zoom);
     y = Math.max(y, 8 - next.editorY! * zoom);
   }

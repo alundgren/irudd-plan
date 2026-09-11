@@ -1766,6 +1766,12 @@ summary {
   font: inherit;
   resize: vertical;
 }
+.planning-editor {
+  clear: both;
+  max-height: var(--planning-composer-height, none);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
 .planning-compose {
   max-width: 75ch;
   margin: 32px 0;

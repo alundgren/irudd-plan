@@ -168,7 +168,9 @@ Live content refits only while the person has not navigated away from Fit.
 Resizing an already open planning view keeps the selected question, note or reference
 at readable width and preserves its approximate vertical reading position. The
 focused editor and its local save action stay reachable when the keyboard or
-toolbar reduces the available height. Drafts remain mounted and focus stays put.
+toolbar reduces the available height. When save feedback and the editor cannot fit
+together, their bounded area scrolls to keep the retry reachable. Scrolling that
+area does not pan or zoom the canvas. Drafts remain mounted and focus stays put.
 Typing, incoming replies and attachment measurements do not trigger resize
 recentering. Fit remains the spatial overview; section navigation returns to reading.
 Scrollbars in fields and bounded documents use thin warm-colored tracks.

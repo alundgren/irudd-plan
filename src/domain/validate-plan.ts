@@ -1,3 +1,4 @@
+import { Decision as DecisionSchema, decode } from "../contract/plan.js";
 import { createHash } from "node:crypto";
 
 import { PlanError } from "../contract/errors.js";
@@ -184,6 +185,14 @@ export function validatePlan(plan: Plan): PlanIndex {
   }
 
   for (const decision of plan.decisions) {
+    try {
+      decode(DecisionSchema, decision);
+    } catch {
+      throw new PlanError(
+        "REQUEST_INVALID",
+        `Decision ${decision.id} has invalid state-specific fields`,
+      );
+    }
     requireText(decision.reason, `decision ${decision.id} reason`);
     for (const id of decision.requiredContextIds)
       requireReference(contexts, id, `decision ${decision.id}`);

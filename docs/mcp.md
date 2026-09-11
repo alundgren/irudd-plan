@@ -77,6 +77,28 @@ The selected packet contains the full requested item, every recursively required
 
 `packetVersion` is a SHA-256 digest over the selected item and its required context, decisions, and assets. Editing an unrelated sibling does not change it. Editing a referenced decision does.
 
+## Current decision choices
+
+Require `features.decisionStates: true`. Required decisions explicitly use
+`decided`, `human-needed`, or `implementer-decides`; missing states are rejected.
+Human-needed records carry `question` and a same-plan `questionId`. Implementer
+choices carry `question` and `constraints`. Decided records carry the outcome in
+`body` and retain delegated constraints, but omit private question links.
+
+Selected packets include `specificationCursor: {revision, digest}` for an outcome
+write through `patch_plan`, with no whole-plan fetch. Both selected packets and
+`check_packet` include `decisionReadiness` with `canStart`, `canComplete`,
+`humanNeededIds`, and `implementerDecidesIds`. Human choices make an item wait.
+Delegated choices allow starting and require a recorded outcome before finishing.
+An unchanged packet does not imply readiness. Reopening a required choice changes
+its packet digest and readiness. Conversation-only writes do neither.
+
+Human answers stay in the existing private conversation. The planner updates the
+current decision and affected requirements together before recording a resolution.
+Public documents omit question links and source provenance. They show neutral
+waiting text without revealing private answers. No historical discussion enters
+implementation packets.
+
 ## Errors
 
 | Code                      | Meaning                                                                                                      |

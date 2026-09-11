@@ -171,7 +171,7 @@ export const planningTools = [
   {
     name: "patch_plan",
     description:
-      "Apply a small specification delta at expectedVersion. Arrays upsert complete records by stable ID, preserving all other records. remove*Ids explicitly delete records. Validation and conflict protection match write_plan. Discussion remains separate. Retry identical input and operationId after uncertain results.",
+      "An implementer may upsert a required implementer-decides decision as decided with outcome and reason, preserving constraints, using specificationCursor from get_work_item. Human-needed choices require planner reconciliation. Apply a small specification delta at expectedVersion. Arrays upsert complete records by stable ID, preserving all other records. remove*Ids explicitly delete records. Validation and conflict protection match write_plan. Discussion remains separate. Retry identical input and operationId after uncertain results.",
     inputSchema: {
       type: "object",
       required: [

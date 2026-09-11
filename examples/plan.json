@@ -41,6 +41,7 @@
   "decisions": [
     {
       "id": "decision-sqlite",
+      "state": "decided",
       "title": "SQLite storage",
       "body": "Store current records and immutable revisions in SQLite.",
       "reason": "The initial deployment runs on one node.",

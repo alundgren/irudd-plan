@@ -1,4 +1,4 @@
-import { useCallback, useRef, type ReactNode } from "react";
+import { useEffect, useCallback, useRef, type ReactNode } from "react";
 import { elementPoint, useCanvasCamera } from "./use-canvas-camera.js";
 import { usePlanningGestures } from "./use-planning-gestures.js";
 import { usePlanningResize } from "./use-planning-resize.js";
@@ -7,9 +7,11 @@ import { PlanningCanvasTools } from "./planning-canvas-tools.js";
 export function PlanningCanvas({
   children,
   sections,
+  focusQuestion,
 }: {
   readonly children: ReactNode;
   readonly sections: readonly string[];
+  readonly focusQuestion?: { id: string } | undefined;
 }) {
   const camera = useCanvasCamera();
   const pointerFocus = useRef(false);
@@ -29,6 +31,24 @@ export function PlanningCanvas({
   const resize = usePlanningResize(camera, fit, children);
   const readingCamera = { ...camera, focus: resize.read };
   const gestures = usePlanningGestures(camera, fit);
+  const focusedRequest = useRef<{ id: string } | undefined>(undefined);
+  useEffect(() => {
+    if (!focusQuestion || focusedRequest.current === focusQuestion) return;
+    const target = Array.from(
+      world.current?.querySelectorAll<HTMLElement>(
+        "[data-planning-document]",
+      ) ?? [],
+    ).find((panel) => panel.dataset.planningDocument === focusQuestion.id);
+    if (!target || !viewport.current?.clientWidth) return;
+    const frame = requestAnimationFrame(() => {
+      focusedRequest.current = focusQuestion;
+      resize.read(target);
+      target
+        .querySelector<HTMLTextAreaElement>("textarea")
+        ?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  });
   return (
     <>
       <div

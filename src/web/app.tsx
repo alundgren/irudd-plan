@@ -1,3 +1,7 @@
+import {
+  PlanningSessionProvider,
+  usePlanningSession,
+} from "./planning-session.js";
 import { PlanningView } from "./planning-view.js";
 import { FeedbackDialog } from "./feedback-dialog.js";
 import {
@@ -80,19 +84,24 @@ export function App() {
   if (document === undefined) return <LoadingState />;
 
   return (
-    <PlanWorkspace
-      document={document}
-      {...(error === undefined ? {} : { error })}
-      connection={connection}
-      changedSections={changedSections}
-      {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
-      onSelect={navigate}
-      onShowPlans={() =>
-        window.location.assign(
-          route.publicOwnerId === undefined ? "/" : planPath(route),
-        )
-      }
-    />
+    <PlanningSessionProvider
+      planId={route.planId}
+      enabled={route.publicOwnerId === undefined}
+    >
+      <PlanWorkspace
+        document={document}
+        {...(error === undefined ? {} : { error })}
+        connection={connection}
+        changedSections={changedSections}
+        {...(route.itemId === undefined ? {} : { itemId: route.itemId })}
+        onSelect={navigate}
+        onShowPlans={() =>
+          window.location.assign(
+            route.publicOwnerId === undefined ? "/" : planPath(route),
+          )
+        }
+      />
+    </PlanningSessionProvider>
   );
 }
 
@@ -123,6 +132,10 @@ function PlanWorkspace({
       (document.plan.items.length === 0 ||
         new URLSearchParams(window.location.search).get("view") === "planning"),
   );
+  const planningSession = usePlanningSession();
+  useEffect(() => {
+    if (planningSession?.questionToFocus) setPlanningOpen(true);
+  }, [planningSession?.questionToFocus]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [composer, setComposer] = useState<{
     item: FeedbackItem;
@@ -192,6 +205,8 @@ function PlanWorkspace({
             key={document.plan.planId}
             planId={document.plan.planId}
             goal={document.plan.epicGoal}
+            onBack={() => setPlanningOpen(false)}
+            active={planningOpen}
           />
         </div>
       ) : null}

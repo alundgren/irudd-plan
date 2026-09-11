@@ -1,3 +1,4 @@
+import { usePlanningSession } from "./planning-session.js";
 import {
   PlanningInlineStatus,
   pendingPlanningAnswer,
@@ -10,18 +11,19 @@ import { AssetView } from "./asset-view.js";
 import { RichText } from "./rich-text.js";
 import { Button } from "./ui/button.js";
 import { PlanningSaveAction } from "./planning-save-action.js";
-import {
-  usePlanningConversation,
-  type PlanningSaveState,
-} from "./use-planning-conversation.js";
+import { type PlanningSaveState } from "./use-planning-conversation.js";
 import type { QueueDelivery } from "../domain/planning-delivery.js";
 
 export function PlanningView({
   planId,
   goal,
+  onBack,
+  active,
 }: {
   readonly planId: string;
   readonly goal: string;
+  readonly onBack: () => void;
+  readonly active: boolean;
 }) {
   const viewport = usePlanningViewport();
   const {
@@ -35,7 +37,8 @@ export function PlanningView({
     setAnswer,
     setNote,
     submit,
-  } = usePlanningConversation(planId);
+    questionToFocus,
+  } = usePlanningSession()!;
   const sections = [
     ...new Set(conversation?.entries.map((entry) => entry.section) ?? []),
   ];
@@ -46,7 +49,24 @@ export function PlanningView({
       className="planning-view"
       aria-label="Planning conversation"
     >
-      <PlanningCanvas sections={sections}>
+      {questionToFocus && (
+        <Button variant="outline" onClick={onBack}>
+          Back to work item
+        </Button>
+      )}
+      <PlanningCanvas
+        sections={sections}
+        focusQuestion={active ? questionToFocus : undefined}
+      >
+        {questionToFocus &&
+        connected &&
+        conversation &&
+        !conversation.entries.some(
+          (entry) =>
+            entry.id === questionToFocus.id && entry.kind === "question",
+        ) ? (
+          <p role="status">Planning question is unavailable.</p>
+        ) : null}
         <header className="planning-intro" data-planning-panel>
           <h1>{goal}</h1>
           <p>

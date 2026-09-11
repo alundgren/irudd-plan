@@ -216,22 +216,30 @@ function validatePlanningEntry(
       "Replies must use the question's section and reference a question",
     );
   if (
-    (entry.kind === "answer" || entry.kind === "resolved") &&
+    ["answer", "resolved", "reopened"].includes(entry.kind) &&
     target?.kind !== "question"
   )
     return new PlanError(
       "REQUEST_INVALID",
       "Answers and resolutions must reference a question",
     );
-  if (author === "agent" && entry.kind === "answer")
+  if (
+    author === "agent" &&
+    (entry.kind === "answer" || entry.kind === "reopened")
+  )
     return new PlanError(
       "REQUEST_INVALID",
-      "Human answers must be submitted from the browser",
+      "Answers and reopen requests must come from the browser",
     );
-  if (author === "human" && entry.kind !== "answer" && entry.kind !== "note")
+  if (
+    author === "human" &&
+    entry.kind !== "answer" &&
+    entry.kind !== "note" &&
+    entry.kind !== "reopened"
+  )
     return new PlanError(
       "REQUEST_INVALID",
-      "Browser entries must be answers or notes",
+      "Browser entries must be answers, notes or reopen requests",
     );
   return undefined;
 }

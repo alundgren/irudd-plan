@@ -107,6 +107,9 @@ for (const width of [1440, 390]) {
         },
       ]);
       await page.goto(`/plans/${planId}`);
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       const first = page.locator('[data-planning-document="formats"]');
       const second = page.locator('[data-planning-document="errors"]');
       const status = first.locator(".planning-inline-status");
@@ -307,6 +310,9 @@ for (const width of [1440, 390]) {
         path: `test-results/inline-disconnected-${width}.png`,
       });
       await page.reload();
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       await expect(status).toContainText("Companion disconnected");
       await expectStatic(status);
       await expect(first.locator(".planning-saved-receipt")).toHaveCount(2);

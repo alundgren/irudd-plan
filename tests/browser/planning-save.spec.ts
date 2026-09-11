@@ -58,6 +58,9 @@ for (const width of [1440, 390]) {
         ],
       });
       await page.goto(`/plans/${planId}`);
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       const a = page.locator('[data-planning-document="a"]');
       const b = page.locator('[data-planning-document="b"]');
       const note = page.getByRole("textbox", {

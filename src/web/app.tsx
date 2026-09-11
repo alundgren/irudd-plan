@@ -204,7 +204,7 @@ function PlanWorkspace({
           <PlanningView
             key={document.plan.planId}
             planId={document.plan.planId}
-            goal={document.plan.epicGoal}
+            plan={document.plan}
             onBack={() => setPlanningOpen(false)}
             active={planningOpen}
           />

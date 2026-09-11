@@ -67,6 +67,9 @@ for (const width of [1280, 390]) {
       });
       const postedCursor = (await readConversation(client, planId)).cursor;
       await page.goto(`/plans/${planId}`);
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       await expect(
         page.getByRole("heading", { name: "File formats" }),
       ).toBeVisible();
@@ -140,6 +143,9 @@ for (const width of [1280, 390]) {
         ),
       ).toBe(true);
       await page.reload();
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       await expect(
         page.getByText("Keep valid rows and report errors", { exact: true }),
       ).toBeVisible();
@@ -331,6 +337,9 @@ test("an uncertain save retries the original request without duplicating answers
     });
     await page.goto(`/plans/${planId}`);
     await page
+      .getByRole("button", { name: "Conversation canvas", exact: true })
+      .click();
+    await page
       .getByRole("textbox", { name: "Add a thought or ask a question" })
       .fill("Keep this thought");
     let lost = false;
@@ -425,6 +434,9 @@ test("loads new entries on events and reloads bounded pages after a reset withou
           .catch(() => undefined);
     });
     await page.goto(`/plans/${planId}`);
+    await page
+      .getByRole("button", { name: "Conversation canvas", exact: true })
+      .click();
     await expect(
       page.getByText("Choose option 29", { exact: true }),
     ).toBeAttached();

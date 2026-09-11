@@ -390,3 +390,68 @@ it("keeps discussion and its private visual out of a published specification", a
     (await service.getPlanning("owner-a", plan.planId)).entries[0]!.assets,
   ).toEqual([visual]);
 });
+
+it("reopening is an isolated human event with idempotent receipts and no plan mutation", async () => {
+  const { service, plan } = await setup();
+  await service.appendPlanning("owner-a", question(plan.planId), "agent");
+  const cursor = (await service.getPlanning("owner-a", plan.planId)).cursor;
+  const request: AppendPlanningRequest = {
+    contractVersion: "v1",
+    planId: plan.planId,
+    operationId: "reopen-question",
+    expectedRevision: cursor.revision,
+    expectedDigest: cursor.digest,
+    entries: [
+      {
+        id: "reopen",
+        section: "Scope",
+        kind: "reopened",
+        replyTo: "question-1",
+        body: "Reopened for revision.",
+      },
+    ],
+  };
+  await expect(
+    service.appendPlanning("owner-a", request, "agent"),
+  ).rejects.toMatchObject({ code: "REQUEST_INVALID" });
+  await expect(
+    service.appendPlanning("owner-b", request, "human"),
+  ).rejects.toMatchObject({ code: "PLAN_NOT_FOUND" });
+  await expect(
+    service.appendPlanning(
+      "owner-a",
+      {
+        ...request,
+        entries: [
+          {
+            id: "no-target",
+            section: "Scope",
+            kind: "reopened",
+            body: "Reopen",
+          },
+        ],
+      },
+      "human",
+    ),
+  ).rejects.toMatchObject({ code: "REQUEST_INVALID" });
+  await service.appendPlanning("owner-a", request, "human");
+  expect(
+    (await service.appendPlanning("owner-a", request, "human")).replayed,
+  ).toBe(true);
+  const conversation = await service.getPlanning("owner-a", plan.planId);
+  expect(conversation.entries).toHaveLength(2);
+  expect(conversation.entries[1]).toMatchObject({
+    kind: "reopened",
+    author: "human",
+    replyTo: "question-1",
+  });
+  expect(
+    (
+      await service.getItem("owner-a", {
+        contractVersion: "v1",
+        planId: plan.planId,
+        itemId: plan.items[0]!.id,
+      })
+    ).item,
+  ).toEqual(plan.items[0]);
+});

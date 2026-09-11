@@ -49,6 +49,9 @@ for (const target of ["answer", "note"]) {
         ],
       });
       await page.goto(`/plans/${planId}`);
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       const panel =
         target === "answer"
           ? page.locator('[data-planning-document="question"]')

@@ -84,6 +84,9 @@ for (const width of [1440, 390]) {
           sourceRequests.push(request.url());
       });
       await page.goto(`/plans/${planId}`);
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       const answer = page.getByRole("textbox", {
         name: "Answer: Should valid rows still be imported?",
       });
@@ -196,6 +199,9 @@ for (const width of [1440, 390]) {
       );
       await page.setViewportSize({ width, height: 900 });
       await page.reload();
+      await page
+        .getByRole("button", { name: "Conversation canvas", exact: true })
+        .click();
       await expect(
         page.getByText("Import the valid rows", { exact: true }),
       ).toBeVisible();

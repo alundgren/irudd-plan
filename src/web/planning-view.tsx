@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Plan } from "../contract/plan.js";
-import { usePlanningConversation } from "./use-planning-conversation.js";
+import { usePlanningSession } from "./planning-session.js";
 import { usePlanningViewport } from "./use-planning-viewport.js";
 import { PlanningHistory } from "./planning-history.js";
 import { GuidedPlanning } from "./guided-planning.js";
@@ -10,14 +10,25 @@ import "./guided-planning.css";
 export function PlanningView({
   planId,
   plan,
+  onBack,
+  active,
 }: {
   readonly planId: string;
   readonly plan: Plan;
+  readonly onBack: () => void;
+  readonly active: boolean;
 }) {
-  const controller = usePlanningConversation(planId);
+  const controller = usePlanningSession()!;
+  const { questionToFocus } = controller;
   const viewport = usePlanningViewport();
   const [history, setHistory] = useState(false);
   const [openedHistory, setOpenedHistory] = useState(false);
+  useEffect(() => {
+    if (questionToFocus) {
+      setOpenedHistory(true);
+      setHistory(true);
+    }
+  }, [questionToFocus]);
   return (
     <section
       ref={viewport.ref}
@@ -25,6 +36,11 @@ export function PlanningView({
       style={{ maxHeight: viewport.height }}
       aria-label="Planning conversation"
     >
+      {questionToFocus && (
+        <Button variant="outline" onClick={onBack}>
+          Back to work item
+        </Button>
+      )}
       <div className={`guided-mode ${history ? "guided-history-mode" : ""}`}>
         <Button
           variant="ghost"
@@ -48,6 +64,7 @@ export function PlanningView({
             planId={planId}
             goal={plan.epicGoal}
             controller={controller}
+            focusQuestion={active && history ? questionToFocus : undefined}
           />
         ) : null}
       </div>

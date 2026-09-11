@@ -40,6 +40,7 @@ export async function guidedFixture(page: Page, baseURL: string) {
       decisions: [
         {
           id: "readiness",
+          state: "decided",
           title: "Human decisions",
           body: "Human decisions must be settled before implementation begins. Unaffected ready items can proceed independently.",
           reason: "Keep implementation decisions explicit.",

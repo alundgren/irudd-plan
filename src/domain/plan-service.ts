@@ -1,3 +1,4 @@
+import { decisionReadiness } from "./decision-readiness.js";
 import { agentContextPage } from "./agent-context-sync.js";
 import type { AppendAgentContextRequest } from "../contract/agent-context.js";
 import { conversationPage } from "./conversation-sync.js";
@@ -196,8 +197,22 @@ export class PlanService {
     return this.store.get(ownerId, planId);
   }
 
-  publicCurrent(ownerId: string, planId: string) {
-    return this.store.getPublic(ownerId, planId);
+  async publicCurrent(ownerId: string, planId: string) {
+    const stored = await this.store.getPublic(ownerId, planId);
+    if (!stored) return undefined;
+    return {
+      ...stored,
+      plan: {
+        ...stored.plan,
+        decisions: stored.plan.decisions.map(
+          ({ questionId: _questionId, source: _source, ...decision }) =>
+            decision,
+        ),
+        contexts: stored.plan.contexts.map(
+          ({ source: _source, ...context }) => context,
+        ),
+      },
+    };
   }
 
   async publicAsset(
@@ -308,6 +323,11 @@ export class PlanService {
       planId: stored.plan.planId,
       itemId: required.item.id,
       packetVersion: digest(requiredContent),
+      specificationCursor: {
+        revision: stored.version,
+        digest: digest(stored.plan),
+      },
+      decisionReadiness: decisionReadiness(required.decisions),
       resourceUri: itemResourceUri(stored.plan.planId, required.item.id),
       epic: {
         goal: stored.plan.epicGoal,
@@ -379,11 +399,13 @@ export class PlanService {
       return {
         status: "unchanged" as const,
         packetVersion: current.packetVersion,
+        decisionReadiness: current.decisionReadiness,
       };
     }
     return {
       status: "changed" as const,
       packetVersion: current.packetVersion,
+      decisionReadiness: current.decisionReadiness,
       resourceUri: current.resourceUri,
     };
   }

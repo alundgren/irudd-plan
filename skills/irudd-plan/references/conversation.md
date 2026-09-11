@@ -114,7 +114,9 @@ question. Append an agent note with `replyTo`, the original section, and wording
 such as "You answered in session chat: accept CSV." Preserve the actual source;
 do not create a browser-authored answer. Resolve only what the reply settles.
 
-Process new entry IDs once. Acknowledge a settled answer by appending a `resolved`
+Process new entry IDs once. First reconcile a human answer by updating the current
+decision and affected item requirements together in a versioned specification
+write. Only after that write succeeds, acknowledge it by appending a `resolved`
 entry referencing its original question, with the explanation the person needs.
 Before processing after an interruption, synchronize all streams and inspect
 existing resolutions and newer replies. Reconcile unfinished specification
@@ -143,6 +145,22 @@ append-only so a revised answer or correction preserves earlier context. A
 resolution records the agent's understanding, not human approval. New answers
 after resolution require reconsideration. Keep proposed choices distinct from
 human decisions. Record where a decision came from and why.
+
+## Record current decision ownership
+
+Every decision explicitly has state `decided`, `human-needed`, or
+`implementer-decides`. A decided body records the current outcome, not approval.
+A human-needed decision has a current question linked to an existing question
+in this owner's plan. Create the question before linking it. An implementer
+choice has a current question and nonempty constraints defining its limits.
+Required human choices make their item wait, even after an answer is saved.
+An answer or resolution marker alone never changes specification readiness.
+
+The planner may explicitly reopen or reassign a choice with the same ID and a
+reason under the normal revision and digest checks. Record actual attribution.
+Do not infer transitions from discussion text. Implementers record outcomes
+within their limits before finishing, using selected-packet cursor metadata.
+Keep current choices in required decisions; keep discussion history private.
 
 ## Build the specification as decisions settle
 

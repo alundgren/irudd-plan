@@ -379,7 +379,9 @@ it("keeps discussion and its private visual out of a published specification", a
     planId: plan.planId,
   });
   const published = await service.publicCurrent("owner-a", plan.planId);
-  expect(published!.plan).toEqual(plan);
+  expect(published!.plan.items).toEqual(plan.items);
+  expect(published!.plan.decisions[0]).not.toHaveProperty("source");
+  expect(published!.plan.contexts[0]).not.toHaveProperty("source");
   expect(published).not.toHaveProperty("entries");
   await expect(
     service.publicAsset("owner-a", plan.planId, visual.id, visual.digest),

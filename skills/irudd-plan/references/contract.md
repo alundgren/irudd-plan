@@ -37,6 +37,31 @@ Contexts and decisions have `id`, `title`, `body`, `reason`, optional `source`,
 requirements must be acyclic. Use source to identify recorded evidence or human
 agreement precisely, without copying private conversational detail.
 
+Decisions additionally require explicit `state`: `decided`, `human-needed`, or
+`implementer-decides`. Missing and unknown states are invalid, with no defaults.
+A `human-needed` record requires nonempty `question` and `questionId` naming an
+existing question in the same owner's plan, and must omit `constraints`.
+An `implementer-decides` record requires nonempty `question` and `constraints`
+and must omit `questionId`. A `decided` record uses `body` as the chosen outcome
+and must omit `questionId`; it may retain `question` and `constraints` from a
+delegated choice. All states retain the stable ID, title, current body, reason,
+source and required references. The server checks structured fields, not whether
+arbitrary prose constraints have been satisfied. Public documents omit decision
+question IDs and all context/decision source provenance.
+
+Require `get_contract.features.decisionStates: true`. These semantics retain the
+v1 envelope and protocol but require updated clients and explicit records.
+Old-plan preservation and compatibility adapters are outside this delivery.
+
+`get_work_item` includes `specificationCursor: {revision, digest}` for
+`patch_plan.expectedVersion` and `expectedDigest`. Both `get_work_item` and
+`check_packet` return `decisionReadiness: {canStart, canComplete, humanNeededIds,
+implementerDecidesIds}`. Human-needed choices prevent starting and completion.
+Implementer choices permit starting but prevent completion. No outstanding
+choices permits both. This is decision readiness only, not execution permission,
+GitHub eligibility, test status, or overall completion. Packet freshness and
+readiness are independent. Saving an answer or resolution never changes either.
+
 `get_work_item` returns the complete selected item with recursively required
 contexts, decisions and asset descriptors, plus `epic.goal`, repository and a
 compact index. Both overview and item-packet indexes contain IDs, titles, short

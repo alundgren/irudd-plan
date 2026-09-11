@@ -20,9 +20,11 @@ export function PlanningHistory({
   planId,
   goal,
   controller,
+  focusQuestion,
 }: {
   readonly planId: string;
   readonly goal: string;
+  readonly focusQuestion?: { id: string } | undefined;
   readonly controller: ReturnType<typeof usePlanningConversation>;
 }) {
   const viewport = usePlanningViewport();
@@ -48,7 +50,15 @@ export function PlanningHistory({
       className="planning-view"
       aria-label="Planning conversation"
     >
-      <PlanningCanvas sections={sections}>
+      <PlanningCanvas sections={sections} focusQuestion={focusQuestion}>
+        {focusQuestion &&
+        connected &&
+        conversation &&
+        !conversation.entries.some(
+          (entry) => entry.id === focusQuestion.id && entry.kind === "question",
+        ) ? (
+          <p role="status">Planning question is unavailable.</p>
+        ) : null}
         <header className="planning-intro" data-planning-panel>
           <h1>{goal}</h1>
           <p>

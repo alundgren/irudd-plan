@@ -236,6 +236,7 @@ async function callTool(
           features: {
             queueCompanion: true,
             itemDependencies: true,
+            decisionStates: true,
             planningConversation: true,
             agentContext: true,
             planDeltas: true,

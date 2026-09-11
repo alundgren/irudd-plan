@@ -17,19 +17,19 @@ padding or reduced text size, not only the separate screenshot.
 Use a fixed viewport, normally 1280 by 800. Complete setup and navigation before
 starting each screencast. Exercise the changed interaction, assert its resulting
 state, and stop recording. Capture a still of the important result too. Prefer
-WebM and several short clips to one long tour. Aim for 10–30 seconds where useful;
+WebM and several short clips to one long tour. Keep each clip to one interaction;
 do not add fixed waits or unrelated actions to reach a duration.
 
 If explicit screencasting is unavailable, use Playwright video and trim setup
 from the result. Preserve assertion failures as failures. Review at least one
 frame from each clip and check duration and file size before attaching it.
 
-Keep binaries out of git. Use the repository's existing artifact upload route.
-For irudd-plan, run `vp run test:ui-proof`, select scenarios relevant to the PR,
-and use the successful UI proof Actions artifact. The workflow adds the commit
-and download URL to its job summary. Add that link and a short caption for each
-clip to the PR body through `gh`. State that the files require download and expire
-after 30 days. Refresh the link when a later commit changes the UI.
+Keep binaries out of git. For irudd-plan, run `vp run test:ui-proof` locally
+and select scenarios relevant to the PR. Trim each clip to one 3–5 second
+interaction and render at half speed without adding waits. Attach clips directly
+with `gh pr edit --attach`. Include the recorded commit and a short caption in
+the PR body. Record fresh evidence when later changes affect the demonstrated
+behavior. No GitHub Actions upload is required.
 
 PR creation authority does not imply authority to publish production data,
 create a release or send messages elsewhere. If the available upload route

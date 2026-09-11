@@ -1,9 +1,9 @@
+import { DecisionList, DecisionWaiting } from "./decision-list.js";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 
 import type {
   AssetDescriptor,
-  Decision,
   Plan,
   SharedContext,
   WorkItem,
@@ -119,11 +119,12 @@ function ItemSheet({
           <RichText text={item.goal} />
         </FeedbackSheetSection>
 
+        <DecisionWaiting decisions={decisions} />
         {decisions.length > 0 && (
           <FeedbackSheetSection
             {...feedbackProps}
             sectionId="decisions"
-            label="Open decisions"
+            label="Decisions"
             changedSections={changedSections}
           >
             <DecisionList decisions={decisions} />
@@ -212,20 +213,6 @@ function FeedbackSheetSection({
       {children}
     </SheetSection>
   );
-}
-
-function DecisionList({
-  decisions,
-}: {
-  readonly decisions: ReadonlyArray<Decision>;
-}) {
-  return decisions.map((decision) => (
-    <div className="decision" key={decision.id}>
-      <h4>{decision.title}</h4>
-      <RichText text={decision.body} />
-      <p className="reason">Why: {decision.reason}</p>
-    </div>
-  ));
 }
 
 function VisualReferences({

@@ -21,26 +21,14 @@ cannot produce a successful proof attachment. Files stay in ignored
 
 ## PR delivery
 
-The UI proof workflow runs on pull requests that change browser code, browser
-tests, planning contracts or relevant tooling. It runs checks and unit tests,
-then records the examples. Only a successful run uploads evidence. The artifact
-name includes the PR commit and its download link appears in the job summary.
-Artifacts expire after 30 days and require GitHub access. They are downloadable
-files, not inline GitHub video players. The workflow has read-only repository
-permissions and does not post comments or create releases.
+Run recordings locally with `vp run test:ui-proof`. Select scenarios relevant
+to the PR in the package script. Review the result, trim each clip to one
+3–5 second interaction, and render at half speed without adding waits.
 
-The PR author copies the artifact link from the successful run into the PR
-body, with the commit and a sentence about each clip. A later push requires
-fresh evidence and a refreshed link. `gh run view` and `gh api` can retrieve the
-run and artifact URLs. A failed workflow or unavailable artifact must be
-reported explicitly; a local file path is not an uploaded attachment.
-
-For the next UI change, add or select a focused scenario and update the
-`test:ui-proof` script to run it. The workflow cannot decide which interactions
-best demonstrate an arbitrary change. Keep that choice with the implementation
-agent. Prefer two or three short examples over a tour of the application.
-Aim for 10–30 seconds when the interaction needs that long; never pad a shorter
-example. Use clear filenames and deterministic synthetic content.
+Attach the clips directly to the PR with `gh pr edit --attach`, and identify
+the recorded commit and interaction in the PR body. Keep recordings out of git.
+Record fresh evidence when later changes affect the demonstrated behavior.
+There is no GitHub Actions recording or artifact upload workflow.
 
 [Suggested skill](skill/SKILL.md) describes that authoring workflow. It is a
 proposal stored in this PR, not an automatically installed global skill.

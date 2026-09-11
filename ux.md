@@ -303,3 +303,20 @@ claim a computed association between a question and a requirement. Browser
 proposal acceptance is deferred. Only the planner's existing authenticated plan
 write can change requirements, and a saved answer is never labelled an applied
 plan change.
+
+## Decision ownership
+
+Required decisions have two nonempty groups, Still to decide and Decided.
+Outstanding choices identify whether the human or implementer decides and show
+current questions, reasons and applicable constraints. Decided choices show the
+current outcome without implying approval. Empty decision areas are omitted.
+
+A human-needed choice makes its item wait. The authenticated view distinguishes
+unanswered questions from saved answers awaiting a specification update; both
+remain blocked. Answer in planning focuses the existing question and answer
+controls in the conversation canvas. Guided planning and the conversation canvas
+share the planning session and drafts. Returning preserves the item camera and
+unsent answer drafts. Public
+views use neutral waiting text and omit private question links, provenance and
+answer status. Implementer-owned choices allow starting and require outcomes
+before finishing. Live specification updates refresh both groups and feedback.

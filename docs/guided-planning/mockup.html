@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guided planning · irudd-plan</title>
+    <style>
+      :root {
+        --bg: #f2eade;
+        --surface: #eadfcd;
+        --raised: #e0d2bd;
+        --field: #f9f6f0;
+        --line: #c1af9a;
+        --text: #604939;
+        --muted: #66574d;
+        --accent: #784f26;
+        --link: #3d5d71;
+        --ok: #3d6034;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        color: var(--text);
+        background: var(--bg);
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      button,
+      textarea,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--field);
+        padding: 10px 16px;
+        line-height: 1.5;
+      }
+      button:hover {
+        background: var(--raised);
+      }
+      button:focus-visible,
+      summary:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid var(--link);
+        outline-offset: 3px;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--field);
+      }
+      button.quiet {
+        background: transparent;
+        border-color: transparent;
+        padding: 6px 8px;
+      }
+      button.link {
+        border: 0;
+        background: transparent;
+        color: var(--link);
+        text-align: left;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(28px, 3vw, 40px);
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+        max-width: 23ch;
+      }
+      h2 {
+        font-size: 22px;
+        line-height: 1.35;
+        font-weight: 600;
+      }
+      h3 {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      strong {
+        font-weight: 600;
+      }
+      .small,
+      small {
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+      .label {
+        font-size: 13.5px;
+        color: var(--muted);
+        margin-bottom: 15px;
+      }
+      .header {
+        flex-shrink: 0;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 28px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-weight: 600;
+        margin-right: auto;
+      }
+      .header .quiet {
+        font-size: 13.5px;
+      }
+      .canvas {
+        flex: 1;
+        min-height: 0;
+        height: calc(100dvh - 64px);
+        overflow: auto;
+        background-image: radial-gradient(var(--line) 0.6px, transparent 0.6px);
+        background-size: 28px 28px;
+        position: relative;
+      }
+      .scene {
+        display: grid;
+        grid-template-columns: 260px minmax(460px, 640px) 200px;
+        gap: 65px;
+        max-width: 1370px;
+        min-height: 100%;
+        margin: auto;
+        padding: 90px 40px 115px;
+      }
+      .plan p {
+        margin: 20px 0;
+        max-width: 28ch;
+      }
+      .plan h2 {
+        margin-bottom: 26px;
+      }
+      .plan .active-rule {
+        padding-left: 14px;
+        border-left: 3px solid var(--accent);
+      }
+      .plan button {
+        margin-top: 12px;
+      }
+      .question {
+        min-width: 0;
+      }
+      .question > p {
+        margin-top: 22px;
+        max-width: 60ch;
+      }
+      .question .examples {
+        margin-top: 24px;
+      }
+      .choices {
+        display: grid;
+        gap: 10px;
+        margin: 30px 0 16px;
+      }
+      .choices button {
+        text-align: left;
+      }
+      .composer {
+        display: flex;
+        align-items: end;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .composer textarea {
+        flex: 1;
+        min-width: 0;
+        resize: vertical;
+        min-height: 56px;
+        height: 78px;
+        max-height: 220px;
+        padding: 12px 14px;
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .composer button {
+        flex-shrink: 0;
+      }
+      .defer {
+        margin-top: 20px;
+      }
+      .up-next {
+        padding-top: 60px;
+      }
+      .up-next button {
+        display: block;
+        margin: 18px 0;
+        text-align: left;
+      }
+      .next-item {
+        max-width: 22ch;
+      }
+      .receipt {
+        color: var(--ok);
+        font-size: 13.5px;
+        margin-bottom: 18px;
+      }
+      .proposal {
+        margin-top: 26px;
+      }
+      .proposal p {
+        margin: 16px 0;
+      }
+      .proposal .replacement {
+        background: var(--field);
+        padding: 20px 24px;
+        border-left: 3px solid var(--accent);
+      }
+      .proposal .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+      .empty {
+        padding-top: 40px;
+      }
+      .empty p {
+        margin: 20px 0;
+      }
+      .canvas-nav {
+        position: fixed;
+        bottom: 16px;
+        left: 22px;
+        display: flex;
+        gap: 3px;
+        background: var(--bg);
+        padding: 3px;
+        border-radius: 6px;
+      }
+      .canvas-nav button {
+        border: 0;
+        background: transparent;
+        padding: 4px 10px;
+        font-size: 13.5px;
+      }
+      .canvas-nav output {
+        font-size: 13.5px;
+        align-self: center;
+        min-width: 42px;
+        text-align: center;
+      }
+      .demo-note {
+        position: fixed;
+        bottom: 21px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 13.5px;
+        color: var(--muted);
+        background: var(--bg);
+        padding: 2px 10px;
+        white-space: nowrap;
+      }
+      .dialog {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        z-index: 30;
+        padding: 20px 30px;
+        overflow: auto;
+      }
+      .dialog header {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+      .dialog header h2 {
+        margin-right: auto;
+      }
+      .documents {
+        display: flex;
+        gap: 28px;
+        height: calc(100dvh - 125px);
+        min-height: 430px;
+      }
+      .item-context {
+        flex: 0.65;
+        min-width: 220px;
+        padding: 20px 0;
+      }
+      .item-context p {
+        margin: 20px 0;
+      }
+      .reference {
+        flex: 1;
+        min-width: 0;
+        padding: 22px 24px;
+        background: var(--field);
+        border-radius: 6px;
+        overflow: auto;
+      }
+      .reference.wide {
+        flex: 1.7;
+      }
+      .docbar {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+      }
+      .docbar strong {
+        margin-right: auto;
+      }
+      .docbar button {
+        padding: 4px 8px;
+        font-size: 13.5px;
+      }
+      .reference pre {
+        font:
+          16px/1.7 ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+      }
+      .history-list {
+        max-width: 880px;
+        margin: 40px auto;
+      }
+      .history-list article {
+        padding: 22px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .history-list details {
+        margin: 10px 0;
+      }
+      .history-list summary {
+        cursor: pointer;
+        color: var(--link);
+      }
+      .history-list p {
+        margin: 14px 0;
+      }
+      .history-list .actions {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        margin-top: 14px;
+      }
+      .summary-plan p {
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .notice {
+        margin-top: 14px;
+        color: var(--ok);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      @media (max-width: 1150px) and (min-width: 761px) {
+        .scene {
+          grid-template-columns: 210px minmax(400px, 1fr);
+          gap: 40px;
+          padding: 55px 30px 100px;
+        }
+        .up-next {
+          grid-column: 2;
+          padding-top: 0;
+        }
+        .up-next button {
+          display: inline-block;
+          margin: 10px 20px 0 0;
+        }
+        .documents {
+          gap: 18px;
+        }
+        .item-context {
+          min-width: 190px;
+        }
+      }
+      @media (max-width: 760px) {
+        #reset {
+          display: none;
+        }
+        .header {
+          height: auto;
+          min-height: 64px;
+          padding: 10px 16px;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .brand {
+          width: 100%;
+          font-size: 16px;
+        }
+        .header .quiet {
+          padding: 3px 6px;
+        }
+        .canvas {
+          height: calc(100dvh - 103px);
+        }
+        .scene {
+          display: flex;
+          flex-direction: column;
+          gap: 30px;
+          padding: 26px 20px 110px;
+        }
+        .plan h2 {
+          display: none;
+        }
+        .plan .label {
+          margin-bottom: 8px;
+        }
+        .plan p {
+          display: none;
+        }
+        .plan p.active-rule {
+          display: block;
+          font-size: 16px;
+          max-width: none;
+          margin: 0;
+        }
+        .plan button {
+          font-size: 13.5px;
+          margin-top: 8px;
+        }
+        .question h1 {
+          font-size: 28px;
+          max-width: none;
+        }
+        .question .label {
+          margin-bottom: 10px;
+        }
+        .question > p {
+          margin-top: 16px;
+        }
+        .up-next {
+          padding-top: 5px;
+        }
+        .choices {
+          margin-top: 22px;
+        }
+        .composer {
+          align-items: stretch;
+        }
+        .composer button {
+          align-self: end;
+        }
+        .canvas-nav {
+          bottom: 12px;
+          left: 12px;
+        }
+        .demo-note {
+          left: auto;
+          right: 8px;
+          transform: none;
+          bottom: 17px;
+          font-size: 11px;
+        }
+        .dialog {
+          padding: 16px;
+        }
+        .dialog header {
+          gap: 12px;
+          align-items: start;
+          margin-bottom: 22px;
+          flex-wrap: wrap;
+        }
+        .dialog header h2 {
+          font-size: 17px;
+          max-width: 24ch;
+        }
+        .dialog header button {
+          font-size: 13.5px;
+          padding: 8px 10px;
+        }
+        .documents {
+          display: block;
+          height: auto;
+        }
+        .item-context {
+          padding: 0;
+        }
+        .item-context p {
+          margin: 12px 0;
+        }
+        .reference {
+          margin-top: 22px;
+          padding: 18px;
+        }
+        .history-list {
+          margin: 20px 0;
+        }
+        .header .brand small {
+          font-weight: 400;
+        }
+        .canvas-nav .fit {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <span class="brand">Work item readiness <small> / Planning</small></span
+      ><button class="quiet" id="open-list">Open questions <span></span></button
+      ><button class="quiet" id="waiting-list">Waiting <span></span></button
+      ><button class="quiet" id="done-list">Done <span></span></button
+      ><button class="quiet" id="reset">Reset example</button>
+    </header>
+    <main class="canvas" id="canvas">
+      <div class="scene" id="scene">
+        <aside class="plan" id="plan"></aside>
+        <section
+          class="question"
+          id="question"
+          aria-label="Current question"
+        ></section>
+        <aside class="up-next" id="up-next"></aside>
+      </div>
+    </main>
+    <div class="canvas-nav" aria-label="Canvas controls">
+      <button id="zoom-out" aria-label="Zoom out">−</button
+      ><output id="zoom-level">100%</output
+      ><button id="zoom-in" aria-label="Zoom in">+</button
+      ><button class="fit" id="fit">Fit</button>
+    </div>
+    <div class="demo-note">Interactive mockup · No live agent</div>
+    <div id="announcer" class="sr" aria-live="polite"></div>
+    <script>
+      const initial = [
+        {
+          id: "readiness",
+          title: "Should an open human decision stop the whole work item?",
+          short: "When can work start?",
+          context:
+            "Human decisions must be settled before implementation begins.",
+          why: "I recommend waiting for the whole item. Other ready items can still proceed.",
+          choices: ["Wait for the whole item", "Allow independent work"],
+          changes: [
+            "A work item starts only after every human decision on that item is settled. Other ready items can proceed.",
+            "Work can start on requirements that do not depend on an open human decision. Identify that scope before starting.",
+          ],
+          state: "open",
+          draft: "",
+        },
+        {
+          id: "recorder",
+          title: "Who records your decision in the plan?",
+          short: "Who records the decision?",
+          context:
+            "A saved answer still needs to become an accepted plan rule.",
+          why: "I recommend the planner proposes the update here, so you can review it before the rule changes.",
+          choices: [
+            "The planner proposes the update",
+            "The implementer records it",
+          ],
+          changes: [
+            "The planner proposes a plan update from the human answer. The person accepts the wording before it changes the plan.",
+            "The implementer records the human decision before starting dependent work.",
+          ],
+          state: "open",
+          draft: "",
+        },
+        {
+          id: "completion",
+          title: "Must outcomes be recorded before the item is complete?",
+          short: "When is the item complete?",
+          context:
+            "Implementation outcomes need to remain available in the plan.",
+          why: "I recommend recording the outcome before completion, so the next person can see what was decided.",
+          choices: [
+            "Record outcomes before completion",
+            "Record them in a follow-up",
+          ],
+          changes: [
+            "The implementer records decision outcomes in the plan before completing the work item.",
+            "The implementer creates a follow-up to record decision outcomes after completing the work item.",
+          ],
+          state: "open",
+          draft: "",
+        },
+        {
+          id: "prerequisites",
+          title: "Must prerequisites be complete before dependent work starts?",
+          short: "Prerequisites complete",
+          context: "Dependent work waits for its prerequisites.",
+          why: "Keep one clear readiness rule.",
+          choices: ["Wait for all prerequisites", "Allow partial readiness"],
+          changes: [
+            "All prerequisite items must be complete before dependent work starts.",
+            "The implementer identifies which completed prerequisites permit partial work.",
+          ],
+          state: "done",
+          answer: "Wait for all prerequisites",
+          draft: "",
+        },
+        {
+          id: "independence",
+          title: "Can unaffected work items proceed independently?",
+          short: "Other items can proceed",
+          context: "Readiness is checked per work item.",
+          why: "An open decision should not stop unrelated work.",
+          choices: ["Yes, check readiness per item", "Wait for the whole plan"],
+          changes: [
+            "Unaffected ready work items can proceed independently.",
+            "Implementation waits until all items in the plan are ready.",
+          ],
+          state: "done",
+          answer: "Yes, check readiness per item",
+          draft: "",
+        },
+        {
+          id: "retry",
+          title: "How should uncertain answer saves recover?",
+          short: "Uncertain save recovery",
+          context: "A retried answer must not appear twice.",
+          why: "Keep the original submission until its receipt is known.",
+          choices: [
+            "Check the original receipt first",
+            "Ask me before retrying",
+          ],
+          changes: [
+            "Check the original operation receipt before retrying an uncertain answer submission.",
+            "Ask the person before retrying an uncertain answer submission.",
+          ],
+          state: "waiting",
+          answer: "Please show an example of a save that timed out.",
+          draft: "",
+        },
+      ];
+      let questions = structuredClone(initial),
+        current = "readiness",
+        rules = {
+          readiness: initial[0].context,
+          recorder: initial[1].context,
+          completion: initial[2].context,
+          prerequisites: initial[3].changes[0],
+          independence: initial[4].changes[0],
+        },
+        zoom = 1,
+        dialog = null,
+        returnFocus = null;
+      const $ = (s) => document.querySelector(s);
+      const active = () => questions.find((q) => q.id === current);
+      const announce = (text) => ($("#announcer").textContent = text);
+      function button(text, fn, kind = "") {
+        const b = document.createElement("button");
+        b.textContent = text;
+        b.className = kind;
+        b.onclick = fn;
+        return b;
+      }
+      function advance() {
+        current =
+          questions.find((q) => q.state === "open" || q.state === "review")
+            ?.id || null;
+        render();
+        $("#question h1")?.focus();
+      }
+      function render() {
+        for (const [id, state] of [
+          ["open-list", "open"],
+          ["waiting-list", "waiting"],
+          ["done-list", "done"],
+        ]) {
+          const n = questions.filter(
+            (q) =>
+              q.state === state || (state === "open" && q.state === "review"),
+          ).length;
+          $("#" + id + " span").textContent = `(${n})`;
+        }
+        const q = active();
+        $("#plan").innerHTML =
+          '<div class="label">Current plan</div><h2>Work item readiness</h2>';
+        const context = document.createElement("p");
+        context.className = "active-rule";
+        context.textContent = q
+          ? rules[q.id] || q.context
+          : "The agreed rules stay in the plan.";
+        $("#plan").append(context);
+        const existing = document.createElement("p");
+        existing.textContent =
+          "Unaffected ready items can proceed independently.";
+        $("#plan").append(
+          existing,
+          button("Read current plan", showPlan, "link"),
+        );
+        $("#up-next").innerHTML = '<div class="label">Coming next</div>';
+        questions
+          .filter(
+            (x) =>
+              (x.state === "open" || x.state === "review") && x.id !== current,
+          )
+          .slice(0, 2)
+          .forEach((x) =>
+            $("#up-next").append(
+              button(
+                x.short,
+                () => {
+                  current = x.id;
+                  render();
+                },
+                "link next-item",
+              ),
+            ),
+          );
+        if (!$("#up-next button")) $("#up-next").hidden = true;
+        else $("#up-next").hidden = false;
+        const area = $("#question");
+        area.replaceChildren();
+        if (!q) {
+          area.innerHTML =
+            '<div class="empty"><h1 tabindex="-1">Nothing needs your answer.</h1><p>The agreed plan is ready to read. Saved answers waiting for the planner are kept in Waiting.</p></div>';
+          area.append(button("Read current plan", showPlan, "primary"));
+          return;
+        }
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent =
+          q.state === "review"
+            ? "Review the proposed change"
+            : "Needs your answer";
+        const heading = document.createElement("h1");
+        heading.tabIndex = -1;
+        heading.textContent = q.title;
+        area.append(label, heading);
+        if (q.state === "review") {
+          const block = document.createElement("div");
+          block.className = "proposal";
+          block.innerHTML =
+            '<div class="receipt">Answer saved · Example planner reply</div><p class="replacement"></p><div class="actions"></div>';
+          block.querySelector(".replacement").textContent = q.proposed;
+          block.querySelector(".actions").append(
+            button(
+              "Apply and continue",
+              () => {
+                rules[q.id] = q.proposed;
+                q.state = "done";
+                q.draft = "";
+                announce("Plan updated. Question moved to Done.");
+                advance();
+              },
+              "primary",
+            ),
+            button("Revise my answer", () => {
+              q.state = "open";
+              q.draft = q.answer;
+              render();
+              $("#answer")?.focus();
+            }),
+          );
+          area.append(block);
+        } else {
+          const why = document.createElement("p");
+          why.textContent = q.why;
+          area.append(why);
+          const examples = button(
+            "Compare examples ↗",
+            showWorkspace,
+            "link examples",
+          );
+          area.append(examples);
+          const choices = document.createElement("div");
+          choices.className = "choices";
+          q.choices.forEach((choice, i) =>
+            choices.append(
+              button(
+                choice,
+                () => {
+                  q.answer = choice;
+                  q.proposed = q.changes[i];
+                  q.state = "review";
+                  render();
+                  announce(
+                    "Answer saved. A sample plan change is ready to review.",
+                  );
+                },
+                i === 0 ? "primary" : "",
+              ),
+            ),
+          );
+          area.append(choices);
+          const form = document.createElement("form");
+          form.className = "composer";
+          form.innerHTML =
+            '<label class="sr" for="answer">Your answer</label><textarea id="answer" placeholder="Or write your answer…" required></textarea><button type="submit">Send answer</button>';
+          form.querySelector("textarea").value = q.draft;
+          form.querySelector("textarea").oninput = (e) =>
+            (q.draft = e.target.value);
+          form.onsubmit = (e) => {
+            e.preventDefault();
+            if (!q.draft.trim()) return;
+            q.answer = q.draft.trim();
+            q.state = "waiting";
+            q.draft = "";
+            announce("Answer saved. Waiting for the planner.");
+            advance();
+          };
+          area.append(form);
+          const defer = button(
+            "Leave open and move on →",
+            () => {
+              const remaining = questions.filter(
+                (x) =>
+                  (x.state === "open" || x.state === "review") && x.id !== q.id,
+              );
+              if (remaining.length) {
+                current = remaining[0].id;
+                render();
+              } else
+                announce("This is the only open question. It remains open.");
+            },
+            "quiet defer",
+          );
+          area.append(defer);
+        }
+      }
+      function openDialog(title) {
+        returnFocus = document.activeElement;
+        const el = document.createElement("section");
+        el.className = "dialog";
+        el.setAttribute("role", "dialog");
+        el.setAttribute("aria-modal", "true");
+        el.setAttribute("aria-label", title);
+        el.innerHTML =
+          '<header><button class="back">← Back</button><h2></h2></header>';
+        el.querySelector("h2").textContent = title;
+        el.querySelector(".back").onclick = closeDialog;
+        document.body.append(el);
+        dialog = el;
+        [...document.body.children]
+          .filter((x) => x !== el && x.tagName !== "SCRIPT")
+          .forEach((x) => (x.inert = true));
+        el.querySelector(".back").focus();
+        return el;
+      }
+      function closeDialog() {
+        if (!dialog) return;
+        dialog.remove();
+        dialog = null;
+        document.querySelectorAll("[inert]").forEach((x) => (x.inert = false));
+        if (returnFocus?.isConnected) returnFocus.focus();
+        else $("#question h1")?.focus();
+      }
+      function showPlan() {
+        const el = openDialog("Current plan");
+        const content = document.createElement("div");
+        content.className = "history-list summary-plan";
+        for (const value of Object.values(rules)) {
+          const p = document.createElement("p");
+          p.textContent = value;
+          content.append(p);
+        }
+        el.append(content);
+      }
+      function showList(state) {
+        const el = openDialog(
+          state === "done"
+            ? "Completed questions"
+            : state === "waiting"
+              ? "Waiting for the planner"
+              : "Open questions",
+        );
+        const list = document.createElement("div");
+        list.className = "history-list";
+        const items = questions.filter(
+          (q) =>
+            q.state === state || (state === "open" && q.state === "review"),
+        );
+        if (!items.length) list.innerHTML = "<p>Nothing here right now.</p>";
+        items.forEach((q) => {
+          const row = document.createElement("article");
+          const heading = document.createElement("h2");
+          heading.textContent = q.short;
+          row.append(heading);
+          if (q.answer) {
+            const details = document.createElement("details");
+            const summary = document.createElement("summary");
+            summary.textContent = "Read saved answer";
+            const p = document.createElement("p");
+            p.textContent = q.answer;
+            details.append(summary, p);
+            row.append(details);
+          }
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          actions.append(
+            button(
+              state === "open" ? "Open question" : "Reopen question",
+              () => {
+                if (state !== "open") {
+                  q.state = "open";
+                  q.draft = q.answer || "";
+                }
+                current = q.id;
+                closeDialog();
+                render();
+                $("#answer")?.focus();
+              },
+              "link",
+            ),
+          );
+          if (state === "waiting")
+            actions.append(
+              button(
+                "Simulate a follow-up",
+                () => {
+                  q.state = "open";
+                  q.draft = "";
+                  q.why =
+                    "Planner follow-up: would you like to review the example before deciding?";
+                  current = q.id;
+                  closeDialog();
+                  render();
+                  announce("A follow-up needs your answer.");
+                },
+                "quiet",
+              ),
+            );
+          row.append(actions);
+          list.append(row);
+        });
+        el.append(list);
+      }
+      function showWorkspace() {
+        const q = active();
+        if (!q) return;
+        const el = openDialog(q.short + " · Examples");
+        const full = button(
+          "Show full examples",
+          () => {
+            expanded = !expanded;
+            full.textContent = expanded
+              ? "Show relevant excerpts"
+              : "Show full examples";
+            updateFiles();
+          },
+          "quiet",
+        );
+        el.querySelector("header").append(full);
+        const docs = document.createElement("div");
+        docs.className = "documents";
+        const context = document.createElement("aside");
+        context.className = "item-context";
+        context.innerHTML =
+          '<div class="label">This question</div><h2></h2><p></p><small>Illustrative JSON excerpts</small>';
+        context.querySelector("h2").textContent = q.title;
+        context.querySelector("p").textContent =
+          q.id === "readiness"
+            ? "An open decision becomes an explicit record."
+            : q.why;
+        docs.append(context);
+        let expanded = false;
+        const before =
+          q.id === "readiness"
+            ? { requirements: ["Human must choose the receipt duration."] }
+            : { rule: q.context };
+        const after =
+          q.id === "readiness"
+            ? {
+                decision: {
+                  id: "receipt-duration",
+                  status: "human-needed",
+                  body: "How long should the saved receipt remain?",
+                },
+              }
+            : { rule: q.changes[0] };
+        const pres = [];
+        for (const name of ["Before.json", "After.json"]) {
+          const doc = document.createElement("article");
+          doc.className = "reference";
+          const bar = document.createElement("div");
+          bar.className = "docbar";
+          const title = document.createElement("strong");
+          title.textContent = name;
+          bar.append(title);
+          const pre = document.createElement("pre");
+          pres.push(pre);
+          let size = 16;
+          bar.append(
+            button("Text −", () => {
+              size = Math.max(14, size - 2);
+              pre.style.fontSize = size + "px";
+            }),
+            button("Text +", () => {
+              size = Math.min(28, size + 2);
+              pre.style.fontSize = size + "px";
+            }),
+            button("Widen", () => {}),
+          );
+          const widen = bar.lastElementChild;
+          widen.onclick = () => {
+            doc.classList.toggle("wide");
+            widen.textContent = doc.classList.contains("wide")
+              ? "Restore width"
+              : "Widen";
+          };
+          doc.append(bar, pre);
+          docs.append(doc);
+        }
+        function updateFiles() {
+          pres[0].textContent = JSON.stringify(
+            expanded
+              ? {
+                  workItem: {
+                    id: "save-answers",
+                    title: "Save planning answers",
+                    ...before,
+                  },
+                  otherRequirements: ["Save each answer independently."],
+                }
+              : before,
+            null,
+            2,
+          );
+          pres[1].textContent = JSON.stringify(
+            expanded
+              ? {
+                  workItem: {
+                    id: "save-answers",
+                    title: "Save planning answers",
+                    ...after,
+                  },
+                  otherRequirements: ["Save each answer independently."],
+                }
+              : after,
+            null,
+            2,
+          );
+          context.querySelector("small").textContent = expanded
+            ? "Illustrative example files"
+            : "Illustrative JSON excerpts";
+        }
+        updateFiles();
+        el.append(docs);
+      }
+      $("#open-list").onclick = () => showList("open");
+      $("#waiting-list").onclick = () => showList("waiting");
+      $("#done-list").onclick = () => showList("done");
+      function setZoom(value) {
+        zoom = Math.max(0.6, Math.min(1.25, value));
+        $("#scene").style.zoom = zoom;
+        $("#zoom-level").textContent = Math.round(zoom * 100) + "%";
+      }
+      $("#zoom-out").onclick = () => setZoom(zoom - 0.1);
+      $("#zoom-in").onclick = () => setZoom(zoom + 0.1);
+      $("#fit").onclick = () =>
+        setZoom(Math.min(1, $("#canvas").clientWidth / 1370));
+      $("#reset").onclick = () => {
+        questions = structuredClone(initial);
+        current = "readiness";
+        rules = {
+          readiness: initial[0].context,
+          recorder: initial[1].context,
+          completion: initial[2].context,
+          prerequisites: initial[3].changes[0],
+          independence: initial[4].changes[0],
+        };
+        setZoom(1);
+        $("#canvas").scrollTo(0, 0);
+        render();
+      };
+      document.addEventListener("keydown", (e) => {
+        if (!dialog) return;
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeDialog();
+        } else if (e.key === "Tab") {
+          const focusable = [
+            ...dialog.querySelectorAll("button,summary,textarea"),
+          ].filter((x) => !x.disabled);
+          const first = focusable[0],
+            last = focusable.at(-1);
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>

@@ -28,6 +28,7 @@ import {
   ownerCredentials,
   owners,
   planRevisions,
+  planningEntries,
   plans,
   sharedContexts,
   workItems,
@@ -342,6 +343,31 @@ export class PlanStore {
               );
           }
 
+          for (const decision of request.plan.decisions) {
+            if (decision.state !== "human-needed") continue;
+            const linked = yield* tx
+              .select()
+              .from(planningEntries)
+              .where(
+                and(
+                  eq(planningEntries.ownerId, ownerId),
+                  eq(planningEntries.planId, request.plan.planId),
+                  eq(planningEntries.id, decision.questionId!),
+                ),
+              )
+              .limit(1);
+            if (
+              !linked[0] ||
+              JSON.parse(linked[0].contentJson).kind !== "question"
+            )
+              return yield* Effect.fail(
+                new PlanError(
+                  "REFERENCE_MISSING",
+                  "Decision question is unavailable",
+                  { decisionId: decision.id },
+                ),
+              );
+          }
           const version = (existing?.currentVersion ?? 0) + 1;
           if (existing === undefined) {
             yield* tx.insert(plans).values({

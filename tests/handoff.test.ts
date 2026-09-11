@@ -160,7 +160,7 @@ describe("strict client handoff", () => {
     ).rejects.toThrow();
   });
 
-  it("keeps dependency-free preflight compatible with servers without the additive feature", async () => {
+  it("stops preflight when the server does not advertise decision states", async () => {
     const { running } = await setup();
     const client = clientFor(running.url);
     const call = client.callTool.bind(client);
@@ -177,10 +177,7 @@ describe("strict client handoff", () => {
           }
         : call(name, args),
     );
-    await expect(preflight(client, selection)).resolves.toMatchObject({
-      internalRevision: 1,
-      verifiedAssets: 1,
-    });
+    await expect(preflight(client, selection)).rejects.toThrow();
   });
 
   it("stops on missing required bytes, corrupt bytes and incompatible skill versions", async () => {

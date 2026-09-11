@@ -57,6 +57,7 @@ export function tenItemPlan(planId = "plan-alpha"): Plan {
     decisions: [
       {
         id: "decision-database",
+        state: "decided",
         title: "Use SQLite",
         body: "Use SQLite with generated migrations.",
         reason: "The deployment target is one self-hosted node.",

@@ -82,7 +82,7 @@ export const tools = [
   {
     name: "get_work_item",
     description:
-      "Get one complete work-item packet with required shared records, assets, and a compact epic index. Sibling specifications are omitted.",
+      "Get one complete work-item packet with required shared records, assets, and a compact epic index. Includes decisionReadiness and specificationCursor for selected-only outcome writes. Sibling specifications and discussion history are omitted.",
     inputSchema: planItemSchema(),
   },
   {
@@ -105,7 +105,8 @@ export const tools = [
   },
   {
     name: "check_packet",
-    description: "Compare a recorded packet version with current content.",
+    description:
+      "Compare packet freshness and return current decisionReadiness. Unchanged content with outstanding choices cannot complete.",
     inputSchema: {
       type: "object",
       required: ["contractVersion", "planId", "itemId", "packetVersion"],

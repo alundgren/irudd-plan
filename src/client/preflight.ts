@@ -1,3 +1,4 @@
+import { SyncCursor } from "../contract/sync.js";
 import { createHash } from "node:crypto";
 import { Schema } from "effect";
 
@@ -5,6 +6,7 @@ import {
   AssetDescriptor,
   CONTRACT_VERSION,
   Decision,
+  DecisionReadiness,
   SharedContext,
   SKILL_VERSION,
   MCP_PROTOCOL_VERSION,
@@ -22,6 +24,8 @@ const Packet = Schema.Struct({
     Schema.isInt(),
     Schema.isGreaterThan(0),
   ),
+  specificationCursor: SyncCursor,
+  decisionReadiness: DecisionReadiness,
   item: WorkItem,
   contexts: Schema.Array(SharedContext),
   decisions: Schema.Array(Decision),
@@ -67,6 +71,10 @@ export async function preflight(
       "Selected packet identity differs; stop and repair the reference",
     );
   }
+  if (!packet.decisionReadiness.canStart)
+    throw new Error(
+      "Waiting for a human decision; implementation cannot start",
+    );
   onStep("get_asset");
   await verifyAssets(client, selection.planId, packet.assets);
   // The resource read verifies the capability Codex uses for explicit MCP references.
@@ -80,6 +88,8 @@ export async function preflight(
     itemId: packet.itemId,
     packetVersion: packet.packetVersion,
     internalRevision: packet.internalRevision,
+    specificationCursor: packet.specificationCursor,
+    decisionReadiness: packet.decisionReadiness,
     verifiedAssets: packet.assets.length,
   };
 }
@@ -106,9 +116,10 @@ async function checkCompatibility(
       skillVersion: Schema.Literal(SKILL_VERSION),
       protocolVersion: Schema.Literal(MCP_PROTOCOL_VERSION),
       ownerId: Schema.Literal(ownerId),
-      features: Schema.optionalKey(
-        Schema.Struct({ itemDependencies: Schema.optionalKey(Schema.Boolean) }),
-      ),
+      features: Schema.Struct({
+        itemDependencies: Schema.optionalKey(Schema.Boolean),
+        decisionStates: Schema.Literal(true),
+      }),
     }),
     await toolValue(client, "get_contract", {
       contractVersion: CONTRACT_VERSION,
@@ -117,6 +128,8 @@ async function checkCompatibility(
   onStep("tools/list");
   const catalog = await client.listTools();
   for (const name of [
+    "patch_plan",
+    "get_operation",
     "get_contract",
     "get_plan",
     "write_plan",

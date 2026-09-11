@@ -74,13 +74,41 @@ export const SharedContext = Schema.Struct({
 
 export const Decision = Schema.Struct({
   id: Identifier,
+  state: Schema.Literals(["decided", "human-needed", "implementer-decides"]),
   title: NonEmptyText,
   body: NonEmptyText,
   reason: NonEmptyText,
   source: Schema.optionalKey(NonEmptyText),
+  question: Schema.optionalKey(NonEmptyText),
+  questionId: Schema.optionalKey(Identifier),
+  constraints: Schema.optionalKey(NonEmptyText),
   requiredContextIds: Schema.Array(Identifier),
   assetIds: Schema.Array(Identifier),
+}).check(
+  Schema.makeFilter((decision) => {
+    if (decision.state === "human-needed")
+      return (
+        decision.question !== undefined &&
+        decision.questionId !== undefined &&
+        decision.constraints === undefined
+      );
+    if (decision.state === "implementer-decides")
+      return (
+        decision.question !== undefined &&
+        decision.constraints !== undefined &&
+        decision.questionId === undefined
+      );
+    return decision.questionId === undefined;
+  }),
+);
+
+export const DecisionReadiness = Schema.Struct({
+  canStart: Schema.Boolean,
+  canComplete: Schema.Boolean,
+  humanNeededIds: Schema.Array(Identifier),
+  implementerDecidesIds: Schema.Array(Identifier),
 });
+export type DecisionReadiness = typeof DecisionReadiness.Type;
 
 export const WorkItem = Schema.Struct({
   id: Identifier,

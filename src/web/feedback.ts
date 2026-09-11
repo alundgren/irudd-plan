@@ -112,7 +112,7 @@ export function sectionText(
         : content.decisions
             .map(
               (decision) =>
-                `${decision.id}: ${decision.title}\n${decision.body}\nWhy: ${decision.reason}`,
+                `${decision.id}: ${decision.title}\n${decision.state}\n${decision.question ?? ""}\n${decision.constraints ?? ""}\n${decision.body}\nWhy: ${decision.reason}`,
             )
             .join("\n\n");
     case "requirements":

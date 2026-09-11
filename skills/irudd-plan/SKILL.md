@@ -17,7 +17,7 @@ those decisions.
 
 Call `get_contract` with `{"contractVersion":"v1"}` before plan work. Require
 `contractVersion: v1`, `skillVersion: v1`, `protocolVersion: 2026-07-28` and the
-operator's expected `ownerId`. If the expected owner is unknown, obtain it from
+operator's expected `ownerId`, plus `features.decisionStates: true`. If the expected owner is unknown, obtain it from
 the operator before writing. For initial setup, use [setup](references/setup.md)
 to verify the CLI, required server, credentials and capabilities. A file named
 SKILL.md existing does not prove setup works.
@@ -34,7 +34,9 @@ check each separately. Report reconnecting as disconnected, not live.
 1. Require the explicit plan/item MCP reference from the task. Call
    `get_work_item` with `contractVersion`, `planId`, and `itemId`. Read the full
    selected item, required contexts, decisions and assets. Record `packetVersion`
-   and `internalRevision` in working notes. The compact epic index is for lookup;
+   and the specification cursor in working notes. Check decision readiness before
+   starting or resuming. A required `human-needed` choice makes the item wait;
+   `implementer-decides` choices allow starting within their stated constraints. The compact epic index is for lookup;
    it is not the sibling specifications. Dependency IDs are navigation only,
    not execution eligibility. Do not recursively retrieve prerequisites. Do not call `get_plan` by default.
 2. Retrieve every required asset using `get_asset` with its exact `assetId` and
@@ -50,13 +52,25 @@ check each separately. Report reconnecting as disconnected, not live.
    additional context/packets whose requirements you rely on.
 4. Implement and validate the selected requirements under the calling workflow.
    Before reporting completion, call `check_packet` with the recorded version.
-   `unchanged` permits completion without restarting for unrelated sibling
-   edits. On `changed`, retrieve the selected packet again, compare requirements
+   `unchanged` proves freshness only. Also require decision readiness to allow
+   completion: every required choice must be `decided`. Unrelated sibling edits
+   do not require restarting. On `changed`, retrieve the selected packet again, compare requirements
    and required records/assets, reconcile the relevant changes, rerun affected
    checks, and recheck using the new version. `deleted`, `unavailable`, an error,
    or a failed call means stop. Reread deliberately used optional contexts and
    compare their `packetVersion` too; the selected digest does not cover them.
-5. Report validation and the final checked packet version. Use
+5. Before finishing, record every required `implementer-decides` outcome and
+   reason with `patch_plan`, using the selected packet's specification cursor.
+   Upsert only the complete required decision, preserving its ID, constraints,
+   references and unrelated records, and set its state to `decided`. No further
+   human approval is needed within its limits. Raise a conflict if those limits
+   cannot be met; never resolve a `human-needed` choice as the implementer.
+   After a conflict, reread only `get_work_item`, reconsider current limits and
+   use a new operation ID for the reconciled write. After an uncertain result,
+   inspect `get_operation` or retry identical input with the same operation ID.
+   Ordinary implementation needs no `get_plan`, `sync_plan`, `get_planning` or
+   `get_agent_context` history. Recheck freshness and readiness after writeback.
+6. Report validation and the final checked packet version. Use
    [GitHub handoff](references/sessions.md#github-handoff) for authorized
    issue/PR publication and persisted association verification.
 

@@ -32,11 +32,50 @@ If the packet's optional context `csv-encoding` is needed, deliberately call
 Do not read the other nine specifications simply because their IDs are listed.
 
 Before completion call `check_packet` with H1. If an unrelated sibling changed,
-it returns unchanged and the implementation can finish. If a selected requirement
+it returns unchanged. Completion still requires `decisionReadiness.canComplete`. If a selected requirement
 changed from rejecting all blank fields to rejecting only missing IDs, it returns
 changed. Retrieve the packet again, reconcile that requirement in code and tests,
 then check the new digest. Do not restart for unrelated edits or ignore relevant
 ones. Service failure stops completion even when local tests pass.
+
+## Selected-only outcome write
+
+A fresh implementer requires `features.decisionStates`, retrieves
+`get_work_item`, and checks `decisionReadiness.canStart`. Human-needed choices
+make the item wait without fetching private discussion. With only implementer
+choices, it works within the recorded constraints, then uses the packet cursor:
+
+```json
+{
+  "contractVersion": "v1",
+  "planId": "csv-import",
+  "operationId": "cache-outcome-1",
+  "expectedVersion": 4,
+  "expectedDigest": "<packet.specificationCursor.digest>",
+  "decisions": [
+    {
+      "id": "cache-limit",
+      "state": "decided",
+      "title": "Cache capacity",
+      "question": "How many entries should the cache retain?",
+      "constraints": "At most 100 entries, preserving eviction order.",
+      "body": "Retain 50 entries.",
+      "reason": "This meets the memory budget within the recorded limit.",
+      "source": "Implementer outcome",
+      "requiredContextIds": [],
+      "assetIds": []
+    }
+  ]
+}
+```
+
+Copy the actual revision into `expectedVersion` and retain all required references
+from the selected decision. After a conflict, retrieve only `get_work_item`,
+reconsider changed limits and submit a reconciled request with a new operation ID.
+For an uncertain response use `get_operation` or retry identical input. Retrieve
+the updated packet and require both freshness and decision readiness from
+`check_packet` before reporting completion. No whole-plan or history read is
+needed. Do not resolve human-needed decisions or change constraints to fit work.
 
 ## GitHub handoff
 

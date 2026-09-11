@@ -24,7 +24,8 @@
     "skill:install": "bash scripts/install-skill.sh",
     "smoke:browser": "playwright test --config playwright.smoke.config.ts",
     "trial:codex": "tsx scripts/codex-trial.ts",
-    "smoke:mcp": "tsx scripts/mcp-auth-smoke.ts"
+    "smoke:mcp": "tsx scripts/mcp-auth-smoke.ts",
+    "test:ui-proof": "UI_PROOF=1 playwright test tests/browser/guided-planning.spec.ts --workers=1"
   },
   "dependencies": {
     "@effect/sql-sqlite-node": "4.0.0-rc.112",

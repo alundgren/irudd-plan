@@ -15,7 +15,7 @@ const Revision = Schema.Number.check(
 export const PlanningEntry = Schema.Struct({
   id: Id,
   section: Text,
-  kind: Schema.Literals(["question", "note", "answer", "resolved"]),
+  kind: Schema.Literals(["question", "note", "answer", "resolved", "reopened"]),
   body: Text,
   source: Schema.optionalKey(Schema.Struct({ entryId: Id, label: Id })),
   replyTo: Schema.optionalKey(Id),

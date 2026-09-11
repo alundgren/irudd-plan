@@ -262,3 +262,44 @@ This first version does not subscribe to agent runtime events or generate
 progress narration. A confirmed working indicator needs a future event source
 for the exact active thread and turn. No activity trail or persistent status
 footer is added.
+
+## Guided planning
+
+Private planning now opens one question at a time, with the accepted plan at
+left and up to three upcoming questions at right. Open questions, Waiting and
+Done provide direct navigation. The existing conversation canvas is available
+for the full record, including notes without a question. Both views share the
+same feed and drafts. The guided area uses ordinary scrolling and responsive
+columns; the historical canvas retains its pan and zoom controls.
+
+An unanswered question is Open. A confirmed human answer moves it to Waiting.
+An agent resolution moves it to Done. Notes, acknowledgements and reconnections
+do not change attention. A substantive follow-up must be a new question with
+its own identity and a reply link to the original. This avoids guessing intent
+from prose. Existing conversations use these same conservative rules.
+
+Choosing a suggestion fills the draft. Save answer uses the existing revision,
+digest and idempotent receipt checks. Successful saves advance to the next open
+question. Edits made during saving remain visible; failed or uncertain saves
+keep their editor and retry action. Leaving a question open preserves its draft
+and moves it behind the other open questions for this visit. Reading Waiting or
+Done does not reopen it. Reopen for revision appends a human event, restores the
+latest saved answer for editing, and never changes the accepted specification.
+Browser drafts remain in memory across navigation, not across reloads.
+
+Compare examples opens a modal workspace over the question. Each file has its
+own reading scale, width and scroll. Canvas zoom scales the comparison separately.
+Phone layouts stack the same documents and keep the comparison at readable scale.
+The original asset identities and digests remain fixed during comparison; updates
+are identified rather than substituted. Back or Escape restores focus, the main
+scroll position, selected question and unsent answer. The authenticated isolated
+asset viewer is reused without changing HTML execution restrictions.
+
+This first implementation shows complete attached files. There is no reliable
+excerpt metadata in the conversation contract, so it does not guess which
+paragraphs or JSON properties to omit. The accepted plan excerpt uses the first
+recorded decision, with current plan details available on demand; it does not
+claim a computed association between a question and a requirement. Browser
+proposal acceptance is deferred. Only the planner's existing authenticated plan
+write can change requirements, and a saved answer is never labelled an applied
+plan change.

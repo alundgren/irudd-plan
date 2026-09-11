@@ -46,7 +46,7 @@ export function usePlanningConversation(planId: string) {
     );
   const visibleTarget = save && targetExists(save.target) ? save.target : null;
 
-  const submit = async (target: string | null) => {
+  const submit = async (target: string | null, reopen = false) => {
     if (inFlight.current || !conversation) return;
     if (pending.current) {
       if (target !== visibleTarget) return;
@@ -55,7 +55,11 @@ export function usePlanningConversation(planId: string) {
       const question = conversation.entries.find(
         (entry) => entry.id === target && entry.kind === "question",
       );
-      const draft = target === null ? note : (drafts[target] ?? "");
+      const draft = reopen
+        ? "Reopened for revision."
+        : target === null
+          ? note
+          : (drafts[target] ?? "");
       if (!draft.trim() || (target !== null && !question)) return;
       pending.current = {
         target,
@@ -70,7 +74,7 @@ export function usePlanningConversation(planId: string) {
             {
               id: crypto.randomUUID(),
               section: question?.section ?? "Discussion",
-              kind: question ? "answer" : "note",
+              kind: reopen ? "reopened" : question ? "answer" : "note",
               body: draft.trim(),
               ...(question ? { replyTo: question.id } : {}),
             },
@@ -88,9 +92,20 @@ export function usePlanningConversation(planId: string) {
         setNote((current) => (current === submitted.draft ? "" : current));
       } else {
         const id = submitted.target;
-        setDrafts((current) =>
-          current[id] === submitted.draft ? { ...current, [id]: "" } : current,
-        );
+        setDrafts((current) => {
+          if (submitted.request.entries[0]?.kind === "reopened") {
+            const answer = conversation.entries.findLast(
+              (entry) =>
+                entry.replyTo === id &&
+                entry.kind === "answer" &&
+                entry.author === "human",
+            );
+            return { ...current, [id]: current[id] || answer?.body || "" };
+          }
+          return current[id] === submitted.draft
+            ? { ...current, [id]: "" }
+            : current;
+        });
         if (unsentAnswers.current[id]?.value === submitted.draft)
           delete unsentAnswers.current[id];
       }

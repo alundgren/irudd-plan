@@ -110,6 +110,9 @@ test("mounted planning documents survive width and keyboard resizing", async ({
       },
     ]);
     await page.goto(`/plans/${planId}`);
+    await page
+      .getByRole("button", { name: "Conversation canvas", exact: true })
+      .click();
     const question = page.locator('[data-planning-document="question"]');
     const answer = question.locator("textarea");
     const action = question.getByRole("button", { name: "Save answer:" });

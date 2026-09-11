@@ -35,6 +35,9 @@ test("canvas receives companion state without polling or claiming runtime activi
         reads++;
     });
     await page.goto(`/plans/${planId}`);
+    await page
+      .getByRole("button", { name: "Conversation canvas", exact: true })
+      .click();
     await expect(
       page.getByText("Server connected · receiving conversation updates"),
     ).toBeVisible();

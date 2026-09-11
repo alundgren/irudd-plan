@@ -25,7 +25,7 @@ export function planningInlineStatus(
     return {
       title: "Waiting for a reply",
       detail: "Your answer is saved. Agent status is unknown.",
-      tone: "unknown",
+      tone: "waiting",
     };
   if (delivery.state === "uncertain")
     return {
@@ -63,7 +63,16 @@ export function PlanningInlineStatus({
     >
       <span className="planning-inline-dot" aria-hidden="true" />
       <div>
-        <p className="planning-inline-title">{status.title}</p>
+        <p className="planning-inline-title">
+          {status.title}
+          {status.tone === "waiting" ? (
+            <span className="planning-inline-ellipsis" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          ) : null}
+        </p>
         <p className="planning-inline-detail">{status.detail}</p>
       </div>
     </div>

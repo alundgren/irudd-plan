@@ -87,6 +87,7 @@ describe("delivery evidence", () => {
     expect(planningInlineStatus(true, undefined).detail).toContain(
       "Agent status is unknown",
     );
+    expect(planningInlineStatus(true, undefined).tone).toBe("waiting");
     const offline = planningInlineStatus(true, {
       ...delivery,
       connected: false,

@@ -1554,7 +1554,7 @@
         <div class="eyebrow">
           From a preferred concept to implementation planning
         </div>
-        <h1>Keep trust visible. Keep the controls local.</h1>
+        <h1>Short replies. Detail when you need it.</h1>
         <div class="state-line">
           <span>Draft response</span>→<span>Answer saved</span>→<span
             >Proposed change</span
@@ -1562,7 +1562,18 @@
         </div>
         <div class="next-grid">
           <div>
-            <h3>Rules every concept needs</h3>
+            <h3>Do not restate the whole discussion</h3>
+            <p>
+              Lead with the answer or the changed rule. If you asked for
+              examples, show the examples. Put rationale, earlier turns, and
+              full files behind explicit links.
+            </p>
+            <p>
+              Give each artifact one title. Render JSON directly, without a
+              presentation embedded inside a card. Keep qualifiers once, beside
+              the affected content.
+            </p>
+            <h3 style="margin-top: 24px">Keep state honest</h3>
             <p>
               Typing preserves a local draft. Send submits that answer. A quiet
               receipt belongs beside it. Failure keeps the text and offers
@@ -1605,10 +1616,10 @@
               </li>
             </ol>
             <p class="small">
-              The companion Markdown document contains acceptance criteria,
-              unresolved product decisions, and a suggested first implementation
-              slice for each option. These demos simulate replies locally; they
-              do not persist or contact an agent.
+              The companion Markdown document contains agent writing guidance,
+              acceptance criteria, unresolved product decisions, and a suggested
+              first implementation slice for each option. These demos simulate
+              replies locally; they do not persist or contact an agent.
             </p>
           </div>
         </div>
@@ -1810,21 +1821,52 @@
         if (activeSpotlight) return;
         activeSpotlight = { stage, trigger };
         const a = {
-          workItem: "readiness-check",
-          policy: "whole_item",
-          humanDecision: "pending",
-          canStart: false,
-          reason: "Wait for the human decision",
+          requirements: ["Human must choose the receipt duration."],
+          requiredDecisionIds: ["save-mode"],
         };
         const b = {
-          workItem: "readiness-check",
-          policy: "per_requirement",
-          requirements: [
-            { id: "show-ready-items", dependsOn: [], canStart: true },
+          requiredDecisionIds: ["save-mode", "receipt-duration"],
+          decision: {
+            id: "receipt-duration",
+            status: "human-needed",
+            body: "How long should the saved receipt remain?",
+          },
+        };
+        const fullA = {
+          items: [
             {
-              id: "start-dependent-work",
-              dependsOn: ["human-decision"],
-              canStart: false,
+              id: "save-answers",
+              requirements: [
+                "Save each answer independently.",
+                ...a.requirements,
+                "Implementer chooses pulse timing: 1–2 seconds.",
+              ],
+              requiredDecisionIds: a.requiredDecisionIds,
+            },
+          ],
+          decisions: [
+            { id: "save-mode", body: "One save button per question." },
+          ],
+        };
+        const fullB = {
+          items: [
+            {
+              id: "save-answers",
+              requirements: ["Save each answer independently."],
+              requiredDecisionIds: [...b.requiredDecisionIds, "pulse-timing"],
+            },
+          ],
+          decisions: [
+            {
+              id: "save-mode",
+              status: "decided",
+              body: "One save button per question.",
+            },
+            b.decision,
+            {
+              id: "pulse-timing",
+              status: "implementer-decides",
+              body: "Choose pulse timing within 1–2 seconds.",
             },
           ],
         };
@@ -1836,20 +1878,29 @@
         panel.setAttribute("aria-modal", "true");
         panel.setAttribute("aria-label", "Item and example files");
         panel.innerHTML =
-          '<div class="spotbar"><button class="close-spotlight">← Back to canvas</button><h2>Readiness rule + example files</h2><span class="small">Temporary workspace</span></div><div class="spot-grid">' +
-          pane(
-            "The work item",
-            '<h3>When can implementation start?</h3><p class="spot-current"></p><p>Compare the same pending human decision under two policies.</p><p><strong>A</strong> blocks the whole item.</p><p><strong>B</strong> allows one independent requirement to start.</p><p class="small">Illustrative JSON formats. These are proposals, not existing API files.</p>',
-          ) +
-          pane("whole-item.json", "<pre></pre>") +
-          pane("per-requirement.json", "<pre></pre>") +
-          '</div><p class="spot-help">Text controls affect only their document. Widen reallocates reading space. Escape or Back returns to your exact previous canvas view.</p>';
+          '<div class="spotbar"><button class="close-spotlight">← Back to canvas</button><h2>Make open choices explicit?</h2><button class="full-examples">Show full examples</button></div><div class="spot-grid">' +
+          '<article class="spot-doc"><div class="docbody"><p><strong>The pending decision moves out of prose into an explicit record.</strong></p><details class="history"><summary>Earlier discussion</summary><p class="spot-current"></p><p>You asked for short examples of the plan JSON before and after the change.</p></details><p class="small" style="margin-top:24px">Illustrative excerpts</p></div></article>' +
+          pane("Before.json", "<pre></pre>") +
+          pane("After.json", "<pre></pre>") +
+          "</div>";
         panel.querySelector(".spot-current").textContent =
           stage.querySelector(".plan-result")?.textContent ||
-          "An unresolved human decision may block an item. Choose the scope of that rule.";
+          "A pending human decision blocks work until it is settled.";
         const pres = panel.querySelectorAll("pre");
         pres[0].textContent = JSON.stringify(a, null, 2);
         pres[1].textContent = JSON.stringify(b, null, 2);
+        let full = false;
+        panel.querySelector(".full-examples").onclick = () => {
+          full = !full;
+          pres[0].textContent = JSON.stringify(full ? fullA : a, null, 2);
+          pres[1].textContent = JSON.stringify(full ? fullB : b, null, 2);
+          panel.querySelector(".full-examples").textContent = full
+            ? "Show relevant excerpt"
+            : "Show full examples";
+          panel.querySelector(".spot-doc .small").textContent = full
+            ? "Illustrative example files"
+            : "Illustrative excerpts";
+        };
         stage.classList.add("spotlight-open");
         stage.append(panel);
         [
@@ -1906,7 +1957,9 @@
         }
         if (e.key === "Tab") {
           const list = [
-            ...activeSpotlight.stage.querySelectorAll(".spotlight button"),
+            ...activeSpotlight.stage.querySelectorAll(
+              ".spotlight button, .spotlight summary",
+            ),
           ];
           const first = list[0],
             last = list.at(-1);

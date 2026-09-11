@@ -98,7 +98,7 @@ First implementation slice: an ordered question list, one focused editor, the re
 
 The user's example-file workflow adds a requirement shared by all four concepts. A global canvas zoom is insufficient when one JSON file needs more reading space than its neighbors.
 
-Select **Focus with examples** on a work item to temporarily use the whole canvas for that item and its attached examples. The presentation includes a dedicated Workspace slide and an entry point in every concept. It shows two illustrative JSON files and the affected item. Each document has independent Text + and Text − controls. Widen reallocates horizontal space to that document. Back or Escape restores the previous canvas and draft.
+Select **Focus with examples** on a work item to temporarily use the whole canvas for that item and its attached examples. The presentation includes a dedicated Workspace slide and an entry point in every concept. It shows the affected question with one short takeaway and two illustrative before/after JSON excerpts. Show full examples expands both files on demand. Earlier discussion stays closed initially. Each document has independent Text + and Text − controls. Widen reallocates horizontal space to that document. Back or Escape restores the previous canvas and draft.
 
 Treat three operations separately in production:
 
@@ -119,6 +119,28 @@ Acceptance checks:
 7. Repeat with keyboard navigation and with a phone-sized viewport. Keep the item and references reachable without reducing form text below reading size.
 
 This is a shared inspection capability, not a fifth back-and-forth model. Prioritize it in the first slice of whichever concept is selected. Resolve whether people can add arbitrary related files to a workspace or only open the item's attached references.
+
+## Agent replies must be concise before rendering
+
+The second supplied screenshot shows an additional failure. The answer repeats the request and explains the examples; each attachment repeats its title in a navigation button, a caption, an internal label, and another heading before the JSON begins. The person has to scan several introductions to reach the requested evidence. Merely reducing card padding will not fix this.
+
+Apply these authoring and rendering rules across all four concepts:
+
+- Start with the answer, changed rule, or requested artifact. A short request for examples should get examples and at most one sentence explaining the meaningful difference.
+- Keep the current question and latest relevant exchange expanded. Older turns are a history action, not a growing stack above the editor. Preserve access to them.
+- Render a JSON example as JSON with one filename. Do not put an HTML presentation, repeated title, explanatory subtitle, and nested code panel around it.
+- Default comparisons to the relevant excerpt or changed part. Offer complete files explicitly. Never omit a qualifier that changes the meaning of the excerpt; label an excerpt as such.
+- Put detailed rationale and source findings behind a named disclosure. Do not repeat them in the reply and the artifact.
+- Use one navigation action for entering the comparison and one Back action for leaving. Do not repeat Read, Compare, and Back beside every copy of the same title.
+- A follow-up should add the new information. Link the relevant earlier context instead of quoting the whole thread again.
+
+For the screenshot's example, the initial reply can be: “The pending decision moves out of prose into an explicit record.” Show Before.json and After.json immediately below or beside it. Earlier discussion and full examples remain available, but do not precede the requested JSON.
+
+The revised temporary workspace demonstrates this content treatment. The distinction between whole-item waiting and independent work remains the planning question in the four concepts; the new workspace illustrates how the related before/after representation can be inspected without repeating that entire discussion.
+
+Treat concise output as part of the agent/browser contract, not a CSS cleanup. A future protocol may distinguish a short reply, supporting explanation, and raw file attachments. Select the workflow first, then decide whether explicit fields or authoring instructions are sufficient. Do not blindly hide the first paragraphs of arbitrary HTML or truncate responses by character count.
+
+Add a review task: ask for a short before/after JSON example, then verify that the first visible content contains the relevant JSON and no repeated title. A person should be able to find the difference without expanding history or reading implementation bookkeeping. Also test a complex answer whose essential caveat must remain visible.
 
 ## Recommendation and selection exercise
 
@@ -198,11 +220,12 @@ Validation on September 11, 2026:
 - Independent reading size changed only the selected JSON file from 16px to 20px. Widen and Back were exercised. Returning preserved the original canvas zoom, scroll coordinates, and unsent draft. Both per-concept and dedicated Workspace entry points passed.
 - Desktop screenshots of all four concepts and the temporary workspace were visually reviewed. The dedicated workspace was also inspected at phone width.
 - `vp run check` passed with 73 advisory warnings in existing source and test files. No application files were changed, so unrelated size and complexity refactoring is outside this exploration.
-- `vp run check:ci` passed.
+- `vp run check:ci` passed, including after the concise-reply revision.
+- The revised workspace starts with collapsed history and short JSON excerpts. Both excerpts and expanded examples parse as JSON. Switching back restores the excerpts.
 - The first `vp run test` printed 23 passing files and 118 passing tests, but the command exited 143. A second run also exited 143 before printing results. A clean test-command exit could not be confirmed; the cause of termination is unknown.
 
 ## Published presentation
 
-[View the presentation](https://repo-control.irudd.net/public/aijxsitqicflfudqnemrlwpukldrxomu/view) · [Download the HTML](https://repo-control.irudd.net/public/aijxsitqicflfudqnemrlwpukldrxomu/download)
+[View the presentation](https://repo-control.irudd.net/public/lyixbtufywtbtzpibbredgmnnybdocro/view) · [Download the HTML](https://repo-control.irudd.net/public/lyixbtufywtbtzpibbredgmnnybdocro/download)
 
-Repo Control artifact `aijxsitqicflfudqnemrlwpukldrxomu`, type `presentation`. Created September 11, 2026 at 04:07 UTC. The public links expire October 11, 2026 at 04:07 UTC. The HTML committed beside this document remains available after that expiry.
+Repo Control artifact `lyixbtufywtbtzpibbredgmnnybdocro`, type `presentation`. Created September 11, 2026 at 04:11 UTC. The public links expire October 11, 2026 at 04:11 UTC. The HTML committed beside this document remains available after that expiry.

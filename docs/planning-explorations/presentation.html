@@ -863,6 +863,93 @@
           padding: 16px 8px;
         }
       }
+
+      .answered .choices,
+      .answered form,
+      .answered .forks,
+      .answered .skip {
+        display: none;
+      }
+      .put-away .line-edit,
+      .put-away .margin-thread,
+      .put-away .connector,
+      .put-away .node-b,
+      .put-away .map-path,
+      .put-away .focus-main,
+      .put-away .forks,
+      .put-away .fork-intro {
+        display: none;
+      }
+      .accepted-branch {
+        display: none;
+      }
+      .put-away .accepted-branch {
+        display: block;
+        background: transparent;
+        min-height: 0;
+        padding: 12px 6px;
+      }
+      .put-away .branch-world .receipt,
+      .put-away .branch-world .history {
+        display: none;
+      }
+      .map-world .node-a,
+      .map-world .map-path path:first-child {
+        display: none;
+      }
+      .answer-history {
+        position: absolute;
+        inset: 46px 0 0;
+        z-index: 10;
+        background: var(--bg);
+        padding: 28px 36px;
+        overflow: auto;
+      }
+      .answer-history header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .answer-history header h3 {
+        margin-right: auto;
+      }
+      .answer-history article {
+        max-width: 75ch;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .answer-history p {
+        margin: 10px 0;
+      }
+      .answer-history summary {
+        cursor: pointer;
+        color: var(--link);
+      }
+      .history-count[hidden] {
+        display: none;
+      }
+      .history-count {
+        white-space: nowrap;
+      }
+      .done-message {
+        padding: 36px 46px;
+        max-width: 70ch;
+      }
+      @media (max-width: 800px) {
+        .appbar {
+          flex-wrap: wrap;
+          height: auto;
+          min-height: 46px;
+        }
+        .history-count {
+          font-size: 13.5px;
+        }
+        .answer-history {
+          inset: 0;
+          padding: 20px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -873,7 +960,8 @@
       ><a href="#5" data-slide="4">Focus</a
       ><a href="#6" data-slide="5">Workspace</a
       ><a href="#7" data-slide="6">Compare</a
-      ><a href="#8" data-slide="7">Next</a>
+      ><a href="#8" data-slide="7">Question</a
+      ><a href="#9" data-slide="8">Next</a>
     </nav>
     <main>
       <section class="slide intro" data-title="Start">
@@ -987,7 +1075,7 @@
               exact words they affect.
             </p>
           </div>
-          <span class="tag">Try answering, then apply the change</span>
+          <span class="tag">Try apply → Done → Reopen</span>
         </div>
         <div class="stage" data-demo="margin">
           <div class="appbar">
@@ -1089,7 +1177,7 @@
               Connections explain why a decision matters.
             </p>
           </div>
-          <span class="tag">Try an answer or explore the next question</span>
+          <span class="tag">Try apply → Done → Reopen</span>
         </div>
         <div class="stage" data-demo="map">
           <div class="appbar">
@@ -1208,7 +1296,7 @@
               resulting behavior and choose a direction.
             </p>
           </div>
-          <span class="tag">Try proposing either alternative</span>
+          <span class="tag">Try apply → Done → Reopen</span>
         </div>
         <div class="stage" data-demo="branch">
           <div class="appbar">
@@ -1334,7 +1422,7 @@
               center. The canvas holds what came before and what comes next.
             </p>
           </div>
-          <span class="tag">Try Apply and continue, or leave it open</span>
+          <span class="tag">Try Apply and continue, then open Done</span>
         </div>
         <div class="stage" data-demo="focus">
           <div class="appbar">
@@ -1550,6 +1638,72 @@
           concepts.
         </p>
       </section>
+      <section class="slide" hidden data-title="Clear question">
+        <div class="eyebrow">Agent output is part of the interface</div>
+        <h1>Put the question first.</h1>
+        <p class="lead">
+          This reply asks for permission to publish issues. That decision should
+          be readable without scanning a recap of the whole plan.
+        </p>
+        <div class="next-grid">
+          <div>
+            <h3>The screenshot mixes several jobs</h3>
+            <p>
+              It announces attached examples, repeats the plan's rules, lists
+              exclusions, describes internal identity behavior, and finally asks
+              whether to publish.
+            </p>
+            <p>
+              Those facts belong in different places. The accepted rules belong
+              in the plan. The examples belong beside the rule. The question
+              belongs in the active working area.
+            </p>
+            <p>
+              More paragraph breaks would help reading, but the person would
+              still have to find the actual decision.
+            </p>
+          </div>
+          <div
+            class="clear-question"
+            style="
+              background: var(--surface);
+              padding: 28px;
+              border-radius: 8px;
+            "
+          >
+            <h2>Draft, review, and publish the implementation issues?</h2>
+            <p style="margin-top: 16px">Repository: alundgren/irudd-plan</p>
+            <p style="margin-top: 12px">
+              Issue descriptions will be visible to repository readers. The
+              detailed plan stays private; the issues link to it.
+            </p>
+            <div class="choices">
+              <button class="primary demo-consent">
+                Draft, review, and publish</button
+              ><button class="demo-consent">Prepare drafts for my review</button
+              ><button class="demo-consent">Revise the design first</button>
+            </div>
+            <p class="consent-result" role="status"></p>
+            <details class="history">
+              <summary>Review the plan changes and examples</summary>
+              <p>
+                Three explicit choice states; open human decisions block the
+                item. The planner records human decisions. Implementers record
+                bounded outcomes before completion.
+              </p>
+              <p>
+                Reopening preserves identity and sends the latest record to the
+                implementer. Historical-plan preservation, deployment work, and
+                PR #67 are outside this proposal.
+              </p>
+              <button data-slide="5">Open before/after examples</button>
+            </details>
+            <p class="small" style="margin-top: 20px">
+              Wording demo only. These buttons perform no GitHub operation.
+            </p>
+          </div>
+        </div>
+      </section>
       <section class="slide" hidden data-title="Next">
         <div class="eyebrow">
           From a preferred concept to implementation planning
@@ -1572,6 +1726,18 @@
               Give each artifact one title. Render JSON directly, without a
               presentation embedded inside a card. Keep qualifiers once, beside
               the affected content.
+            </p>
+            <h3 style="margin-top: 24px">Done questions leave the workspace</h3>
+            <p>
+              After a successful answer save, remove the editor and choices.
+              Waiting needs no large card. After accepting a plan change, the
+              question goes into Done. The current plan stays visible.
+            </p>
+            <p>
+              Done is a quiet count, not a row of collapsed cards. Open it to
+              read or reopen an earlier answer. A genuine follow-up returns to
+              active work. A reopened question keeps the accepted plan until a
+              new change is approved.
             </p>
             <h3 style="margin-top: 24px">Keep state honest</h3>
             <p>
@@ -1676,30 +1842,146 @@
           "Work may start only on requirements that do not depend on an open human decision. The implementer must identify that scope before starting.",
       };
       function bindDemo(stage) {
-        let selected = "";
-        let custom = false;
-        let nextQuestion = false;
-        let deferred = false;
         const original = stage.innerHTML;
+        let selected = "",
+          custom = false,
+          second = false,
+          deferred = false,
+          scale = 1;
+        let records = [];
         const receipt = () => stage.querySelector(".receipt");
         const proposal = () => stage.querySelector(".proposal");
         const result = () => stage.querySelector(".plan-result");
         const status = () => stage.querySelector(".status");
+        const bar = stage.querySelector(".appbar");
+        const done = document.createElement("button");
+        done.className = "quiet history-count done-count";
+        done.hidden = true;
+        const waiting = document.createElement("button");
+        waiting.className = "quiet history-count waiting-count";
+        waiting.hidden = true;
+        bar.insertBefore(done, bar.querySelector(".open-spotlight"));
+        bar.insertBefore(waiting, done);
+        function counts() {
+          const settled = records.filter((r) => r.state === "done").length;
+          const pending = records.filter((r) => r.state === "waiting").length;
+          done.hidden = !settled;
+          done.textContent = `Done (${settled})`;
+          waiting.hidden = !pending;
+          waiting.textContent = `Waiting (${pending})`;
+        }
+        function saveRecord(state) {
+          const key = second ? "recorder" : "readiness";
+          const record = {
+            key,
+            second,
+            title: second
+              ? "Who records the outcome?"
+              : "Should the whole item wait?",
+            answer: selected,
+            state,
+          };
+          records = records.filter((r) => r.key !== key);
+          records.push(record);
+          counts();
+        }
+        function openHistory(state) {
+          stage.querySelector(".answer-history")?.remove();
+          const panel = document.createElement("section");
+          panel.className = "answer-history";
+          panel.setAttribute(
+            "aria-label",
+            state === "done"
+              ? "Completed questions"
+              : "Waiting for the planner",
+          );
+          panel.innerHTML = `<header><h3>${state === "done" ? "Completed questions" : "Waiting for the planner"}</h3><button class="close-history">Back to active work</button></header>`;
+          for (const record of records.filter((r) => r.state === state)) {
+            const row = document.createElement("article");
+            const heading = document.createElement("h3");
+            heading.textContent = record.title;
+            const detail = document.createElement("details");
+            const summary = document.createElement("summary");
+            summary.textContent = "Read saved answer";
+            const text = document.createElement("p");
+            text.textContent = record.answer;
+            detail.append(summary, text);
+            const reopen = document.createElement("button");
+            reopen.className = "quiet";
+            reopen.textContent = "Reopen question";
+            reopen.onclick = () => {
+              records = records.filter((r) => r !== record);
+              counts();
+              second = record.second;
+              stage.classList.remove("answered", "put-away");
+              proposal().hidden = true;
+              if (stage.dataset.demo === "focus") setFocusQuestion();
+              receipt().textContent =
+                "Reopened. The accepted plan stays unchanged until you apply a new proposal.";
+              stage.querySelector("textarea").value = record.answer;
+              stage
+                .querySelector("textarea")
+                .closest("details")
+                ?.setAttribute("open", "");
+              status().textContent = "Needs your answer";
+              panel.remove();
+              stage.querySelector("textarea").focus();
+            };
+            row.append(heading, detail, reopen);
+            panel.append(row);
+          }
+          stage.append(panel);
+          panel.querySelector(".close-history").onclick = () => {
+            panel.remove();
+            (state === "done" ? done : waiting).focus();
+          };
+          panel.querySelector(".close-history").focus();
+        }
+        done.onclick = () => openHistory("done");
+        waiting.onclick = () => openHistory("waiting");
         function answer(value, free = false) {
           selected = value;
           custom = free;
-          receipt().textContent = free
-            ? `Your answer: “${value}”. Saved in this demo. Waiting for a planner response.`
-            : `Your answer: “${value}”. Demo planner proposes: ${nextQuestion ? "The planner records the human decision and updates the affected rule." : rules[value]}`;
+          stage.classList.add("answered");
           proposal().hidden = free;
-          status().textContent = free
-            ? "Answer saved · Waiting for reply"
-            : "Proposed change · Review before applying";
-          stage
-            .querySelectorAll(".branch")
-            .forEach((b) =>
-              b.classList.toggle("chosen", b.dataset.branch === value),
+          if (free) {
+            saveRecord("waiting");
+            stage.classList.add("put-away");
+            receipt().textContent = `Your answer: “${value}”. Saved in this demo. Waiting for a planner response.`;
+            status().textContent = "Answer saved · Waiting for reply";
+          } else {
+            receipt().textContent = `Proposed rule: ${second ? (value === "The planner records it" ? "The planner records the human decision and updates affected requirements." : "The implementer records the decision before starting dependent work.") : rules[value]}`;
+            status().textContent = "Review proposed change";
+          }
+        }
+        function setFocusQuestion() {
+          stage.querySelector(".focus-main h2").textContent = second
+            ? "Who should record a human decision in the plan?"
+            : "Should a pending human decision stop the whole work item?";
+          stage.querySelector(".focus-main > p").textContent = second
+            ? "I recommend the planner records your answer and updates the affected requirements."
+            : "I recommend waiting for the whole item. Other ready items can still proceed.";
+          stage.querySelector(".focus-main .eyebrow").textContent = second
+            ? "Your next decision · 2 of 3"
+            : "Your next decision · 1 of 3";
+          const buttons = stage.querySelectorAll("[data-answer]");
+          buttons[0].textContent = second
+            ? "The planner records it"
+            : "Wait for the whole item · Recommended";
+          buttons[1].textContent = second
+            ? "The implementer records it"
+            : "Allow work that does not depend on it";
+          buttons[0].onclick = () =>
+            answer(
+              second ? "The planner records it" : "Wait for the whole item",
             );
+          buttons[1].onclick = () =>
+            answer(
+              second ? "The implementer records it" : "Allow independent work",
+            );
+          stage.querySelector(".skip").hidden = second;
+          stage.querySelector(".focus-next").innerHTML =
+            '<div class="eyebrow">Coming next</div><p>When is the item complete?</p>';
         }
         stage
           .querySelectorAll("[data-answer]")
@@ -1708,45 +1990,23 @@
           (f) =>
             (f.onsubmit = (e) => {
               e.preventDefault();
-              const t = f.querySelector("textarea");
-              if (t.value.trim()) answer(t.value.trim(), true);
+              const text = f.querySelector("textarea").value.trim();
+              if (text) answer(text, true);
             }),
         );
         stage
           .querySelector("[data-focus-reply]")
-          ?.addEventListener("click", () =>
-            stage.querySelector("textarea").focus(),
-          );
-        function advance() {
-          nextQuestion = true;
-          stage.querySelector(".focus-main h2").textContent =
-            "Who should record a human decision in the plan?";
-          stage.querySelector(".focus-main > p").textContent =
-            "I recommend the planner records your answer and updates the affected requirements.";
-          stage.querySelector(".focus-main .eyebrow").textContent =
-            "Your next decision · 2 of 3";
-          const buttons = stage.querySelectorAll("[data-answer]");
-          buttons[0].textContent = "The planner records it";
-          buttons[1].textContent = "The implementer records it";
-          buttons[0].onclick = () => {
-            answer("Wait for the whole item");
-            receipt().textContent =
-              "Your answer: The planner records it. Demo planner proposes: The planner records the human decision and updates the affected rule.";
-          };
-          buttons[1].onclick = () => {
-            answer("Allow independent work");
-            receipt().textContent =
-              "Your answer: The implementer records it. Demo planner proposes: The implementer records the human decision before starting dependent work.";
-          };
-          stage.querySelector(".focus-next").innerHTML =
-            '<div class="eyebrow">Coming next</div><p>When is the item complete?</p>';
-          stage.querySelector(".skip").hidden = true;
-        }
+          ?.addEventListener("click", () => {
+            if (stage.classList.contains("put-away"))
+              openHistory(
+                records.some((r) => r.state === "done") ? "done" : "waiting",
+              );
+            else stage.querySelector("textarea").focus();
+          });
         stage.querySelector(".apply").onclick = () => {
           if (custom) return;
-          const second = nextQuestion;
           const wording = second
-            ? selected === "Wait for the whole item"
+            ? selected === "The planner records it"
               ? "The planner records the human decision and updates affected requirements."
               : "The implementer records the decision before starting dependent work."
             : rules[selected];
@@ -1759,40 +2019,47 @@
             }
             record.textContent = wording;
           } else result().textContent = wording;
-          receipt().textContent = `Plan updated in this demo. Your answer: ${second ? (selected === "Wait for the whole item" ? "The planner records it" : "The implementer records it") : selected}.`;
-          status().textContent = "Plan updated · 2 decisions open";
+          if (stage.dataset.demo === "branch") {
+            let accepted = stage.querySelector(".accepted-branch");
+            if (!accepted) {
+              accepted = document.createElement("article");
+              accepted.className = "paper accepted-branch";
+              stage.querySelector(".world").prepend(accepted);
+            }
+            accepted.innerHTML =
+              '<div class="eyebrow">Current plan</div><h2>Work item readiness</h2><p></p>';
+            accepted.querySelector("p").textContent = wording;
+          }
+          saveRecord("done");
           proposal().hidden = true;
-          const undo = document.createElement("button");
-          undo.className = "quiet";
-          undo.textContent = "Undo demo changes";
-          undo.onclick = reset;
-          receipt().append(" ", undo);
-          if (stage.dataset.demo === "focus" && !second) advance();
-          if (second) {
-            status().textContent = deferred
-              ? "Plan updated · 2 decisions open"
-              : "Plan updated · 1 decision open";
-            receipt().append(" End of interactive sample.");
+          receipt().textContent = "";
+          stage.classList.add("put-away");
+          status().textContent = "Plan updated";
+          if (stage.dataset.demo === "focus" && !second) {
+            second = true;
+            stage.classList.remove("answered", "put-away");
+            stage.querySelector("textarea").value = "";
+            setFocusQuestion();
           }
         };
         function reset() {
+          stage.classList.remove("answered", "put-away");
           stage.innerHTML = original;
           bindDemo(stage);
         }
         stage.querySelector(".reset").onclick = reset;
         stage.querySelector(".skip")?.addEventListener("click", () => {
           deferred = true;
-          advance();
+          second = true;
+          setFocusQuestion();
           status().textContent = "First decision left open";
           receipt().textContent =
-            "The readiness question stays open. You can return with Reset demo.";
+            "The readiness question remains open. Reset demo to return.";
         });
         stage.querySelector(".map-next")?.addEventListener("click", () => {
-          const n = stage.querySelector(".node-d");
-          n.innerHTML =
-            '<div class="eyebrow">Follow-up question</div><h3>Who records the outcome?</h3><p>The planner can record your answer, then propose updates to the affected requirements.</p><p class="small">Preview only. Reset demo to return to the decision map.</p>';
+          stage.querySelector(".node-d").innerHTML =
+            '<div class="eyebrow">Follow-up question</div><h3>Who records the outcome?</h3><p>The planner can record your answer and propose updates to affected requirements.</p><p class="small">Preview only. Reset demo to return.</p>';
         });
-        let scale = 1;
         stage.querySelectorAll("[data-zoom]").forEach(
           (b) =>
             (b.onclick = () => {
@@ -1816,6 +2083,13 @@
       document.querySelectorAll("[data-demo]").forEach(bindDemo);
       show((Number(location.hash.slice(1)) || 1) - 1);
 
+      document.querySelectorAll(".demo-consent").forEach(
+        (button) =>
+          (button.onclick = () => {
+            document.querySelector(".consent-result").textContent =
+              `Demo choice: ${button.textContent}. No external action was taken.`;
+          }),
+      );
       let activeSpotlight = null;
       function openSpotlight(stage, trigger) {
         if (activeSpotlight) return;

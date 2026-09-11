@@ -2,7 +2,7 @@
 
 Status: design exploration. No option is selected and this PR changes no application behavior.
 
-Open [the self-contained presentation](presentation.html) in a browser. It contains eight slides, four interactive mockups, a comparison, and shared interaction rules. The presentation uses sample planning content from the supplied screenshot about work item readiness. It does not connect to a live planning session.
+Open [the self-contained presentation](presentation.html) in a browser. It contains nine slides, four interactive mockups, a comparison, and shared interaction rules. The presentation uses sample planning content from the supplied screenshot about work item readiness. It does not connect to a live planning session.
 
 ## The problem to solve
 
@@ -30,7 +30,7 @@ The plan is a readable document on the canvas. Questions appear beside the passa
 2. The person reads the rule and answers in the adjacent margin.
 3. The answer stays visible. The agent proposes replacement wording next to the original passage.
 4. The person accepts the edit or explains what is wrong. The accepted wording becomes the current plan.
-5. The discussion collapses to a small marker and remains accessible from that passage.
+5. The completed discussion leaves the active canvas and remains accessible through Done.
 
 The mockup demonstrates a suggested answer, a simulated proposal, an applied rule, and reset. A custom answer shows a waiting state. It does not invent a response to arbitrary text.
 
@@ -142,6 +142,61 @@ Treat concise output as part of the agent/browser contract, not a CSS cleanup. A
 
 Add a review task: ask for a short before/after JSON example, then verify that the first visible content contains the relevant JSON and no repeated title. A person should be able to find the difference without expanding history or reading implementation bookkeeping. Also test a complex answer whose essential caveat must remain visible.
 
+## Completed work leaves the active workspace
+
+The third screenshot shows an answered question still occupying a large card, including the original choices and an empty editor. “Add or revise your answer” is the only completion cue. The person has already done this work and almost never needs to revisit it. A different caption or a smaller badge is insufficient.
+
+Default to **needs my attention**. After a successful save, remove the question's answer editor and choices from active view. Waiting questions live behind a quiet Waiting count. After the proposed plan change is accepted, put the question behind Done. Keep the accepted plan content visible; hide the completed discussion and obsolete alternatives. Do not retain a row of collapsed cards, reserve their old heights, or maintain a permanent completed-work column.
+
+The distinction matters: the human's answer can be finished while the planner has not replied. Moving a question out of active work does not declare its underlying decision resolved. A saved answer, a waiting planner response, a proposal requiring review, and a completed decision remain separate facts.
+
+The revised mockups demonstrate this in each concept:
+
+| Concept           | What disappears                                              | What remains                                                      |
+| ----------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Plan with margins | Answer editor, choices, then the settled margin discussion   | Current plan text and a quiet Done count                          |
+| Decision map      | Completed question and its discussion; no placeholder node   | Current affected rules and other active questions                 |
+| Alternate plans   | Competing candidate documents after selection and acceptance | Accepted rule and Done access to the answer                       |
+| Guided focus      | Finished question and editor                                 | Next question with current plan context; Done holds prior answers |
+
+Done opens a separate history view. Each entry initially shows its question title, Read saved answer, and Reopen question. Reading is not reopening. Back restores the active canvas. Reopening restores that question and its answer for revision, but does not undo the accepted plan. A later accepted proposal updates the plan separately. The prototype retains the latest saved answer per example question; full append-only history is a production requirement.
+
+When the agent asks a genuine follow-up or a failed operation needs action, return the item to active work with a short reason such as “One follow-up.” Do not reactivate it for a connection event, acknowledgement, or background refresh. Keep failed drafts in place. Uncertain saves must remain distinguishable from completed answers until their receipt is confirmed.
+
+After completion, use the released space for active work. Preserve the location of any other item being read or edited; do not animate a large automatic rearrangement around the user. When no active questions remain, show “Nothing needs your answer” and small Waiting/Done controls. Do not fill the empty canvas with archived work. Removing the completed content is the important feedback, with a brief accessible announcement confirming the save.
+
+Acceptance checks:
+
+- Save a custom answer. Its form and choices disappear; the saved answer is available in Waiting.
+- Accept a suggested plan change. The completed question disappears and Done increases. The accepted rule stays readable.
+- Finish 20 questions. Active layout and Fit do not reserve space for those 20 questions.
+- Read a completed answer and return. The question stays completed and the active view is unchanged.
+- Reopen it explicitly. Its saved answer is restored and editable; the current plan is unchanged until a new proposal is accepted.
+- Receive an acknowledgement, then a genuine follow-up. Only the follow-up returns the question to active attention.
+- Fail a save. Preserve the draft and keep the question active. Do not announce Done.
+
+This is required in the first implementation slice of every concept, alongside independent document reading size. It replaces the earlier proposal to leave small discussion markers scattered throughout the default canvas. Historical markers may appear in an explicitly selected history mode.
+
+## Put the requested decision before the recap
+
+The fourth screenshot combines attachment navigation, several accepted plan rules, implementation details, scope exclusions, a publication question, and privacy information in one paragraph. The publication question is the current task. The accepted rules belong in the plan and the other material should not precede that question.
+
+The presentation's Question slide gives a concrete rewrite:
+
+> Draft, review, and publish the implementation issues?
+>
+> Repository: alundgren/irudd-plan
+>
+> Issue descriptions will be visible to repository readers. The detailed plan stays private; the issues link to it.
+
+Offer separate, explicit choices: Draft, review, and publish; Prepare drafts for my review; Revise the design first. Put the recap and examples behind “Review the plan changes and examples.” The presentation controls only record a local sample choice. They do not authorize or perform issue publication.
+
+Keep material consequences visible. In particular, do not shorten a publication choice to “Continue” or hide the destination and exposure of the issue content in a disclosure. When the real action is irreversible or externally visible, the person must still understand its scope from the active question. The illustration does not establish that the actual draft issues are ready; a production approval must link the concrete material being approved.
+
+Author one primary question per turn in the active discussion. Lead with that question or the actual answer. Move already accepted facts into the current plan, link supporting evidence, and keep internal bookkeeping out of the human response unless it affects their decision. Use a short list when several genuinely separate facts are necessary. Do not turn the same oversized paragraph into a new stack of subheadings or cards.
+
+Review with realistic long agent output: can the person identify the requested decision and its consequence from the first screen? Can they retrieve the supporting facts without losing the question? Are any essential caveats hidden? The renderer should support semantic content such as a question, choices, supporting detail, and linked plan content. It should not try to guess which sentence in arbitrary prose is safe to hide.
+
 ## Recommendation and selection exercise
 
 Test Plan with margins first, then Alternate plans. The first keeps the plan visible while changing it. The second gives difficult tradeoffs enough room. Test the concepts separately before choosing a combination; otherwise it will be hard to learn which interaction helped.
@@ -211,21 +266,23 @@ Deliver one end-to-end slice for the chosen concept, including save failure, sta
 
 ## Artifact scope and validation
 
-The HTML has no external fonts, libraries, network calls, or live application state. Suggested answers generate scripted example proposals. Custom replies only show a simulated saved/waiting state. Reset and Undo demo changes reset the local example. Reload loses all demo edits. These controls are for comparing interactions, not proving backend behavior.
+The HTML has no external fonts, libraries, network calls, or live application state. Suggested answers generate scripted example proposals. Custom replies only show a simulated saved/waiting state. Reset restores the local example. Done and Waiting hold the latest example answers, and Reopen restores an answer without reverting the plan. Reload loses all demo edits. These controls are for comparing interactions, not proving backend behavior.
 
 Validation on September 11, 2026:
 
-- Chromium at 1440 × 1000: all four suggested-answer/apply flows, custom-answer waiting states, reset, guided deferral, zoom, and eight-slide navigation passed without JavaScript errors.
+- Chromium at 1440 × 1000: all four suggested-answer/apply flows, custom-answer waiting states, reset, guided deferral, zoom, and nine-slide navigation passed without JavaScript errors.
 - Chromium at 390 × 844: every slide fits the page width. Desktop mockup canvases scroll internally; the temporary workspace uses vertically arranged documents.
 - Independent reading size changed only the selected JSON file from 16px to 20px. Widen and Back were exercised. Returning preserved the original canvas zoom, scroll coordinates, and unsent draft. Both per-concept and dedicated Workspace entry points passed.
 - Desktop screenshots of all four concepts and the temporary workspace were visually reviewed. The dedicated workspace was also inspected at phone width.
 - `vp run check` passed with 73 advisory warnings in existing source and test files. No application files were changed, so unrelated size and complexity refactoring is outside this exploration.
-- `vp run check:ci` passed, including after the concise-reply revision.
+- `vp run check:ci` passed, including after the completed-work and clear-question revisions.
+- Browser checks passed for completion, history reading without reopening, explicit reopening with the saved answer, and saved/waiting removal in all four concepts. All nine slides fit the phone viewport without page overflow.
+- The concrete publication-question rewrite records a local demo choice only. Its supporting recap starts collapsed.
 - The revised workspace starts with collapsed history and short JSON excerpts. Both excerpts and expanded examples parse as JSON. Switching back restores the excerpts.
 - The first `vp run test` printed 23 passing files and 118 passing tests, but the command exited 143. A second run also exited 143 before printing results. A clean test-command exit could not be confirmed; the cause of termination is unknown.
 
 ## Published presentation
 
-[View the presentation](https://repo-control.irudd.net/public/lyixbtufywtbtzpibbredgmnnybdocro/view) · [Download the HTML](https://repo-control.irudd.net/public/lyixbtufywtbtzpibbredgmnnybdocro/download)
+[View the presentation](https://repo-control.irudd.net/public/flebdcwyvjcgthpuyzvewsjokxjgexcl/view) · [Download the HTML](https://repo-control.irudd.net/public/flebdcwyvjcgthpuyzvewsjokxjgexcl/download)
 
-Repo Control artifact `lyixbtufywtbtzpibbredgmnnybdocro`, type `presentation`. Created September 11, 2026 at 04:11 UTC. The public links expire October 11, 2026 at 04:11 UTC. The HTML committed beside this document remains available after that expiry.
+Repo Control artifact `flebdcwyvjcgthpuyzvewsjokxjgexcl`, type `presentation`. Created September 11, 2026 at 04:18 UTC. The public links expire October 11, 2026 at 04:18 UTC. The HTML committed beside this document remains available after that expiry.

@@ -6,7 +6,9 @@ import { panTo } from "./canvas.js";
 async function expectReadingTop(page: Page) {
   await expect(page.locator(".plan-sheet.selected").first()).toBeInViewport();
   const selected = (await page.locator(".plan-sheet.selected").boundingBox())!;
-  const view = (await page.locator(".plan-viewport").boundingBox())!;
+  const view = (await page
+    .getByLabel("Plan canvas", { exact: true })
+    .boundingBox())!;
   expect(selected.width).toBeLessThanOrEqual(view.width);
 }
 
@@ -38,7 +40,7 @@ for (const width of [1280, 390]) {
       .locator('[data-section="item-1:goal"] .rich-text p')
       .first();
     await panTo(page, goal);
-    const viewport = page.locator(".plan-viewport");
+    const viewport = page.getByLabel("Plan canvas", { exact: true });
     const beforeSelection = await viewport.evaluate((el) =>
       String(
         new DOMMatrix(
@@ -158,7 +160,7 @@ test.describe("phone touch navigation", () => {
       .toBeCloseTo(before!.y - 250, 0);
     await expect(page.locator(".feedback-panel")).toHaveCount(0);
     const beforeTap = await page
-      .locator(".plan-viewport")
+      .getByLabel("Plan canvas", { exact: true })
       .evaluate((el) =>
         String(
           new DOMMatrix(
@@ -170,7 +172,7 @@ test.describe("phone touch navigation", () => {
     await expect(page.locator(".feedback-panel")).toBeVisible();
     expect(
       await page
-        .locator(".plan-viewport")
+        .getByLabel("Plan canvas", { exact: true })
         .evaluate((el) =>
           String(
             new DOMMatrix(
@@ -225,7 +227,7 @@ test("keeps the selected reading position when other items move and the viewport
   expect((await selected.boundingBox())?.y).toBeCloseTo(before!.y, 1);
   const relativeTop = async () =>
     (await selected.boundingBox())!.y -
-    (await page.locator(".plan-viewport").boundingBox())!.y;
+    (await page.getByLabel("Plan canvas", { exact: true }).boundingBox())!.y;
   const topBefore = await relativeTop();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
@@ -254,7 +256,7 @@ for (const selectionState of ["starting", "active"]) {
     const bounds = await text.boundingBox();
     if (bounds === null) throw new Error("Missing selectable text");
     const point = { x: bounds.x + 40, y: bounds.y + 20 };
-    const viewport = page.locator(".plan-viewport");
+    const viewport = page.getByLabel("Plan canvas", { exact: true });
     const before = await viewport.evaluate((el) =>
       String(
         new DOMMatrix(

@@ -35,7 +35,7 @@ export function useCanvasTouch(
       selecting = false;
       previous =
         (event.target as Element).closest(
-          "button, a, input, textarea, select, summary, iframe, [contenteditable]",
+          "button, a, input, textarea, select, summary, iframe, [contenteditable], [data-canvas-scroll]",
         ) && event.touches.length === 1
           ? undefined
           : point(event);

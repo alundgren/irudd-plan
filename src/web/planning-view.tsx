@@ -109,21 +109,23 @@ export function PlanningView({
         </div>
         <div className="planning-compose" data-planning-panel>
           <label htmlFor="planning-note">Add a thought or ask a question</label>
-          <textarea
-            id="planning-note"
-            value={note}
-            maxLength={40000}
-            onChange={(event) => setNote(event.target.value)}
-          />
-          <PlanningSaveAction
-            target={null}
-            label="Save note"
-            context="Add a thought or ask a question"
-            draft={note}
-            connected={connected}
-            save={save}
-            onSubmit={() => void submit(null)}
-          />
+          <div className="planning-editor" data-canvas-scroll>
+            <textarea
+              id="planning-note"
+              value={note}
+              maxLength={40000}
+              onChange={(event) => setNote(event.target.value)}
+            />
+            <PlanningSaveAction
+              target={null}
+              label="Save note"
+              context="Add a thought or ask a question"
+              draft={note}
+              connected={connected}
+              save={save}
+              onSubmit={() => void submit(null)}
+            />
+          </div>
           {recoveryMessage ? <p role="alert">{recoveryMessage}</p> : null}
           <p>
             Discussion stays in this private planning record. Implementation
@@ -235,26 +237,28 @@ function PlanningThread({
                 {choice}
               </Button>
             ))}
-            <textarea
-              aria-label={`Answer: ${entry.body}`}
-              value={draft}
-              maxLength={40000}
-              onChange={(event) => onChange(event.target.value)}
-              placeholder={
-                answered
-                  ? "Anything else you'd like to add?"
-                  : "Choose a suggestion or write your own answer"
-              }
-            />
-            <PlanningSaveAction
-              target={entry.id}
-              label={answered ? "Save follow-up" : "Save answer"}
-              context={entry.body}
-              draft={draft}
-              connected={connected}
-              save={save}
-              onSubmit={onSubmit}
-            />
+            <div className="planning-editor" data-canvas-scroll>
+              <textarea
+                aria-label={`Answer: ${entry.body}`}
+                value={draft}
+                maxLength={40000}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder={
+                  answered
+                    ? "Anything else you'd like to add?"
+                    : "Choose a suggestion or write your own answer"
+                }
+              />
+              <PlanningSaveAction
+                target={entry.id}
+                label={answered ? "Save follow-up" : "Save answer"}
+                context={entry.body}
+                draft={draft}
+                connected={connected}
+                save={save}
+                onSubmit={onSubmit}
+              />
+            </div>
           </fieldset>
         ) : null}
       </article>

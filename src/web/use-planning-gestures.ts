@@ -22,7 +22,7 @@ export function usePlanningGestures(
       if (
         !view ||
         (event.target as Element).closest(
-          "textarea, input, select, .planning-source-content, pre",
+          "textarea, input, select, [data-canvas-scroll], .planning-source-content, pre",
         )
       )
         return;
